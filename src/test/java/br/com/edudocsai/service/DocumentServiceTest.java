@@ -60,7 +60,7 @@ class DocumentServiceTest {
         GenerateDocumentRequest request = request();
         when(currentUserService.getCurrentUser()).thenReturn(user);
         when(bnccService.validateAndLoad(List.of(1L))).thenReturn(List.of(skill()));
-        when(promptTemplateService.buildPrompt(eq(DocumentType.LESSON_PLAN), anyList(), eq("Fracoes"), isNull()))
+        when(promptTemplateService.buildPrompt(eq(DocumentType.LESSON_PLAN), anyList(), eq("Fracoes"), eq("50 minutos"), isNull()))
                 .thenReturn("prompt");
         when(aiService.generate(DocumentType.LESSON_PLAN, "prompt"))
                 .thenReturn(new AiGeneratedDocument("Plano de aula", "{\"titulo\":\"Plano de aula\",\"tipo\":\"LESSON_PLAN\"}"));
@@ -100,7 +100,7 @@ class DocumentServiceTest {
     }
 
     private GenerateDocumentRequest request() {
-        return new GenerateDocumentRequest(DocumentType.LESSON_PLAN, List.of(1L), "Fracoes", null);
+        return new GenerateDocumentRequest(DocumentType.LESSON_PLAN, List.of(1L), "Fracoes", "50 minutos", null);
     }
 
     private User user() {

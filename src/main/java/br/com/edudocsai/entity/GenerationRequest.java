@@ -58,6 +58,15 @@ public class GenerationRequest {
     @Column(nullable = false, length = 180)
     private String topic;
 
+    @Column(length = 120)
+    private String grade;
+
+    @Column(length = 180)
+    private String subject;
+
+    @Column(length = 80)
+    private String duration;
+
     @Column(columnDefinition = "TEXT")
     private String additionalInstructions;
 

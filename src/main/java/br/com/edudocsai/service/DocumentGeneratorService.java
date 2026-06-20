@@ -2,6 +2,7 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.entity.GenerationRequest;
 import br.com.edudocsai.exception.BadRequestException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,8 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -25,15 +24,30 @@ public class DocumentGeneratorService {
     public byte[] generateDocx(Document document) {
         try (org.apache.poi.xwpf.usermodel.XWPFDocument docx = new org.apache.poi.xwpf.usermodel.XWPFDocument();
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            addTitle(docx, document.getTitle());
-            addParagraph(docx, labelFor(document.getType()), true);
             JsonNode root = objectMapper.readTree(document.getContent());
-            renderNode(docx, "Conteudo", root, 0);
+            renderOfficialTemplate(docx, document, root);
             docx.write(output);
             return output.toByteArray();
         } catch (IOException exception) {
             throw new BadRequestException("Nao foi possivel exportar DOCX");
         }
+    }
+
+    private void renderOfficialTemplate(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            Document document,
+            JsonNode root
+    ) {
+        addTitle(docx, officialTitle(document.getType()));
+        addInstitutionalHeader(docx, document.getGenerationRequest());
+        addNumberedSection(docx, "1. OBJETIVO DA AULA", text(root, "objective", "objetivo"));
+        addListSection(docx, "2. HABILIDADES BNCC", root.path("bncc_alignment"), root.path("habilidadesBncc"));
+        addNumberedSection(docx, "3. METODOLOGIA", text(root, "methodology", "metodologia"));
+        addListSection(docx, "4. ATIVIDADES DETALHADAS", root.path("activities"), root.path("atividades"));
+        addListSection(docx, "5. RECURSOS DIDATICOS", root.path("resources"), root.path("recursos"));
+        addNumberedSection(docx, "6. AVALIACAO", text(root, "assessment", "avaliacao"));
+        addNumberedSection(docx, "7. CONTEUDO DETALHADO", text(root, "detailed_content", "conteudoDetalhado"));
+        addNumberedSection(docx, "8. OBSERVACOES DO PROFESSOR", text(root, "teacher_notes", "observacoesProfessor"));
     }
 
     private void addTitle(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String title) {
@@ -45,31 +59,34 @@ public class DocumentGeneratorService {
         run.setText(title);
     }
 
-    private void renderNode(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String label, JsonNode node, int depth) {
-        if (node == null || node.isNull()) {
-            return;
-        }
-        if (node.isObject()) {
-            addParagraph(docx, humanize(label), depth <= 1);
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> field = fields.next();
-                renderNode(docx, field.getKey(), field.getValue(), depth + 1);
-            }
+    private void addInstitutionalHeader(org.apache.poi.xwpf.usermodel.XWPFDocument docx, GenerationRequest request) {
+        addParagraph(docx, "Escola: __________________________", false);
+        addParagraph(docx, "Professor(a): ____________________", false);
+        addParagraph(docx, "Ano/Serie: " + valueOrLine(request == null ? null : request.getGrade()), false);
+        addParagraph(docx, "Disciplina: " + valueOrLine(request == null ? null : request.getSubject()), false);
+        addParagraph(docx, "Data: ____/____/____", false);
+        addParagraph(docx, "Duracao: " + valueOrLine(request == null ? null : request.getDuration()), false);
+    }
+
+    private void addNumberedSection(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String heading, String body) {
+        addParagraph(docx, heading, true);
+        addParagraph(docx, valueOrLine(body), false);
+    }
+
+    private void addListSection(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String heading, JsonNode primary, JsonNode fallback) {
+        addParagraph(docx, heading, true);
+        JsonNode node = primary != null && !primary.isMissingNode() && !primary.isNull() ? primary : fallback;
+        if (node == null || node.isMissingNode() || node.isNull() || (node.isArray() && node.isEmpty())) {
+            addParagraph(docx, "____________________________", false);
             return;
         }
         if (node.isArray()) {
-            addParagraph(docx, humanize(label), depth <= 1);
             for (JsonNode item : node) {
-                if (item.isValueNode()) {
-                    addParagraph(docx, "- " + item.asText(), false);
-                } else {
-                    renderNode(docx, "item", item, depth + 1);
-                }
+                addParagraph(docx, "- " + nodeText(item), false);
             }
             return;
         }
-        addParagraph(docx, humanize(label) + ": " + node.asText(), false);
+        addParagraph(docx, nodeText(node), false);
     }
 
     private void addParagraph(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String text, boolean bold) {
@@ -80,20 +97,42 @@ public class DocumentGeneratorService {
         run.setText(text);
     }
 
-    private String labelFor(DocumentType type) {
+    private String officialTitle(DocumentType type) {
         return switch (type) {
-            case LESSON_PLAN -> "Plano de aula";
-            case EXAM -> "Prova";
-            case RUBRIC -> "Rubrica";
-            case REPORT -> "Relatorio pedagogico";
+            case LESSON_PLAN -> "PLANO DE AULA";
+            case EXAM -> "PROVA";
+            case RUBRIC -> "RUBRICA AVALIATIVA";
+            case REPORT -> "RELATORIO PEDAGOGICO";
         };
     }
 
-    private String humanize(String value) {
-        if (value == null || value.isBlank() || "item".equals(value)) {
+    private String text(JsonNode root, String primary, String fallback) {
+        String value = root.path(primary).asText(null);
+        if (value == null || value.isBlank()) {
+            JsonNode fallbackNode = root.path(fallback);
+            if (fallbackNode.isTextual()) {
+                value = fallbackNode.asText();
+            } else if (!fallbackNode.isMissingNode() && !fallbackNode.isNull()) {
+                value = nodeText(fallbackNode);
+            }
+        }
+        return value;
+    }
+
+    private String nodeText(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
             return "";
         }
-        String spaced = value.replaceAll("([a-z])([A-Z])", "$1 $2").replace('_', ' ');
-        return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
+        if (node.isTextual() || node.isNumber() || node.isBoolean()) {
+            return node.asText();
+        }
+        if (node.has("code") && node.has("description")) {
+            return node.path("code").asText() + " - " + node.path("description").asText();
+        }
+        return node.toString();
+    }
+
+    private String valueOrLine(String value) {
+        return value == null || value.isBlank() ? "____________________________" : value.trim();
     }
 }

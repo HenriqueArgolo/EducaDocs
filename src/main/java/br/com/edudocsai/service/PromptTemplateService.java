@@ -2,124 +2,164 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.entity.DocumentType;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class PromptTemplateService {
-
-    private final ObjectMapper objectMapper;
 
     public String buildPrompt(
             DocumentType documentType,
             List<BNCCSkill> bnccSkills,
             String topic,
+            String duration,
             String additionalInstructions
     ) {
         return """
-                Voce e um especialista brasileiro em documentos pedagogicos.
+                Voce e um especialista em pedagogia brasileira e planejamento educacional alinhado ao Curriculo Nacional da Educacao Basica (BNCC).
 
-                REGRAS OBRIGATORIAS:
-                - Use somente as habilidades BNCC fornecidas pelo backend no bloco BNCC_VALIDADA.
-                - Nao invente codigos, descricoes, anos, componentes curriculares ou competencias da BNCC.
-                - Se precisar citar BNCC, cite exatamente os codigos e descricoes recebidos.
-                - Use linguagem pedagogica brasileira formal, clara e adequada a professores.
-                - Responda apenas com JSON valido, sem markdown, sem comentarios e sem texto fora do JSON.
+                Sua tarefa e gerar um documento pedagogico completo e pronto para uso em escolas brasileiras.
 
-                TIPO_DOCUMENTO: %s
-                TEMA: %s
-                INSTRUCOES_ADICIONAIS: %s
+                ## REGRAS CRITICAS (OBRIGATORIO)
+                - NUNCA invente codigos BNCC.
+                - Use SOMENTE as habilidades fornecidas no contexto.
+                - Nao crie competencias ou habilidades inexistentes.
+                - Linguagem formal, tecnica e apropriada para documentos oficiais escolares.
+                - Estrutura deve estar pronta para ser usada sem edicao significativa.
+                - Sempre alinhar o conteudo a BNCC e a pratica pedagogica brasileira.
+                - Retorne apenas JSON valido, sem markdown e sem texto fora do JSON.
 
-                BNCC_VALIDADA:
+                ---
+
+                ## CONTEXTO BNCC (FORNECIDO PELO SISTEMA)
+
+                Ano escolar: %s
+
+                Disciplina: %s
+
+                Habilidades BNCC:
                 %s
 
-                ESTRUTURA_JSON_OBRIGATORIA:
+                ---
+
+                ## DADOS DO PROFESSOR
+
+                Tema: %s
+
+                Tipo de documento: %s
+                (opcoes: PLANO_DE_AULA, PROVA, RUBRICA, RELATORIO)
+
+                Tempo de aula: %s
+
+                Contexto adicional:
                 %s
+
+                Orientacao especifica por tipo de documento:
+                %s
+
+                ---
+
+                ## OBJETIVO
+
+                Gerar um documento pedagogico completo, estruturado e pronto para uso em escola publica ou privada no Brasil.
+
+                ---
+
+                ## ESTRUTURA OBRIGATORIA DE SAIDA
+
+                RETORNE O RESULTADO EM JSON ESTRUTURADO:
+
+                {
+                  "title": "",
+                  "objective": "",
+                  "bncc_alignment": [],
+                  "methodology": "",
+                  "activities": [],
+                  "resources": [],
+                  "assessment": "",
+                  "detailed_content": "",
+                  "teacher_notes": ""
+                }
+
+                ---
+
+                ## REGRAS DE QUALIDADE
+
+                - Objetivos claros e mensuraveis.
+                - Atividades progressivas no formato inicio, desenvolvimento e fechamento.
+                - Metodologia alinhada a pratica construtivista/interativa.
+                - Avaliacao coerente com BNCC.
+                - Linguagem natural, nao robotica.
+                - Conteudo aplicavel em sala de aula real.
+
+                ---
+
+                ## IMPORTANTE
+
+                Se faltar informacao:
+                - nao invente BNCC.
+                - use apenas o que foi fornecido.
+                - adapte o texto sem criar dados novos.
+
+                Agora gere o documento completo.
                 """.formatted(
-                documentType.name(),
+                summarizeGrades(bnccSkills),
+                summarizeSubjects(bnccSkills),
+                formatBnccSkills(bnccSkills),
                 topic,
+                documentTypeForPrompt(documentType),
+                blankToDefault(duration, "50 minutos"),
                 blankToDefault(additionalInstructions, "Nenhuma."),
-                serializeBncc(bnccSkills),
                 jsonStructureFor(documentType)
         );
     }
 
-    private String serializeBncc(List<BNCCSkill> skills) {
-        List<Map<String, Object>> safeSkills = skills.stream()
-                .map(skill -> Map.<String, Object>of(
-                        "id", skill.getId(),
-                        "code", skill.getCode(),
-                        "description", skill.getDescription(),
-                        "subject", skill.getSubject(),
-                        "grade", skill.getGrade()
-                ))
-                .toList();
-        try {
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(safeSkills);
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Falha ao serializar BNCC validada", exception);
-        }
+    private String formatBnccSkills(List<BNCCSkill> skills) {
+        return skills.stream()
+                .map(skill -> "- %s - %s".formatted(skill.getCode(), skill.getDescription()))
+                .collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+    private String summarizeGrades(List<BNCCSkill> skills) {
+        return summarize(skills.stream().map(BNCCSkill::getGrade).toList());
+    }
+
+    private String summarizeSubjects(List<BNCCSkill> skills) {
+        return summarize(skills.stream().map(BNCCSkill::getSubject).toList());
+    }
+
+    private String summarize(List<String> values) {
+        String joined = values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(", "));
+        return joined.isBlank() ? "Nao informado" : joined;
+    }
+
+    private String documentTypeForPrompt(DocumentType documentType) {
+        return switch (documentType) {
+            case LESSON_PLAN -> "PLANO_DE_AULA";
+            case EXAM -> "PROVA";
+            case RUBRIC -> "RUBRICA";
+            case REPORT -> "RELATORIO";
+        };
     }
 
     private String jsonStructureFor(DocumentType documentType) {
         return switch (documentType) {
             case LESSON_PLAN -> """
-                    {
-                      "titulo": "Plano de aula: <tema>",
-                      "tipo": "LESSON_PLAN",
-                      "habilidadesBncc": [{"id": 0, "code": "", "description": "", "subject": "", "grade": ""}],
-                      "conteudo": {
-                        "objetivos": [],
-                        "conteudos": [],
-                        "metodologia": [],
-                        "recursos": [],
-                        "desenvolvimento": [{"etapa": "", "tempoMinutos": 0, "descricao": ""}],
-                        "avaliacao": [],
-                        "adaptacoes": []
-                      }
-                    }
+                    Plano de aula deve conter objetivo, metodologia, atividades progressivas, recursos, avaliacao e notas ao professor.
                     """;
             case EXAM -> """
-                    {
-                      "titulo": "Prova: <tema>",
-                      "tipo": "EXAM",
-                      "habilidadesBncc": [{"id": 0, "code": "", "description": "", "subject": "", "grade": ""}],
-                      "conteudo": {
-                        "orientacoes": "",
-                        "questoes": [{"numero": 1, "enunciado": "", "tipo": "objetiva|discursiva", "alternativas": [], "gabarito": "", "criterioCorrecao": ""}]
-                      }
-                    }
+                    Prova deve conter orientacoes, questoes, criterios de correcao e alinhamento BNCC em texto pronto para aplicacao.
                     """;
             case RUBRIC -> """
-                    {
-                      "titulo": "Rubrica: <tema>",
-                      "tipo": "RUBRIC",
-                      "habilidadesBncc": [{"id": 0, "code": "", "description": "", "subject": "", "grade": ""}],
-                      "conteudo": {
-                        "criterios": [{"criterio": "", "iniciante": "", "emDesenvolvimento": "", "proficiente": "", "avancado": ""}],
-                        "orientacoesUso": ""
-                      }
-                    }
+                    Rubrica deve conter criterios observaveis, niveis de desempenho e orientacoes de uso pelo professor.
                     """;
             case REPORT -> """
-                    {
-                      "titulo": "Relatorio pedagogico: <tema>",
-                      "tipo": "REPORT",
-                      "habilidadesBncc": [{"id": 0, "code": "", "description": "", "subject": "", "grade": ""}],
-                      "conteudo": {
-                        "contexto": "",
-                        "observacoes": [],
-                        "analisePedagogica": "",
-                        "recomendacoes": [],
-                        "proximosPassos": []
-                      }
-                    }
+                    Relatorio deve conter contexto, analise pedagogica, observacoes, recomendacoes e proximos passos.
                     """;
         };
     }

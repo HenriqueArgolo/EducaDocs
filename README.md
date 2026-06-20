@@ -73,6 +73,7 @@ Content-Type: application/json
   "documentType": "LESSON_PLAN",
   "bnccSkillIds": [1],
   "topic": "Frações equivalentes",
+  "duration": "50 minutos",
   "additionalInstructions": "Inclua atividade em duplas e avaliação formativa."
 }
 ```

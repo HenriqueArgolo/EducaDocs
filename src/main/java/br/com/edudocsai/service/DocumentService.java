@@ -45,6 +45,9 @@ public class DocumentService {
                 .documentType(request.documentType())
                 .bnccSkillIds(request.bnccSkillIds())
                 .topic(request.topic().trim())
+                .grade(summarizeGrades(bnccSkills))
+                .subject(summarizeSubjects(bnccSkills))
+                .duration(normalizeDuration(request.duration()))
                 .additionalInstructions(blankToNull(request.additionalInstructions()))
                 .build());
 
@@ -52,6 +55,7 @@ public class DocumentService {
                 request.documentType(),
                 bnccSkills,
                 request.topic().trim(),
+                normalizeDuration(request.duration()),
                 request.additionalInstructions()
         );
         log.info("Generating document userId={} type={} bnccCount={}", user.getId(), request.documentType(), bnccSkills.size());
@@ -122,5 +126,26 @@ public class DocumentService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeDuration(String duration) {
+        return duration == null || duration.isBlank() ? "50 minutos" : duration.trim();
+    }
+
+    private String summarizeGrades(List<BNCCSkill> skills) {
+        return summarize(skills.stream().map(BNCCSkill::getGrade).toList());
+    }
+
+    private String summarizeSubjects(List<BNCCSkill> skills) {
+        return summarize(skills.stream().map(BNCCSkill::getSubject).toList());
+    }
+
+    private String summarize(List<String> values) {
+        String joined = values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(", "));
+        return joined.isBlank() ? null : joined;
     }
 }
