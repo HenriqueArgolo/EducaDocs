@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+target/
+.mvn/wrapper/maven-wrapper.jar
+.idea/
+.vscode/
+*.iml
+*.log
+hs_err_pid*
+replay_pid*
