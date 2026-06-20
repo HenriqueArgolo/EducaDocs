@@ -1,0 +1,71 @@
+package br.com.edudocsai.service;
+
+import br.com.edudocsai.entity.BNCCSkill;
+import br.com.edudocsai.exception.BadRequestException;
+import br.com.edudocsai.exception.ConflictException;
+import br.com.edudocsai.repository.BNCCSkillRepository;
+import br.com.edudocsai.dto.bncc.BNCCSkillRequest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class BNCCServiceTest {
+
+    @Mock
+    private BNCCSkillRepository repository;
+
+    @InjectMocks
+    private BNCCService service;
+
+    @Test
+    void validateAndLoadReturnsSkillsInRequestedOrder() {
+        BNCCSkill first = skill(1L, "EF05MA03");
+        BNCCSkill second = skill(2L, "EF05LP01");
+        when(repository.findAllById(any())).thenReturn(List.of(second, first));
+
+        List<BNCCSkill> result = service.validateAndLoad(List.of(1L, 2L));
+
+        assertThat(result).extracting(BNCCSkill::getCode).containsExactly("EF05MA03", "EF05LP01");
+    }
+
+    @Test
+    void validateAndLoadRejectsMissingIds() {
+        when(repository.findAllById(any())).thenReturn(List.of(skill(1L, "EF05MA03")));
+
+        assertThatThrownBy(() -> service.validateAndLoad(List.of(1L, 99L)))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("99");
+    }
+
+    @Test
+    void createAllRejectsDuplicatedCode() {
+        when(repository.existsByCodeIgnoreCase("EF05MA03")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createAll(List.of(new BNCCSkillRequest(
+                "EF05MA03",
+                "Descricao",
+                "Matematica",
+                "5 ano"
+        )))).isInstanceOf(ConflictException.class);
+    }
+
+    private BNCCSkill skill(Long id, String code) {
+        return BNCCSkill.builder()
+                .id(id)
+                .code(code)
+                .description("Descricao")
+                .subject("Matematica")
+                .grade("5 ano")
+                .build();
+    }
+}

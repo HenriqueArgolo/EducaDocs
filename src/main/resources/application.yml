@@ -1,0 +1,51 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: edudocs-ai-api
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:edudocs}
+    username: ${POSTGRES_USER:edudocs}
+    password: ${POSTGRES_PASSWORD:edudocs_dev_password}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=6h
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    br.com.edudocsai: INFO
+
+edudocs:
+  security:
+    jwt-secret: ${JWT_SECRET:local-dev-jwt-secret-change-before-production-edu-docs-ai}
+    jwt-expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+  usage:
+    daily-generation-limit: ${APP_DAILY_GENERATION_LIMIT:20}
+  ai:
+    gemini:
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-1.5-flash}
+    openrouter:
+      base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
+      api-key: ${OPENROUTER_API_KEY:}
+      model: ${OPENROUTER_MODEL:deepseek/deepseek-chat}

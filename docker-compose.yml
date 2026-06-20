@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edudocs-ai-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-edudocs}
+      POSTGRES_USER: ${POSTGRES_USER:-edudocs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edudocs_dev_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - edudocs_ai_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edudocs} -d ${POSTGRES_DB:-edudocs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  edudocs_ai_postgres:
