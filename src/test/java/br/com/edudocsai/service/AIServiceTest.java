@@ -44,6 +44,32 @@ class AIServiceTest {
         assertThat(result.contentJson()).contains("\"tipo\" : \"RUBRIC\"");
     }
 
+    @Test
+    void generateJsonObjectReturnsStructuredJsonWithoutTitleOrTypeRequirement() throws Exception {
+        String lessonPlanContent = """
+                {
+                  "objectives": ["Identificar fracoes equivalentes"],
+                  "contents": ["Representacao de fracoes"],
+                  "methodology": {
+                    "introduction": {"durationMinutes": 10, "description": "Ativar conhecimentos previos"},
+                    "development": {"durationMinutes": 30, "description": "Resolver situacoes-problema"},
+                    "closing": {"durationMinutes": 10, "description": "Sistematizar aprendizagens"}
+                  },
+                  "resources": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
+                  "evaluation": {"observableCriteria": ["Identifica fracoes equivalentes"]}
+                }
+                """;
+        WebClient gemini = webClientReturning(geminiBody(lessonPlanContent));
+        WebClient openRouter = webClientFailing();
+        AIService service = new AIService(gemini, openRouter, properties(), objectMapper);
+
+        String result = service.generateJsonObject("prompt");
+
+        assertThat(result).contains("\"objectives\" :");
+        assertThat(result).doesNotContain("\"tipo\"");
+        assertThat(result).doesNotContain("\"titulo\"");
+    }
+
     private AiProperties properties() {
         return new AiProperties(
                 new AiProperties.Provider("https://gemini.example", "gemini-key", "gemini-1.5-flash"),

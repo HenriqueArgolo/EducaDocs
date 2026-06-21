@@ -53,6 +53,20 @@ public class AIService {
         }
     }
 
+    public String generateJsonObject(String prompt) {
+        try {
+            return normalizeJsonObject(callGemini(prompt));
+        } catch (RuntimeException primaryException) {
+            log.warn("Gemini provider failed. Falling back to OpenRouter. reason={}", primaryException.getMessage());
+            try {
+                return normalizeJsonObject(callOpenRouter(prompt));
+            } catch (RuntimeException fallbackException) {
+                log.warn("OpenRouter provider failed. reason={}", fallbackException.getMessage());
+                throw new AiProviderException("Falha ao gerar JSON estruturado com os provedores de IA", fallbackException);
+            }
+        }
+    }
+
     private String callGemini(String prompt) {
         AiProperties.Provider gemini = properties.gemini();
         if (!gemini.hasApiKey()) {
@@ -180,6 +194,21 @@ public class AIService {
             String title = firstNonBlank(root.path("titulo").asText(), root.path("title").asText(), "Documento pedagogico");
             String normalizedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
             return new AiGeneratedDocument(title, normalizedJson);
+        } catch (Exception exception) {
+            throw new AiProviderException("IA nao retornou JSON estruturado valido", exception);
+        }
+    }
+
+    private String normalizeJsonObject(String rawText) {
+        try {
+            String json = extractJsonObject(rawText);
+            JsonNode root = objectMapper.readTree(json);
+            if (!root.isObject()) {
+                throw new AiProviderException("IA nao retornou objeto JSON");
+            }
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+        } catch (AiProviderException exception) {
+            throw exception;
         } catch (Exception exception) {
             throw new AiProviderException("IA nao retornou JSON estruturado valido", exception);
         }
