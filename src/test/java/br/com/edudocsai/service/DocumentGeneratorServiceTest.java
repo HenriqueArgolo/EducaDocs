@@ -175,6 +175,7 @@ class DocumentGeneratorServiceTest {
         assertThat(text)
                 .contains("PLANO DE AULA")
                 .contains("Tema:")
+                .contains("KIT AULA COMPLETA")
                 .contains("ATIVIDADE DO ALUNO")
                 .contains("Linha do tempo das fracoes")
                 .contains("GABARITO DO PROFESSOR")

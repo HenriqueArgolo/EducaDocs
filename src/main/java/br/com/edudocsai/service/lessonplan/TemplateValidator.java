@@ -10,12 +10,20 @@ public class TemplateValidator {
 
     private static final Set<String> OBSERVABLE_VERBS = Set.of(
             "identificar", "reconhecer", "comparar", "analisar", "argumentar", "interpretar",
-            "resolver", "relacionar", "descrever", "explicar", "classificar", "avaliar"
+            "resolver", "relacionar", "descrever", "explicar", "classificar", "avaliar",
+            "representar", "utilizar", "registrar", "ordenar", "organizar", "produzir",
+            "selecionar", "elaborar", "calcular", "estimar", "formular", "construir",
+            "demonstrar", "justificar", "aplicar", "compreender"
     );
 
     private static final Set<String> CRITERION_ACTION_VERBS = Set.of(
             "identifica", "relaciona", "interpreta", "compara", "registra", "argumenta",
-            "resolve", "explica", "analisa", "descreve", "justifica", "aplica"
+            "resolve", "explica", "analisa", "descreve", "justifica", "aplica",
+            "participa", "reconhece", "ordena", "organiza", "produz", "seleciona",
+            "utiliza", "apresenta", "identificar", "relacionar", "interpretar",
+            "comparar", "registrar", "argumentar", "resolver", "explicar", "analisar",
+            "descrever", "justificar", "aplicar", "participar", "reconhecer", "ordenar",
+            "organizar", "produzir", "selecionar", "utilizar", "apresentar"
     );
 
     public void validate(LessonPlanContent content, int totalMinutes) {

@@ -66,6 +66,44 @@ class TemplateValidatorTest {
     }
 
     @Test
+    void acceptsObservableAssessmentCriteriaWrittenWithInfinitiveVerbs() {
+        LessonPlanContent content = new LessonPlanContent(
+                validContent().objectives(),
+                validContent().contents(),
+                validContent().methodology(),
+                validContent().resources(),
+                new Evaluation(List.of(
+                        "Capacidade de identificar fracoes equivalentes",
+                        "Capacidade de comparar representacoes fracionarias",
+                        "Capacidade de registrar estrategias de resolucao"
+                )),
+                validContent().kit()
+        );
+
+        assertThatCode(() -> validator.validate(content, 50))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void acceptsBnccStyleObservableObjectiveVerbs() {
+        LessonPlanContent content = new LessonPlanContent(
+                List.of(
+                        "Representar fracoes equivalentes utilizando recursos visuais",
+                        "Utilizar modelos concretos para comparar fracoes",
+                        "Compreender relacoes de equivalencia por meio de justificativas"
+                ),
+                validContent().contents(),
+                validContent().methodology(),
+                validContent().resources(),
+                validContent().evaluation(),
+                validContent().kit()
+        );
+
+        assertThatCode(() -> validator.validate(content, 50))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void rejectsStageSumDifferentFromTotalDuration() {
         assertThatThrownBy(() -> validator.validate(validContent(), 60))
                 .isInstanceOf(LessonPlanValidationException.class)

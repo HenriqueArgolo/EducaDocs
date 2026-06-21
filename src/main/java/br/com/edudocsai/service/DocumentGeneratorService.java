@@ -204,6 +204,7 @@ public class DocumentGeneratorService {
         if (kit == null || kit.isMissingNode() || kit.isNull()) {
             return;
         }
+        addParagraph(docx, "KIT AULA COMPLETA", true);
         addParagraph(docx, "ATIVIDADE DO ALUNO", true);
         JsonNode activity = kit.path("atividadeAluno");
         addLessonPlanTextSection(docx, "Titulo:", scalarText(activity.path("titulo")));

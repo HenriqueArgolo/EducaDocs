@@ -12,12 +12,14 @@ import br.com.edudocsai.repository.GenerationRequestRepository;
 import br.com.edudocsai.service.AIService;
 import br.com.edudocsai.service.BNCCService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LessonPlanGenerationService {
 
     private static final int MAX_ATTEMPTS = 3;
@@ -49,6 +51,13 @@ public class LessonPlanGenerationService {
                 finalJson = generateValidContentJson(context, skills, prompt);
                 break;
             } catch (RuntimeException exception) {
+                log.warn(
+                        "Lesson plan generation attempt failed attempt={} topic={} reason={}",
+                        attempt,
+                        context.topic(),
+                        exception.getMessage(),
+                        exception
+                );
                 lastFailure = exception;
             }
         }
