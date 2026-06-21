@@ -143,7 +143,8 @@ Responsibilities:
 - Reject missing fields.
 - Reject wrong field types.
 - Reject blank strings and empty required lists.
-- Reject any technical keys such as `code`, `description`, `stage`, `question_number`, or internal provider artifacts.
+- Reject technical keys such as `code`, `stage`, `question_number`, or internal provider artifacts.
+- Allow `description` only inside the canonical methodology stages, where it is the approved `LessonStage.description` field.
 
 ### TemplateValidator
 
