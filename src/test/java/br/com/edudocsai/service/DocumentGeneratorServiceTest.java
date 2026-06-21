@@ -117,6 +117,78 @@ class DocumentGeneratorServiceTest {
                 .doesNotContain("draft-internal-stage");
     }
 
+    @Test
+    void generateDocxRendersLessonPlanAndCompleteKit() {
+        Document document = Document.builder()
+                .id(2L)
+                .type(DocumentType.LESSON_PLAN)
+                .title("Plano de aula - Fracoes equivalentes")
+                .content("""
+                        {
+                          "tema": "Fracoes equivalentes",
+                          "disciplina": "Matematica",
+                          "ano": "5 ano",
+                          "habilidadesBncc": [{"codigo": "EF05MA03", "descricao": "Identificar fracoes equivalentes"}],
+                          "objetivosDeAprendizagem": ["Identificar fracoes equivalentes", "Comparar representacoes fracionarias", "Resolver problemas com fracoes"],
+                          "conteudo": ["Representacao de fracoes", "Equivalencia entre fracoes", "Resolucao de problemas"],
+                          "metodologia": {
+                            "introducao": {"tempoMinutos": 10, "descricao": "Ativar conhecimentos previos"},
+                            "desenvolvimento": {"tempoMinutos": 30, "descricao": "Resolver atividade em duplas"},
+                            "fechamento": {"tempoMinutos": 10, "descricao": "Sistematizar aprendizagens"}
+                          },
+                          "recursosDidaticos": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
+                          "avaliacao": {"criteriosObservaveis": ["Identifica fracoes equivalentes", "Compara representacoes", "Registra estrategias"]},
+                          "kitAulaCompleta": {
+                            "atividadeAluno": {
+                              "titulo": "Linha do tempo das fracoes",
+                              "contexto": "Organizar representacoes de fracoes para explicar equivalencias.",
+                              "orientacoes": ["Leia cada cartao de fracao", "Agrupe representacoes equivalentes", "Explique uma equivalencia encontrada"],
+                              "questoes": ["Quais fracoes representam a mesma parte?", "Como voce percebeu a equivalencia?", "Que estrategia ajudou na comparacao?"],
+                              "produtoEsperado": "Registro com grupos de fracoes equivalentes"
+                            },
+                            "gabaritoProfessor": {
+                              "respostasEsperadas": ["Fracoes equivalentes representam a mesma quantidade", "A comparacao deve usar desenho ou proporcionalidade", "A justificativa precisa explicar a relacao entre as fracoes"],
+                              "orientacoesProfessor": ["Valorizar estrategias visuais", "Pedir justificativas orais"]
+                            },
+                            "instrumentoAvaliativo": {
+                              "criterios": ["Identifica fracoes equivalentes", "Compara representacoes fracionarias", "Registra justificativas matematicas"],
+                              "coletaEvidencias": ["Recolher registros no caderno", "Anotar justificativas orais"]
+                            },
+                            "evidenciasPedagogicas": {
+                              "evidenciasObservaveis": ["Agrupamento correto de cartoes", "Uso de justificativas matematicas", "Participacao na discussao em grupo"],
+                              "registrosParaCoordenacao": ["Foto dos agrupamentos", "Amostra dos registros"]
+                            },
+                            "adaptacoesInclusivas": {
+                              "apoioLeitura": ["Cartoes com fonte ampliada", "Leitura compartilhada"],
+                              "apoioParticipacao": ["Explicacao oral em dupla", "Papeis simples no grupo"],
+                              "alternativasSimplificadas": ["Menos cartoes", "Desenhos junto das fracoes"]
+                            }
+                          },
+                          "tempoEstimado": {"introducao": 10, "desenvolvimento": 30, "fechamento": 10, "total": 50}
+                        }
+                        """)
+                .build();
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+
+        String text = extractText(service.generateDocx(document));
+
+        assertThat(text)
+                .contains("PLANO DE AULA")
+                .contains("Tema:")
+                .contains("ATIVIDADE DO ALUNO")
+                .contains("Linha do tempo das fracoes")
+                .contains("GABARITO DO PROFESSOR")
+                .contains("INSTRUMENTO AVALIATIVO")
+                .contains("EVIDENCIAS PEDAGOGICAS")
+                .contains("ADAPTACOES INCLUSIVAS")
+                .doesNotContain("http://")
+                .doesNotContain("https://")
+                .doesNotContain("question_number")
+                .doesNotContain("tempo_sugerido")
+                .doesNotContain("kitAulaCompleta")
+                .doesNotContain("codigo");
+    }
+
     private String extractText(byte[] docxBytes) {
         try (XWPFDocument docx = new XWPFDocument(new ByteArrayInputStream(docxBytes))) {
             return docx.getParagraphs()

@@ -46,6 +46,7 @@ public class DocumentGeneratorService {
         addLessonPlanListSection(docx, "Recursos Didaticos:", root.path("recursosDidaticos"));
         addLessonPlanEvaluationSection(docx, root.path("avaliacao"));
         addLessonPlanEstimatedTimeSection(docx, root.path("tempoEstimado"));
+        renderCompleteLessonKit(docx, root.path("kitAulaCompleta"));
     }
 
     private void renderOfficialTemplate(
@@ -197,6 +198,40 @@ public class DocumentGeneratorService {
     ) {
         String value = scalarText(minutes);
         addParagraph(docx, label + ": " + (value.isBlank() ? "____________________________" : value + " min"), false);
+    }
+
+    private void renderCompleteLessonKit(org.apache.poi.xwpf.usermodel.XWPFDocument docx, JsonNode kit) {
+        if (kit == null || kit.isMissingNode() || kit.isNull()) {
+            return;
+        }
+        addParagraph(docx, "ATIVIDADE DO ALUNO", true);
+        JsonNode activity = kit.path("atividadeAluno");
+        addLessonPlanTextSection(docx, "Titulo:", scalarText(activity.path("titulo")));
+        addLessonPlanTextSection(docx, "Contexto:", scalarText(activity.path("contexto")));
+        addLessonPlanListSection(docx, "Orientacoes:", activity.path("orientacoes"));
+        addLessonPlanListSection(docx, "Questoes:", activity.path("questoes"));
+        addLessonPlanTextSection(docx, "Produto esperado:", scalarText(activity.path("produtoEsperado")));
+
+        addParagraph(docx, "GABARITO DO PROFESSOR", true);
+        JsonNode answerKey = kit.path("gabaritoProfessor");
+        addLessonPlanListSection(docx, "Respostas esperadas:", answerKey.path("respostasEsperadas"));
+        addLessonPlanListSection(docx, "Orientacoes do professor:", answerKey.path("orientacoesProfessor"));
+
+        addParagraph(docx, "INSTRUMENTO AVALIATIVO", true);
+        JsonNode assessment = kit.path("instrumentoAvaliativo");
+        addLessonPlanListSection(docx, "Criterios:", assessment.path("criterios"));
+        addLessonPlanListSection(docx, "Coleta de evidencias:", assessment.path("coletaEvidencias"));
+
+        addParagraph(docx, "EVIDENCIAS PEDAGOGICAS", true);
+        JsonNode evidence = kit.path("evidenciasPedagogicas");
+        addLessonPlanListSection(docx, "Evidencias observaveis:", evidence.path("evidenciasObservaveis"));
+        addLessonPlanListSection(docx, "Registros para coordenacao:", evidence.path("registrosParaCoordenacao"));
+
+        addParagraph(docx, "ADAPTACOES INCLUSIVAS", true);
+        JsonNode adaptations = kit.path("adaptacoesInclusivas");
+        addLessonPlanListSection(docx, "Apoio de leitura:", adaptations.path("apoioLeitura"));
+        addLessonPlanListSection(docx, "Apoio de participacao:", adaptations.path("apoioParticipacao"));
+        addLessonPlanListSection(docx, "Alternativas simplificadas:", adaptations.path("alternativasSimplificadas"));
     }
 
     private void addParagraph(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String text, boolean bold) {
