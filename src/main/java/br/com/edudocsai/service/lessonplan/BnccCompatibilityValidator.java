@@ -1,0 +1,67 @@
+package br.com.edudocsai.service.lessonplan;
+
+import br.com.edudocsai.entity.BNCCSkill;
+import br.com.edudocsai.exception.BadRequestException;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Service
+public class BnccCompatibilityValidator {
+
+    private static final Pattern GRADE_NUMBER_PATTERN = Pattern.compile("\\b(\\d{1,2})(?:[oa])?\\b");
+
+    public void validate(String selectedGrade, String selectedSubject, List<BNCCSkill> skills) {
+        for (BNCCSkill skill : skills) {
+            if (!sameSubject(selectedSubject, skill.getSubject()) || !compatibleGrade(selectedGrade, skill.getGrade())) {
+                throw new BadRequestException("Habilidade BNCC incompativel com ano ou disciplina selecionados: " + skill.getCode());
+            }
+        }
+    }
+
+    private boolean sameSubject(String selectedSubject, String skillSubject) {
+        return LessonPlanTextNormalizer.normalize(selectedSubject)
+                .equals(LessonPlanTextNormalizer.normalize(skillSubject));
+    }
+
+    private boolean compatibleGrade(String selectedGrade, String skillGrade) {
+        String selected = LessonPlanTextNormalizer.normalize(selectedGrade);
+        String skill = LessonPlanTextNormalizer.normalize(skillGrade);
+        if (selected.equals(skill)) {
+            return true;
+        }
+        if (selected.contains("ensino medio") && skill.contains("ensino medio")) {
+            return true;
+        }
+        Integer selectedNumber = firstGradeNumber(selected);
+        if (selectedNumber == null) {
+            return false;
+        }
+        List<Integer> skillNumbers = gradeNumbers(skill);
+        if (skillNumbers.size() == 1) {
+            return selectedNumber.equals(skillNumbers.get(0));
+        }
+        if (skillNumbers.size() >= 2) {
+            int start = skillNumbers.get(0);
+            int end = skillNumbers.get(skillNumbers.size() - 1);
+            return selectedNumber >= Math.min(start, end) && selectedNumber <= Math.max(start, end);
+        }
+        return false;
+    }
+
+    private Integer firstGradeNumber(String value) {
+        Matcher matcher = GRADE_NUMBER_PATTERN.matcher(value);
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : null;
+    }
+
+    private List<Integer> gradeNumbers(String value) {
+        Matcher matcher = GRADE_NUMBER_PATTERN.matcher(value);
+        java.util.ArrayList<Integer> numbers = new java.util.ArrayList<>();
+        while (matcher.find()) {
+            numbers.add(Integer.parseInt(matcher.group(1)));
+        }
+        return numbers;
+    }
+}
