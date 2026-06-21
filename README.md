@@ -72,11 +72,15 @@ Content-Type: application/json
 {
   "documentType": "LESSON_PLAN",
   "bnccSkillIds": [1],
-  "topic": "Frações equivalentes",
+  "topic": "Fracoes equivalentes",
+  "grade": "5 ano",
+  "subject": "Matematica",
   "duration": "50 minutos",
-  "additionalInstructions": "Inclua atividade em duplas e avaliação formativa."
+  "additionalInstructions": "Inclua atividade em duplas e avaliacao formativa."
 }
 ```
+
+Para `LESSON_PLAN`, `topic`, `grade`, `subject`, `duration` e `bnccSkillIds` sao obrigatorios e as habilidades BNCC devem ser compativeis com o ano e a disciplina selecionados.
 
 Exportar DOCX:
 
