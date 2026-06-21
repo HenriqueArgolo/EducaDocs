@@ -16,19 +16,31 @@ public class TopicAlignmentValidator {
         if (topicTokens.isEmpty()) {
             return 0;
         }
-        Set<String> generatedTokens = meaningfulTokens(String.join(" ",
+        int officialPlanScore = scoreAgainst(topicTokens, officialPlanText(content));
+        if (content.kit() == null) {
+            return officialPlanScore;
+        }
+        int kitScore = scoreAgainst(topicTokens, kitText(content.kit()));
+        return Math.min(officialPlanScore, kitScore);
+    }
+
+    private int scoreAgainst(Set<String> topicTokens, String generatedText) {
+        Set<String> generatedTokens = meaningfulTokens(generatedText);
+        long matched = topicTokens.stream().filter(generatedTokens::contains).count();
+        int score = (int) Math.round((matched * 100.0) / topicTokens.size());
+        return Math.min(100, score);
+    }
+
+    private String officialPlanText(LessonPlanContent content) {
+        return String.join(" ",
                 String.join(" ", content.objectives()),
                 String.join(" ", content.contents()),
                 content.methodology().introduction().description(),
                 content.methodology().development().description(),
                 content.methodology().closing().description(),
                 String.join(" ", content.resources()),
-                String.join(" ", content.evaluation().observableCriteria()),
-                kitText(content.kit())
-        ));
-        long matched = topicTokens.stream().filter(generatedTokens::contains).count();
-        int score = (int) Math.round((matched * 100.0) / topicTokens.size());
-        return Math.min(100, score);
+                String.join(" ", content.evaluation().observableCriteria())
+        );
     }
 
     private String kitText(CompleteLessonKit kit) {

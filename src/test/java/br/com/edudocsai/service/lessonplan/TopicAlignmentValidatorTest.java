@@ -39,34 +39,48 @@ class TopicAlignmentValidatorTest {
     }
 
     @Test
-    void includesCompleteLessonKitWhenScoringTopicAlignment() {
+    void rejectsUnrelatedCompleteLessonKitEvenWhenOfficialPlanIsAligned() {
+        LessonPlanContent validPlan = TemplateValidatorTest.validContent();
         LessonPlanContent content = new LessonPlanContent(
-                List.of("Identificar acontecimentos historicos", "Comparar causas e consequencias", "Registrar conclusoes coletivas"),
-                List.of("Tempo historico", "Organizacao cronologica", "Mudancas sociais"),
-                new Methodology(
-                        new LessonStage(10, "Ativar conhecimentos previos sobre acontecimentos historicos"),
-                        new LessonStage(30, "Organizar cartoes de eventos em grupo"),
-                        new LessonStage(10, "Retomar objetivos e registrar sintese")
-                ),
-                List.of("Quadro branco", "Cartoes", "Caderno"),
-                new Evaluation(List.of("Identifica acontecimentos", "Compara causas", "Registra conclusoes")),
+                validPlan.objectives(),
+                validPlan.contents(),
+                validPlan.methodology(),
+                validPlan.resources(),
+                validPlan.evaluation(),
                 new CompleteLessonKit(
                         new StudentActivity(
-                                "Linha do tempo da Segunda Guerra Mundial",
-                                "Organize eventos da Segunda Guerra Mundial para compreender o conflito.",
-                                List.of("Leia os cartoes", "Ordene os eventos", "Explique uma ruptura"),
-                                List.of("Qual evento iniciou o conflito?", "Como os aliados atuaram?", "Que consequencia encerrou o periodo?"),
-                                "Painel sobre a Segunda Guerra Mundial"
+                                "Linha do tempo da Revolucao Francesa",
+                                "Organize acontecimentos da Revolucao Francesa para compreender mudancas politicas.",
+                                List.of("Leia os cartoes", "Ordene os acontecimentos", "Explique uma ruptura politica"),
+                                List.of("Qual acontecimento veio primeiro?", "Que grupo social aparece?", "Que mudanca politica ocorreu?"),
+                                "Painel sobre a Revolucao Francesa"
                         ),
-                        TemplateValidatorTest.validContent().kit().teacherAnswerKey(),
-                        TemplateValidatorTest.validContent().kit().assessmentInstrument(),
-                        TemplateValidatorTest.validContent().kit().pedagogicalEvidence(),
-                        TemplateValidatorTest.validContent().kit().inclusiveAdaptations()
+                        new TeacherAnswerKey(
+                                List.of(
+                                        "A queda da Bastilha marca uma ruptura politica",
+                                        "Os grupos sociais tinham interesses diferentes",
+                                        "A declaracao apresenta direitos defendidos no periodo"
+                                ),
+                                List.of("Valorizar leitura de fontes", "Pedir justificativas historicas")
+                        ),
+                        new AssessmentInstrument(
+                                List.of("Identifica causas historicas", "Compara grupos sociais", "Registra conclusoes sobre fontes"),
+                                List.of("Guardar painel historico", "Anotar falas dos grupos")
+                        ),
+                        new PedagogicalEvidence(
+                                List.of("Discussao sobre fontes", "Organizacao dos acontecimentos", "Apresentacao oral"),
+                                List.of("Painel produzido", "Anotacoes do professor")
+                        ),
+                        new InclusiveAdaptations(
+                                List.of("Textos com frases curtas", "Leitura em dupla"),
+                                List.of("Resposta oral", "Papeis no grupo"),
+                                List.of("Menos cartoes", "Imagens historicas")
+                        )
                 )
         );
 
-        int score = validator.score("Segunda Guerra Mundial", content);
+        int score = validator.score("Fracoes equivalentes", content);
 
-        assertThat(score).isGreaterThanOrEqualTo(90);
+        assertThat(score).isLessThan(90);
     }
 }
