@@ -39,7 +39,22 @@ class TemplateValidatorTest {
                 validContent().contents(),
                 validContent().methodology(),
                 validContent().resources(),
-                new Evaluation(List.of("Participacao"))
+                new Evaluation(List.of("Participacao", "Participacao dos alunos", "Participacao"))
+        );
+
+        assertThatThrownBy(() -> validator.validate(invalid, 50))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("criterios");
+    }
+
+    @Test
+    void rejectsGenericCriteriaWithoutObservableAction() {
+        LessonPlanContent invalid = new LessonPlanContent(
+                validContent().objectives(),
+                validContent().contents(),
+                validContent().methodology(),
+                validContent().resources(),
+                new Evaluation(List.of("Participacao", "Interesse", "Comportamento"))
         );
 
         assertThatThrownBy(() -> validator.validate(invalid, 50))

@@ -13,6 +13,11 @@ public class TemplateValidator {
             "resolver", "relacionar", "descrever", "explicar", "classificar", "avaliar"
     );
 
+    private static final Set<String> CRITERION_ACTION_VERBS = Set.of(
+            "identifica", "relaciona", "interpreta", "compara", "registra", "argumenta",
+            "resolve", "explica", "analisa", "descreve", "justifica", "aplica"
+    );
+
     public void validate(LessonPlanContent content, int totalMinutes) {
         requireSize(content.objectives(), 3, 5, "objetivos");
         for (String objective : content.objectives()) {
@@ -25,6 +30,7 @@ public class TemplateValidator {
         requireSize(content.resources(), 3, Integer.MAX_VALUE, "recursos");
         requireSize(content.evaluation().observableCriteria(), 3, Integer.MAX_VALUE, "criterios avaliativos");
         rejectGenericAssessment(content.evaluation().observableCriteria());
+        validateObservableCriteria(content.evaluation().observableCriteria());
         validateStage(content.methodology().introduction(), 5, 15, "introducao");
         validateStage(content.methodology().development(), 20, 40, "desenvolvimento");
         validateStage(content.methodology().closing(), 5, 15, "fechamento");
@@ -58,6 +64,24 @@ public class TemplateValidator {
         if (onlyParticipation) {
             throw new LessonPlanValidationException("Avaliacao deve conter criterios observaveis");
         }
+    }
+
+    private void validateObservableCriteria(List<String> criteria) {
+        for (String criterion : criteria) {
+            if (!containsCriterionActionVerb(criterion)) {
+                throw new LessonPlanValidationException("Avaliacao deve conter criterios observaveis");
+            }
+        }
+    }
+
+    private boolean containsCriterionActionVerb(String criterion) {
+        String normalized = LessonPlanTextNormalizer.normalize(criterion);
+        for (String word : normalized.split(" ")) {
+            if (CRITERION_ACTION_VERBS.contains(word)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String firstWord(String value) {
