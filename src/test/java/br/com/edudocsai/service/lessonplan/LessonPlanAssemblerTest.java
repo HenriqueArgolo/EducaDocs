@@ -40,6 +40,35 @@ class LessonPlanAssemblerTest {
         assertThat(json).doesNotContain("teacher_notes");
     }
 
+    @Test
+    void assemblesNestedObjectsWithCanonicalFieldOrder() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes equivalentes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                50,
+                null
+        );
+
+        String json = assembler.assembleJson(context, List.of(skill()), TemplateValidatorTest.validContent());
+
+        assertThat(json).containsSubsequence(
+                "\"habilidadesBncc\"",
+                "\"codigo\"",
+                "\"descricao\""
+        );
+        assertThat(json).containsSubsequence(
+                "\"tempoEstimado\"",
+                "\"introducao\"",
+                "\"desenvolvimento\"",
+                "\"fechamento\"",
+                "\"total\""
+        );
+    }
+
     private BNCCSkill skill() {
         return BNCCSkill.builder()
                 .id(1L)

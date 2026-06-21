@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,36 +22,54 @@ public class LessonPlanAssembler {
             root.put("disciplina", context.subject());
             root.put("ano", context.grade());
             root.put("habilidadesBncc", skills.stream()
-                    .map(skill -> Map.of(
-                            "codigo", skill.getCode(),
-                            "descricao", skill.getDescription()
-                    ))
+                    .map(this::bnccSkill)
                     .toList());
             root.put("objetivosDeAprendizagem", content.objectives());
             root.put("conteudo", content.contents());
-            root.put("metodologia", Map.of(
-                    "introducao", stage(content.methodology().introduction()),
-                    "desenvolvimento", stage(content.methodology().development()),
-                    "fechamento", stage(content.methodology().closing())
-            ));
+            root.put("metodologia", methodology(content.methodology()));
             root.put("recursosDidaticos", content.resources());
-            root.put("avaliacao", Map.of("criteriosObservaveis", content.evaluation().observableCriteria()));
-            root.put("tempoEstimado", Map.of(
-                    "introducao", content.methodology().introduction().durationMinutes(),
-                    "desenvolvimento", content.methodology().development().durationMinutes(),
-                    "fechamento", content.methodology().closing().durationMinutes(),
-                    "total", context.totalMinutes()
-            ));
+            root.put("avaliacao", evaluation(content.evaluation()));
+            root.put("tempoEstimado", estimatedTime(context, content.methodology()));
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
         } catch (Exception exception) {
             throw new LessonPlanValidationException("Nao foi possivel montar plano de aula final", exception);
         }
     }
 
+    private Map<String, Object> bnccSkill(BNCCSkill skill) {
+        Map<String, Object> bnccSkill = new LinkedHashMap<>();
+        bnccSkill.put("codigo", skill.getCode());
+        bnccSkill.put("descricao", skill.getDescription());
+        return bnccSkill;
+    }
+
+    private Map<String, Object> methodology(Methodology methodology) {
+        Map<String, Object> methodologyMap = new LinkedHashMap<>();
+        methodologyMap.put("introducao", stage(methodology.introduction()));
+        methodologyMap.put("desenvolvimento", stage(methodology.development()));
+        methodologyMap.put("fechamento", stage(methodology.closing()));
+        return methodologyMap;
+    }
+
     private Map<String, Object> stage(LessonStage stage) {
-        return Map.of(
-                "tempoMinutos", stage.durationMinutes(),
-                "descricao", stage.description()
-        );
+        Map<String, Object> stageMap = new LinkedHashMap<>();
+        stageMap.put("tempoMinutos", stage.durationMinutes());
+        stageMap.put("descricao", stage.description());
+        return stageMap;
+    }
+
+    private Map<String, Object> evaluation(Evaluation evaluation) {
+        Map<String, Object> evaluationMap = new LinkedHashMap<>();
+        evaluationMap.put("criteriosObservaveis", evaluation.observableCriteria());
+        return evaluationMap;
+    }
+
+    private Map<String, Object> estimatedTime(LessonPlanRequestContext context, Methodology methodology) {
+        Map<String, Object> estimatedTime = new LinkedHashMap<>();
+        estimatedTime.put("introducao", methodology.introduction().durationMinutes());
+        estimatedTime.put("desenvolvimento", methodology.development().durationMinutes());
+        estimatedTime.put("fechamento", methodology.closing().durationMinutes());
+        estimatedTime.put("total", context.totalMinutes());
+        return estimatedTime;
     }
 }
