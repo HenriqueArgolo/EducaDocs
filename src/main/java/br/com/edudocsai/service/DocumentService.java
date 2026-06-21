@@ -4,6 +4,7 @@ import br.com.edudocsai.dto.document.DocumentResponse;
 import br.com.edudocsai.dto.document.GenerateDocumentRequest;
 import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.entity.Document;
+import br.com.edudocsai.entity.DocumentType;
 import br.com.edudocsai.entity.GenerationRequest;
 import br.com.edudocsai.entity.Role;
 import br.com.edudocsai.entity.User;
@@ -11,6 +12,7 @@ import br.com.edudocsai.exception.ForbiddenException;
 import br.com.edudocsai.exception.NotFoundException;
 import br.com.edudocsai.repository.DocumentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
+import br.com.edudocsai.service.lessonplan.LessonPlanGenerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,11 +35,20 @@ public class DocumentService {
     private final DocumentGeneratorService documentGeneratorService;
     private final GenerationRequestRepository generationRequestRepository;
     private final DocumentRepository documentRepository;
+    private final LessonPlanGenerationService lessonPlanGenerationService;
 
     @Transactional
     public DocumentResponse generate(GenerateDocumentRequest request) {
         User user = currentUserService.getCurrentUser();
         usageLimitService.assertCanGenerate(user);
+        Document document = request.documentType() == DocumentType.LESSON_PLAN
+                ? lessonPlanGenerationService.generate(user, request)
+                : generateGeneric(user, request);
+        usageLimitService.increment(user);
+        return toResponse(document);
+    }
+
+    private Document generateGeneric(User user, GenerateDocumentRequest request) {
         List<BNCCSkill> bnccSkills = bnccService.validateAndLoad(request.bnccSkillIds());
         String selectedGrade = firstNonBlank(request.grade(), summarizeGrades(bnccSkills));
         String selectedSubject = firstNonBlank(request.subject(), summarizeSubjects(bnccSkills));
@@ -72,9 +83,7 @@ public class DocumentService {
                 .title(limitTitle(generated.title()))
                 .content(generated.contentJson())
                 .build());
-
-        usageLimitService.increment(user);
-        return toResponse(document);
+        return document;
     }
 
     @Transactional(readOnly = true)
