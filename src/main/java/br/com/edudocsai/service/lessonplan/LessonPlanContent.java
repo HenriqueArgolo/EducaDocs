@@ -7,6 +7,7 @@ public record LessonPlanContent(
         List<String> contents,
         Methodology methodology,
         List<String> resources,
-        Evaluation evaluation
+        Evaluation evaluation,
+        CompleteLessonKit kit
 ) {
 }

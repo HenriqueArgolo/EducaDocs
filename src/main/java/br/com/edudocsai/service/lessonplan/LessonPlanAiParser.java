@@ -12,10 +12,16 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class LessonPlanAiParser {
 
-    private static final Set<String> ROOT_FIELDS = Set.of("objectives", "contents", "methodology", "resources", "evaluation");
+    private static final Set<String> ROOT_FIELDS = Set.of("objectives", "contents", "methodology", "resources", "evaluation", "kit");
     private static final Set<String> METHODOLOGY_FIELDS = Set.of("introduction", "development", "closing");
     private static final Set<String> STAGE_FIELDS = Set.of("durationMinutes", "description");
     private static final Set<String> EVALUATION_FIELDS = Set.of("observableCriteria");
+    private static final Set<String> KIT_FIELDS = Set.of("studentActivity", "teacherAnswerKey", "assessmentInstrument", "pedagogicalEvidence", "inclusiveAdaptations");
+    private static final Set<String> STUDENT_ACTIVITY_FIELDS = Set.of("title", "context", "instructions", "questions", "expectedProduct");
+    private static final Set<String> TEACHER_ANSWER_KEY_FIELDS = Set.of("expectedAnswers", "teacherGuidance");
+    private static final Set<String> ASSESSMENT_INSTRUMENT_FIELDS = Set.of("criteria", "evidenceCollection");
+    private static final Set<String> PEDAGOGICAL_EVIDENCE_FIELDS = Set.of("observableEvidences", "recordsForCoordination");
+    private static final Set<String> INCLUSIVE_ADAPTATIONS_FIELDS = Set.of("readingSupport", "participationSupport", "simplifiedAlternatives");
 
     private final ObjectMapper objectMapper;
 
@@ -35,6 +41,8 @@ public class LessonPlanAiParser {
             requireStage(require(methodology, "closing"), "methodology.closing");
             rejectUnknownFields(evaluation, EVALUATION_FIELDS, "evaluation");
             requireStringList(evaluation, "observableCriteria", "evaluation.observableCriteria");
+            JsonNode kit = require(root, "kit");
+            requireKit(kit);
             LessonPlanContent content = objectMapper.treeToValue(root, LessonPlanContent.class);
             return content;
         } catch (LessonPlanValidationException exception) {
@@ -90,6 +98,49 @@ public class LessonPlanAiParser {
         }
         JsonNode description = require(stage, "description", path + ".description");
         requireText(description, path + ".description");
+    }
+
+    private void requireKit(JsonNode kit) {
+        rejectUnknownFields(kit, KIT_FIELDS, "kit");
+        requireStudentActivity(require(kit, "studentActivity", "kit.studentActivity"), "kit.studentActivity");
+        requireTeacherAnswerKey(require(kit, "teacherAnswerKey", "kit.teacherAnswerKey"), "kit.teacherAnswerKey");
+        requireAssessmentInstrument(require(kit, "assessmentInstrument", "kit.assessmentInstrument"), "kit.assessmentInstrument");
+        requirePedagogicalEvidence(require(kit, "pedagogicalEvidence", "kit.pedagogicalEvidence"), "kit.pedagogicalEvidence");
+        requireInclusiveAdaptations(require(kit, "inclusiveAdaptations", "kit.inclusiveAdaptations"), "kit.inclusiveAdaptations");
+    }
+
+    private void requireStudentActivity(JsonNode node, String path) {
+        rejectUnknownFields(node, STUDENT_ACTIVITY_FIELDS, path);
+        requireText(require(node, "title", path + ".title"), path + ".title");
+        requireText(require(node, "context", path + ".context"), path + ".context");
+        requireStringList(node, "instructions", path + ".instructions");
+        requireStringList(node, "questions", path + ".questions");
+        requireText(require(node, "expectedProduct", path + ".expectedProduct"), path + ".expectedProduct");
+    }
+
+    private void requireTeacherAnswerKey(JsonNode node, String path) {
+        rejectUnknownFields(node, TEACHER_ANSWER_KEY_FIELDS, path);
+        requireStringList(node, "expectedAnswers", path + ".expectedAnswers");
+        requireStringList(node, "teacherGuidance", path + ".teacherGuidance");
+    }
+
+    private void requireAssessmentInstrument(JsonNode node, String path) {
+        rejectUnknownFields(node, ASSESSMENT_INSTRUMENT_FIELDS, path);
+        requireStringList(node, "criteria", path + ".criteria");
+        requireStringList(node, "evidenceCollection", path + ".evidenceCollection");
+    }
+
+    private void requirePedagogicalEvidence(JsonNode node, String path) {
+        rejectUnknownFields(node, PEDAGOGICAL_EVIDENCE_FIELDS, path);
+        requireStringList(node, "observableEvidences", path + ".observableEvidences");
+        requireStringList(node, "recordsForCoordination", path + ".recordsForCoordination");
+    }
+
+    private void requireInclusiveAdaptations(JsonNode node, String path) {
+        rejectUnknownFields(node, INCLUSIVE_ADAPTATIONS_FIELDS, path);
+        requireStringList(node, "readingSupport", path + ".readingSupport");
+        requireStringList(node, "participationSupport", path + ".participationSupport");
+        requireStringList(node, "simplifiedAlternatives", path + ".simplifiedAlternatives");
     }
 
     private void requireStringList(JsonNode node, String field, String path) {
