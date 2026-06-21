@@ -47,6 +47,54 @@ class DocumentGeneratorServiceTest {
                 .contains("6. AVALIACAO");
     }
 
+    @Test
+    void generateDocxRendersOnlyOfficialLessonPlanSections() {
+        Document document = Document.builder()
+                .id(1L)
+                .type(DocumentType.LESSON_PLAN)
+                .title("Plano de aula - Fracoes equivalentes")
+                .content("""
+                        {
+                          "tema": "Fracoes equivalentes",
+                          "disciplina": "Matematica",
+                          "ano": "5 ano",
+                          "habilidadesBncc": [{"codigo": "EF05MA03", "descricao": "Identificar fracoes equivalentes"}],
+                          "objetivosDeAprendizagem": ["Identificar fracoes equivalentes", "Comparar representacoes fracionarias", "Resolver problemas com fracoes"],
+                          "conteudo": ["Representacao de fracoes", "Equivalencia entre fracoes", "Resolucao de problemas"],
+                          "metodologia": {
+                            "introducao": {"tempoMinutos": 10, "descricao": "Ativar conhecimentos previos"},
+                            "desenvolvimento": {"tempoMinutos": 30, "descricao": "Resolver atividade em duplas"},
+                            "fechamento": {"tempoMinutos": 10, "descricao": "Sistematizar aprendizagens"}
+                          },
+                          "recursosDidaticos": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
+                          "avaliacao": {"criteriosObservaveis": ["Identifica fracoes equivalentes", "Compara representacoes", "Registra estrategias"]},
+                          "tempoEstimado": {"introducao": 10, "desenvolvimento": 30, "fechamento": 10, "total": 50}
+                        }
+                        """)
+                .build();
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+
+        String text = extractText(service.generateDocx(document));
+
+        assertThat(text)
+                .contains("PLANO DE AULA")
+                .contains("Tema:")
+                .contains("Fracoes equivalentes")
+                .contains("Objetivos de Aprendizagem:")
+                .contains("Conteudo:")
+                .contains("Metodologia:")
+                .contains("Recursos Didaticos:")
+                .contains("Avaliacao:")
+                .contains("Tempo Estimado:")
+                .contains("Total: 50 min");
+        assertThat(text)
+                .doesNotContain("HABILIDADES BNCC")
+                .doesNotContain("ATIVIDADES DETALHADAS")
+                .doesNotContain("OBSERVACOES DO PROFESSOR")
+                .doesNotContain("teacher_notes")
+                .doesNotContain("question_number");
+    }
+
     private String extractText(byte[] docxBytes) {
         try (XWPFDocument docx = new XWPFDocument(new ByteArrayInputStream(docxBytes))) {
             return docx.getParagraphs()

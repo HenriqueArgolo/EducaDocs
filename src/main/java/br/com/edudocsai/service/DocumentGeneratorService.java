@@ -25,12 +25,27 @@ public class DocumentGeneratorService {
         try (org.apache.poi.xwpf.usermodel.XWPFDocument docx = new org.apache.poi.xwpf.usermodel.XWPFDocument();
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             JsonNode root = objectMapper.readTree(document.getContent());
-            renderOfficialTemplate(docx, document, root);
+            if (document.getType() == DocumentType.LESSON_PLAN && root.has("objetivosDeAprendizagem")) {
+                renderLessonPlanTemplate(docx, root);
+            } else {
+                renderOfficialTemplate(docx, document, root);
+            }
             docx.write(output);
             return output.toByteArray();
         } catch (IOException exception) {
             throw new BadRequestException("Nao foi possivel exportar DOCX");
         }
+    }
+
+    private void renderLessonPlanTemplate(org.apache.poi.xwpf.usermodel.XWPFDocument docx, JsonNode root) {
+        addTitle(docx, "PLANO DE AULA");
+        addLessonPlanTextSection(docx, "Tema:", root.path("tema").asText(null));
+        addLessonPlanListSection(docx, "Objetivos de Aprendizagem:", root.path("objetivosDeAprendizagem"));
+        addLessonPlanListSection(docx, "Conteudo:", root.path("conteudo"));
+        addLessonPlanMethodologySection(docx, root.path("metodologia"));
+        addLessonPlanListSection(docx, "Recursos Didaticos:", root.path("recursosDidaticos"));
+        addLessonPlanEvaluationSection(docx, root.path("avaliacao"));
+        addLessonPlanEstimatedTimeSection(docx, root.path("tempoEstimado"));
     }
 
     private void renderOfficialTemplate(
@@ -89,6 +104,101 @@ public class DocumentGeneratorService {
         addParagraph(docx, nodeText(node), false);
     }
 
+    private void addLessonPlanTextSection(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            String heading,
+            String body
+    ) {
+        addParagraph(docx, heading, true);
+        addParagraph(docx, valueOrLine(body), false);
+    }
+
+    private void addLessonPlanListSection(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            String heading,
+            JsonNode node
+    ) {
+        addParagraph(docx, heading, true);
+        if (node == null || node.isMissingNode() || node.isNull() || (node.isArray() && node.isEmpty())) {
+            addParagraph(docx, "____________________________", false);
+            return;
+        }
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                addParagraph(docx, "- " + valueOrLine(scalarText(item)), false);
+            }
+            return;
+        }
+        addParagraph(docx, valueOrLine(scalarText(node)), false);
+    }
+
+    private void addLessonPlanMethodologySection(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            JsonNode methodology
+    ) {
+        addParagraph(docx, "Metodologia:", true);
+        addLessonPlanMethodologyStage(docx, "Introducao", methodology.path("introducao"));
+        addLessonPlanMethodologyStage(docx, "Desenvolvimento", methodology.path("desenvolvimento"));
+        addLessonPlanMethodologyStage(docx, "Fechamento", methodology.path("fechamento"));
+    }
+
+    private void addLessonPlanMethodologyStage(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            String label,
+            JsonNode stage
+    ) {
+        String minutes = scalarText(stage.path("tempoMinutos"));
+        String description = scalarText(stage.path("descricao"));
+        if (minutes.isBlank() && description.isBlank()) {
+            addParagraph(docx, label + ": ____________________________", false);
+            return;
+        }
+        if (minutes.isBlank()) {
+            addParagraph(docx, label + ": " + description, false);
+            return;
+        }
+        if (description.isBlank()) {
+            addParagraph(docx, label + ": " + minutes + " min", false);
+            return;
+        }
+        addParagraph(docx, label + ": " + minutes + " min - " + description, false);
+    }
+
+    private void addLessonPlanEvaluationSection(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            JsonNode evaluation
+    ) {
+        addParagraph(docx, "Avaliacao:", true);
+        JsonNode criteria = evaluation.path("criteriosObservaveis");
+        if (criteria.isArray() && !criteria.isEmpty()) {
+            for (JsonNode criterion : criteria) {
+                addParagraph(docx, "- " + valueOrLine(scalarText(criterion)), false);
+            }
+            return;
+        }
+        addParagraph(docx, valueOrLine(scalarText(evaluation)), false);
+    }
+
+    private void addLessonPlanEstimatedTimeSection(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            JsonNode time
+    ) {
+        addParagraph(docx, "Tempo Estimado:", true);
+        addLessonPlanEstimatedTime(docx, "Introducao", time.path("introducao"));
+        addLessonPlanEstimatedTime(docx, "Desenvolvimento", time.path("desenvolvimento"));
+        addLessonPlanEstimatedTime(docx, "Fechamento", time.path("fechamento"));
+        addLessonPlanEstimatedTime(docx, "Total", time.path("total"));
+    }
+
+    private void addLessonPlanEstimatedTime(
+            org.apache.poi.xwpf.usermodel.XWPFDocument docx,
+            String label,
+            JsonNode minutes
+    ) {
+        String value = scalarText(minutes);
+        addParagraph(docx, label + ": " + (value.isBlank() ? "____________________________" : value + " min"), false);
+    }
+
     private void addParagraph(org.apache.poi.xwpf.usermodel.XWPFDocument docx, String text, boolean bold) {
         XWPFParagraph paragraph = docx.createParagraph();
         XWPFRun run = paragraph.createRun();
@@ -117,6 +227,16 @@ public class DocumentGeneratorService {
             }
         }
         return value;
+    }
+
+    private String scalarText(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return "";
+        }
+        if (node.isTextual() || node.isNumber() || node.isBoolean()) {
+            return node.asText();
+        }
+        return "";
     }
 
     private String nodeText(JsonNode node) {
