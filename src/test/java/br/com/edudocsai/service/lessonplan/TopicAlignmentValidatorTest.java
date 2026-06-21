@@ -21,4 +21,18 @@ class TopicAlignmentValidatorTest {
 
         assertThat(score).isLessThan(90);
     }
+
+    @Test
+    void doesNotMatchTopicTokenInsideGeneratedWord() {
+        int score = validator.score("Arte", TemplateValidatorTest.validContent());
+
+        assertThat(score).isLessThan(90);
+    }
+
+    @Test
+    void alignsCommonSingularAndPluralTopicVariants() {
+        int score = validator.score("Fracao equivalente", TemplateValidatorTest.validContent());
+
+        assertThat(score).isGreaterThanOrEqualTo(90);
+    }
 }

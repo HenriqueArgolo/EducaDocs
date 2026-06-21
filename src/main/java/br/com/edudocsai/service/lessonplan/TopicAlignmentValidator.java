@@ -16,7 +16,7 @@ public class TopicAlignmentValidator {
         if (topicTokens.isEmpty()) {
             return 0;
         }
-        String generatedText = LessonPlanTextNormalizer.normalize(String.join(" ",
+        Set<String> generatedTokens = meaningfulTokens(String.join(" ",
                 String.join(" ", content.objectives()),
                 String.join(" ", content.contents()),
                 content.methodology().introduction().description(),
@@ -25,7 +25,7 @@ public class TopicAlignmentValidator {
                 String.join(" ", content.resources()),
                 String.join(" ", content.evaluation().observableCriteria())
         ));
-        long matched = topicTokens.stream().filter(generatedText::contains).count();
+        long matched = topicTokens.stream().filter(generatedTokens::contains).count();
         int score = (int) Math.round((matched * 100.0) / topicTokens.size());
         return Math.min(100, score);
     }
@@ -34,6 +34,20 @@ public class TopicAlignmentValidator {
         return Arrays.stream(LessonPlanTextNormalizer.normalize(value).split(" "))
                 .filter(token -> token.length() >= 3)
                 .filter(token -> !STOP_WORDS.contains(token))
+                .map(this::canonicalize)
                 .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+    }
+
+    private String canonicalize(String token) {
+        if (token.endsWith("oes") || token.endsWith("aes")) {
+            return token.substring(0, token.length() - 3);
+        }
+        if (token.endsWith("ao")) {
+            return token.substring(0, token.length() - 2);
+        }
+        if (token.endsWith("s")) {
+            return token.substring(0, token.length() - 1);
+        }
+        return token;
     }
 }
