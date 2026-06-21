@@ -1,0 +1,77 @@
+package br.com.edudocsai.service.lessonplan;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class LessonPlanAiParserTest {
+
+    private final LessonPlanAiParser parser = new LessonPlanAiParser(new ObjectMapper());
+
+    @Test
+    void parsesStrictCanonicalLessonPlanContent() {
+        LessonPlanContent content = parser.parse(validJson());
+
+        assertThat(content.objectives()).containsExactly(
+                "Identificar fracoes equivalentes",
+                "Comparar representacoes fracionarias",
+                "Resolver situacoes-problema com fracoes"
+        );
+        assertThat(content.methodology().introduction().durationMinutes()).isEqualTo(10);
+        assertThat(content.evaluation().observableCriteria()).hasSize(3);
+    }
+
+    @Test
+    void rejectsUnknownTopLevelFields() {
+        String invalid = validJson().replaceFirst("\\{", "{\"tema\":\"Outro tema\",");
+
+        assertThatThrownBy(() -> parser.parse(invalid))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("Campo nao permitido");
+    }
+
+    @Test
+    void rejectsMissingRequiredFields() {
+        String invalid = """
+                {
+                  "objectives": ["Identificar fracoes equivalentes"]
+                }
+                """;
+
+        assertThatThrownBy(() -> parser.parse(invalid))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("contents");
+    }
+
+    private String validJson() {
+        return """
+                {
+                  "objectives": [
+                    "Identificar fracoes equivalentes",
+                    "Comparar representacoes fracionarias",
+                    "Resolver situacoes-problema com fracoes"
+                  ],
+                  "contents": [
+                    "Representacao de fracoes",
+                    "Equivalencia entre fracoes",
+                    "Resolucao de problemas"
+                  ],
+                  "methodology": {
+                    "introduction": {"durationMinutes": 10, "description": "Ativar conhecimentos previos sobre partes de um todo"},
+                    "development": {"durationMinutes": 30, "description": "Comparar fracoes com material concreto e registrar estrategias"},
+                    "closing": {"durationMinutes": 10, "description": "Sistematizar conclusoes e retomar objetivos"}
+                  },
+                  "resources": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
+                  "evaluation": {
+                    "observableCriteria": [
+                      "Identifica fracoes equivalentes em representacoes visuais",
+                      "Compara fracoes usando justificativas matematicas",
+                      "Registra estrategias de resolucao com clareza"
+                    ]
+                  }
+                }
+                """;
+    }
+}
