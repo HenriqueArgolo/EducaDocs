@@ -14,6 +14,9 @@ public class BnccCompatibilityValidator {
     private static final Pattern GRADE_NUMBER_PATTERN = Pattern.compile("\\b(\\d{1,2})(?:[oa])?\\b");
 
     public void validate(String selectedGrade, String selectedSubject, List<BNCCSkill> skills) {
+        if (skills == null || skills.isEmpty()) {
+            throw new BadRequestException("Ao menos uma habilidade BNCC deve ser selecionada");
+        }
         for (BNCCSkill skill : skills) {
             if (!sameSubject(selectedSubject, skill.getSubject()) || !compatibleGrade(selectedGrade, skill.getGrade())) {
                 throw new BadRequestException("Habilidade BNCC incompativel com ano ou disciplina selecionados: " + skill.getCode());
@@ -32,6 +35,9 @@ public class BnccCompatibilityValidator {
         if (selected.equals(skill)) {
             return true;
         }
+        if (!compatibleSchoolStage(selected, skill)) {
+            return false;
+        }
         if (selected.contains("ensino medio") && skill.contains("ensino medio")) {
             return true;
         }
@@ -49,6 +55,22 @@ public class BnccCompatibilityValidator {
             return selectedNumber >= Math.min(start, end) && selectedNumber <= Math.max(start, end);
         }
         return false;
+    }
+
+    private boolean compatibleSchoolStage(String selectedGrade, String skillGrade) {
+        String selectedStage = schoolStage(selectedGrade);
+        String skillStage = schoolStage(skillGrade);
+        return selectedStage.isEmpty() || skillStage.isEmpty() || selectedStage.equals(skillStage);
+    }
+
+    private String schoolStage(String value) {
+        if (value.contains("ensino fundamental")) {
+            return "ensino fundamental";
+        }
+        if (value.contains("ensino medio")) {
+            return "ensino medio";
+        }
+        return "";
     }
 
     private Integer firstGradeNumber(String value) {

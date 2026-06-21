@@ -15,9 +15,9 @@ class BnccCompatibilityValidatorTest {
 
     @Test
     void acceptsSkillsThatMatchSelectedGradeAndSubjectAfterNormalization() {
-        BNCCSkill skill = skill("EF05MA03", "Matematica", "5 ano");
+        BNCCSkill skill = skill("EF05MA03", "Matematica", "5 ano do Ensino Fundamental");
 
-        assertThatCode(() -> validator.validate("5o ano", "matematica", List.of(skill)))
+        assertThatCode(() -> validator.validate("5º ano do Ensino Fundamental", "matemática", List.of(skill)))
                 .doesNotThrowAnyException();
     }
 
@@ -36,6 +36,27 @@ class BnccCompatibilityValidatorTest {
 
         assertThatCode(() -> validator.validate("Ensino Medio", "Ciencias Humanas e Sociais Aplicadas", List.of(skill)))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsEnsinoMedioSelectionForEnsinoFundamentalSkillWithSameGradeNumber() {
+        BNCCSkill skill = skill("EF01MA01", "Matematica", "1 ano do Ensino Fundamental");
+
+        assertThatThrownBy(() -> validator.validate("1 ano do Ensino Medio", "Matematica", List.of(skill)))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("EF01MA01");
+    }
+
+    @Test
+    void rejectsNullSkills() {
+        assertThatThrownBy(() -> validator.validate("5 ano", "Matematica", null))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void rejectsEmptySkills() {
+        assertThatThrownBy(() -> validator.validate("5 ano", "Matematica", List.of()))
+                .isInstanceOf(BadRequestException.class);
     }
 
     private BNCCSkill skill(String code, String subject, String grade) {
