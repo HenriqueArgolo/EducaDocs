@@ -23,11 +23,87 @@ public class TopicAlignmentValidator {
                 content.methodology().development().description(),
                 content.methodology().closing().description(),
                 String.join(" ", content.resources()),
-                String.join(" ", content.evaluation().observableCriteria())
+                String.join(" ", content.evaluation().observableCriteria()),
+                kitText(content.kit())
         ));
         long matched = topicTokens.stream().filter(generatedTokens::contains).count();
         int score = (int) Math.round((matched * 100.0) / topicTokens.size());
         return Math.min(100, score);
+    }
+
+    private String kitText(CompleteLessonKit kit) {
+        if (kit == null) {
+            return "";
+        }
+        return String.join(" ",
+                studentActivityText(kit.studentActivity()),
+                teacherAnswerKeyText(kit.teacherAnswerKey()),
+                assessmentInstrumentText(kit.assessmentInstrument()),
+                pedagogicalEvidenceText(kit.pedagogicalEvidence()),
+                inclusiveAdaptationsText(kit.inclusiveAdaptations())
+        );
+    }
+
+    private String studentActivityText(StudentActivity activity) {
+        if (activity == null) {
+            return "";
+        }
+        return String.join(" ",
+                value(activity.title()),
+                value(activity.context()),
+                String.join(" ", safe(activity.instructions())),
+                String.join(" ", safe(activity.questions())),
+                value(activity.expectedProduct())
+        );
+    }
+
+    private String teacherAnswerKeyText(TeacherAnswerKey answerKey) {
+        if (answerKey == null) {
+            return "";
+        }
+        return String.join(" ",
+                String.join(" ", safe(answerKey.expectedAnswers())),
+                String.join(" ", safe(answerKey.teacherGuidance()))
+        );
+    }
+
+    private String assessmentInstrumentText(AssessmentInstrument instrument) {
+        if (instrument == null) {
+            return "";
+        }
+        return String.join(" ",
+                String.join(" ", safe(instrument.criteria())),
+                String.join(" ", safe(instrument.evidenceCollection()))
+        );
+    }
+
+    private String pedagogicalEvidenceText(PedagogicalEvidence evidence) {
+        if (evidence == null) {
+            return "";
+        }
+        return String.join(" ",
+                String.join(" ", safe(evidence.observableEvidences())),
+                String.join(" ", safe(evidence.recordsForCoordination()))
+        );
+    }
+
+    private String inclusiveAdaptationsText(InclusiveAdaptations adaptations) {
+        if (adaptations == null) {
+            return "";
+        }
+        return String.join(" ",
+                String.join(" ", safe(adaptations.readingSupport())),
+                String.join(" ", safe(adaptations.participationSupport())),
+                String.join(" ", safe(adaptations.simplifiedAlternatives()))
+        );
+    }
+
+    private java.util.List<String> safe(java.util.List<String> values) {
+        return values == null ? java.util.List.of() : values;
+    }
+
+    private String value(String value) {
+        return value == null ? "" : value;
     }
 
     private Set<String> meaningfulTokens(String value) {

@@ -27,9 +27,32 @@ public class QualityValidator {
     }
 
     private int pedagogicalQuality(LessonPlanContent content) {
-        boolean hasActiveDevelopment = LessonPlanTextNormalizer.normalize(content.methodology().development().description())
-                .matches(".*(atividade|resolver|comparar|grupo|dupla|participa|registrar).*");
+        boolean hasActiveDevelopment = LessonPlanTextNormalizer.normalize(activePedagogicalText(content))
+                .matches(".*(atividade|resolver|comparar|grupo|dupla|participa|registrar|organizar|ordenar|explicar).*");
         return hasActiveDevelopment ? 100 : 80;
+    }
+
+    private String activePedagogicalText(LessonPlanContent content) {
+        CompleteLessonKit kit = content.kit();
+        if (kit == null || kit.studentActivity() == null) {
+            return content.methodology().development().description();
+        }
+        StudentActivity activity = kit.studentActivity();
+        return String.join(" ",
+                content.methodology().development().description(),
+                value(activity.context()),
+                String.join(" ", safe(activity.instructions())),
+                String.join(" ", safe(activity.questions())),
+                value(activity.expectedProduct())
+        );
+    }
+
+    private java.util.List<String> safe(java.util.List<String> values) {
+        return values == null ? java.util.List.of() : values;
+    }
+
+    private String value(String value) {
+        return value == null ? "" : value;
     }
 
     private int clarity(LessonPlanContent content) {

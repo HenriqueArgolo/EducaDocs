@@ -31,6 +31,12 @@ class LessonPlanPromptBuilderTest {
         assertThat(prompt).contains("EF05MA03");
         assertThat(prompt).contains("\"objectives\"");
         assertThat(prompt).contains("\"methodology\"");
+        assertThat(prompt).contains("\"kit\"");
+        assertThat(prompt).contains("\"studentActivity\"");
+        assertThat(prompt).contains("\"teacherAnswerKey\"");
+        assertThat(prompt).contains("\"assessmentInstrument\"");
+        assertThat(prompt).contains("\"pedagogicalEvidence\"");
+        assertThat(prompt).contains("\"inclusiveAdaptations\"");
         assertThat(prompt).doesNotContain("\"tema\"");
         assertThat(prompt).doesNotContain("\"disciplina\"");
         assertThat(prompt).doesNotContain("\"ano\"");

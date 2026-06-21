@@ -49,6 +49,32 @@ public class LessonPlanPromptBuilder {
                   "resources": ["Recurso 1", "Recurso 2", "Recurso 3"],
                   "evaluation": {
                     "observableCriteria": ["Criterio observavel 1", "Criterio observavel 2", "Criterio observavel 3"]
+                  },
+                  "kit": {
+                    "studentActivity": {
+                      "title": "Titulo da atividade do aluno",
+                      "context": "Contextualizacao curta da atividade conectada ao tema",
+                      "instructions": ["Orientacao 1 para o aluno", "Orientacao 2 para o aluno", "Orientacao 3 para o aluno"],
+                      "questions": ["Questao 1", "Questao 2", "Questao 3"],
+                      "expectedProduct": "Produto que o aluno ou grupo deve entregar"
+                    },
+                    "teacherAnswerKey": {
+                      "expectedAnswers": ["Resposta esperada 1", "Resposta esperada 2", "Resposta esperada 3"],
+                      "teacherGuidance": ["Orientacao 1 ao professor", "Orientacao 2 ao professor"]
+                    },
+                    "assessmentInstrument": {
+                      "criteria": ["Criterio avaliativo 1", "Criterio avaliativo 2", "Criterio avaliativo 3"],
+                      "evidenceCollection": ["Evidencia a coletar 1", "Evidencia a coletar 2"]
+                    },
+                    "pedagogicalEvidence": {
+                      "observableEvidences": ["Evidencia observavel 1", "Evidencia observavel 2", "Evidencia observavel 3"],
+                      "recordsForCoordination": ["Registro para coordenacao 1", "Registro para coordenacao 2"]
+                    },
+                    "inclusiveAdaptations": {
+                      "readingSupport": ["Apoio de leitura 1", "Apoio de leitura 2"],
+                      "participationSupport": ["Apoio de participacao 1", "Apoio de participacao 2"],
+                      "simplifiedAlternatives": ["Alternativa simplificada 1", "Alternativa simplificada 2"]
+                    }
                   }
                 }
 

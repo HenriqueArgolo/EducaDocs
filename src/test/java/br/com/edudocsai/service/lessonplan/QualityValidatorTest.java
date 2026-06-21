@@ -27,4 +27,24 @@ class QualityValidatorTest {
                 .isInstanceOf(LessonPlanValidationException.class)
                 .hasMessageContaining("qualidade");
     }
+
+    @Test
+    void countsActiveStudentKitAsPedagogicalQuality() {
+        LessonPlanContent content = new LessonPlanContent(
+                TemplateValidatorTest.validContent().objectives(),
+                TemplateValidatorTest.validContent().contents(),
+                new Methodology(
+                        TemplateValidatorTest.validContent().methodology().introduction(),
+                        new LessonStage(30, "Apresentar conceitos no quadro e solicitar anotacoes"),
+                        TemplateValidatorTest.validContent().methodology().closing()
+                ),
+                TemplateValidatorTest.validContent().resources(),
+                TemplateValidatorTest.validContent().evaluation(),
+                TemplateValidatorTest.validContent().kit()
+        );
+
+        QualityScore score = validator.score(content, 100, true);
+
+        assertThat(score.pedagogicalQuality()).isEqualTo(100);
+    }
 }
