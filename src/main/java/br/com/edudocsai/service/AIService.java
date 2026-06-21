@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -46,6 +47,7 @@ public class AIService {
             try {
                 return parseAiJson(callOpenRouter(prompt), documentType);
             } catch (RuntimeException fallbackException) {
+                log.warn("OpenRouter provider failed. reason={}", fallbackException.getMessage());
                 throw new AiProviderException("Falha ao gerar documento com os provedores de IA", fallbackException);
             }
         }
@@ -72,10 +74,9 @@ public class AIService {
                         .build(gemini.model()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(payload)
-                .retrieve()
-                .bodyToMono(String.class)
+                .exchangeToMono(clientResponse -> readProviderResponse("Gemini", clientResponse))
                 .timeout(Duration.ofSeconds(60))
-                .onErrorResume(error -> Mono.error(new AiProviderException("Erro no Gemini", error)))
+                .onErrorResume(error -> Mono.error(wrapProviderError("Erro no Gemini", error)))
                 .block();
 
         if (response == null || response.isBlank()) {
@@ -107,16 +108,39 @@ public class AIService {
                 })
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(payload)
-                .retrieve()
-                .bodyToMono(String.class)
+                .exchangeToMono(clientResponse -> readProviderResponse("OpenRouter", clientResponse))
                 .timeout(Duration.ofSeconds(60))
-                .onErrorResume(error -> Mono.error(new AiProviderException("Erro no OpenRouter", error)))
+                .onErrorResume(error -> Mono.error(wrapProviderError("Erro no OpenRouter", error)))
                 .block();
 
         if (response == null || response.isBlank()) {
             throw new AiProviderException("OpenRouter retornou resposta vazia");
         }
         return extractOpenRouterText(response);
+    }
+
+    private RuntimeException wrapProviderError(String fallbackMessage, Throwable error) {
+        if (error instanceof AiProviderException aiProviderException) {
+            return aiProviderException;
+        }
+        return new AiProviderException(fallbackMessage, error);
+    }
+
+    private Mono<String> readProviderResponse(String provider, ClientResponse response) {
+        return response.bodyToMono(String.class)
+                .defaultIfEmpty("")
+                .flatMap(body -> {
+                    if (response.statusCode().isError()) {
+                        String sanitizedBody = body.replaceAll("\\s+", " ").trim();
+                        if (sanitizedBody.length() > 600) {
+                            sanitizedBody = sanitizedBody.substring(0, 600);
+                        }
+                        return Mono.error(new AiProviderException(
+                                "%s retornou HTTP %s: %s".formatted(provider, response.statusCode().value(), sanitizedBody)
+                        ));
+                    }
+                    return Mono.just(body);
+                });
     }
 
     private String extractGeminiText(String response) {
