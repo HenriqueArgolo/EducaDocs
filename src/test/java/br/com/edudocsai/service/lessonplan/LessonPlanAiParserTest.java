@@ -45,6 +45,48 @@ class LessonPlanAiParserTest {
                 .hasMessageContaining("contents");
     }
 
+    @Test
+    void rejectsMissingStageRequiredFields() {
+        String invalid = validJson().replace(
+                "\"introduction\": {\"durationMinutes\": 10, \"description\": \"Ativar conhecimentos previos sobre partes de um todo\"}",
+                "\"introduction\": {\"durationMinutes\": 10}"
+        );
+
+        assertThatThrownBy(() -> parser.parse(invalid))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("methodology.introduction.description");
+    }
+
+    @Test
+    void rejectsBlankStageDescription() {
+        String invalid = validJson().replace(
+                "\"description\": \"Ativar conhecimentos previos sobre partes de um todo\"",
+                "\"description\": \"   \""
+        );
+
+        assertThatThrownBy(() -> parser.parse(invalid))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("methodology.introduction.description");
+    }
+
+    @Test
+    void rejectsStringDurationMinutes() {
+        String invalid = validJson().replaceFirst("\"durationMinutes\": 10", "\"durationMinutes\": \"10\"");
+
+        assertThatThrownBy(() -> parser.parse(invalid))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("methodology.introduction.durationMinutes");
+    }
+
+    @Test
+    void rejectsNumericListItem() {
+        String invalid = validJson().replace("\"Quadro branco\"", "42");
+
+        assertThatThrownBy(() -> parser.parse(invalid))
+                .isInstanceOf(LessonPlanValidationException.class)
+                .hasMessageContaining("resources");
+    }
+
     private String validJson() {
         return """
                 {

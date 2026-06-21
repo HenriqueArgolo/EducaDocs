@@ -24,17 +24,18 @@ public class LessonPlanAiParser {
             JsonNode root = objectMapper.readTree(extractJsonObject(rawJson));
             requireObject(root, "root");
             rejectUnknownFields(root, ROOT_FIELDS, "root");
-            require(root, "objectives");
-            require(root, "contents");
+            requireStringList(root, "objectives", "objectives");
+            requireStringList(root, "contents", "contents");
+            requireStringList(root, "resources", "resources");
             JsonNode methodology = require(root, "methodology");
             JsonNode evaluation = require(root, "evaluation");
             rejectUnknownFields(methodology, METHODOLOGY_FIELDS, "methodology");
-            rejectUnknownFields(require(methodology, "introduction"), STAGE_FIELDS, "methodology.introduction");
-            rejectUnknownFields(require(methodology, "development"), STAGE_FIELDS, "methodology.development");
-            rejectUnknownFields(require(methodology, "closing"), STAGE_FIELDS, "methodology.closing");
+            requireStage(require(methodology, "introduction"), "methodology.introduction");
+            requireStage(require(methodology, "development"), "methodology.development");
+            requireStage(require(methodology, "closing"), "methodology.closing");
             rejectUnknownFields(evaluation, EVALUATION_FIELDS, "evaluation");
+            requireStringList(evaluation, "observableCriteria", "evaluation.observableCriteria");
             LessonPlanContent content = objectMapper.treeToValue(root, LessonPlanContent.class);
-            requireNonBlankLists(content);
             return content;
         } catch (LessonPlanValidationException exception) {
             throw exception;
@@ -81,16 +82,37 @@ public class LessonPlanAiParser {
         }
     }
 
-    private void requireNonBlankLists(LessonPlanContent content) {
-        requireList(content.objectives(), "objectives");
-        requireList(content.contents(), "contents");
-        requireList(content.resources(), "resources");
-        requireList(content.evaluation().observableCriteria(), "evaluation.observableCriteria");
+    private void requireStage(JsonNode stage, String path) {
+        rejectUnknownFields(stage, STAGE_FIELDS, path);
+        JsonNode durationMinutes = require(stage, "durationMinutes", path + ".durationMinutes");
+        if (!durationMinutes.isIntegralNumber()) {
+            throw new LessonPlanValidationException("Campo deve ser inteiro: " + path + ".durationMinutes");
+        }
+        JsonNode description = require(stage, "description", path + ".description");
+        requireText(description, path + ".description");
     }
 
-    private void requireList(java.util.List<String> values, String field) {
-        if (values == null || values.isEmpty() || values.stream().anyMatch(value -> value == null || value.isBlank())) {
-            throw new LessonPlanValidationException("Lista obrigatoria invalida: " + field);
+    private void requireStringList(JsonNode node, String field, String path) {
+        JsonNode values = require(node, field);
+        if (!values.isArray() || values.isEmpty()) {
+            throw new LessonPlanValidationException("Lista obrigatoria invalida: " + path);
+        }
+        for (JsonNode value : values) {
+            requireText(value, path);
+        }
+    }
+
+    private JsonNode require(JsonNode node, String field, String path) {
+        JsonNode child = node.path(field);
+        if (child.isMissingNode() || child.isNull()) {
+            throw new LessonPlanValidationException("Campo obrigatorio ausente: " + path);
+        }
+        return child;
+    }
+
+    private void requireText(JsonNode node, String path) {
+        if (!node.isTextual() || node.asText().isBlank()) {
+            throw new LessonPlanValidationException("Campo texto obrigatorio invalido: " + path);
         }
     }
 }
