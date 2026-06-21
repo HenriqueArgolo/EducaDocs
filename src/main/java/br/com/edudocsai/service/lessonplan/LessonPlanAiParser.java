@@ -48,7 +48,7 @@ public class LessonPlanAiParser {
         if (rawJson == null || rawJson.isBlank()) {
             throw new LessonPlanValidationException("Resposta da IA esta vazia");
         }
-        String normalized = rawJson.replace("```json", "").replace("```", "").trim();
+        String normalized = rawJson.trim();
         int start = normalized.indexOf('{');
         int end = normalized.lastIndexOf('}');
         if (start < 0 || end <= start) {

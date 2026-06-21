@@ -87,6 +87,20 @@ class LessonPlanAiParserTest {
                 .hasMessageContaining("resources");
     }
 
+    @Test
+    void preservesTripleBackticksInsideJsonStringValues() {
+        String description = "Comparar registros com ``` exemplo no texto";
+        String resource = "Cartao com ``` marcador visual";
+        String json = validJson()
+                .replace("Comparar fracoes com material concreto e registrar estrategias", description)
+                .replace("Cartoes de fracoes", resource);
+
+        LessonPlanContent content = parser.parse("```json\n" + json + "\n```");
+
+        assertThat(content.methodology().development().description()).isEqualTo(description);
+        assertThat(content.resources()).contains(resource);
+    }
+
     private String validJson() {
         return """
                 {
