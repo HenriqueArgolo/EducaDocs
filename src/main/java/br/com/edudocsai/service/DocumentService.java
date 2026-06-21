@@ -39,14 +39,16 @@ public class DocumentService {
         User user = currentUserService.getCurrentUser();
         usageLimitService.assertCanGenerate(user);
         List<BNCCSkill> bnccSkills = bnccService.validateAndLoad(request.bnccSkillIds());
+        String selectedGrade = firstNonBlank(request.grade(), summarizeGrades(bnccSkills));
+        String selectedSubject = firstNonBlank(request.subject(), summarizeSubjects(bnccSkills));
 
         GenerationRequest generationRequest = generationRequestRepository.save(GenerationRequest.builder()
                 .user(user)
                 .documentType(request.documentType())
                 .bnccSkillIds(request.bnccSkillIds())
                 .topic(request.topic().trim())
-                .grade(summarizeGrades(bnccSkills))
-                .subject(summarizeSubjects(bnccSkills))
+                .grade(selectedGrade)
+                .subject(selectedSubject)
                 .duration(normalizeDuration(request.duration()))
                 .additionalInstructions(blankToNull(request.additionalInstructions()))
                 .build());
@@ -54,6 +56,8 @@ public class DocumentService {
         String prompt = promptTemplateService.buildPrompt(
                 request.documentType(),
                 bnccSkills,
+                selectedGrade,
+                selectedSubject,
                 request.topic().trim(),
                 normalizeDuration(request.duration()),
                 request.additionalInstructions()
@@ -111,6 +115,8 @@ public class DocumentService {
                 document.getUser().getId(),
                 document.getType(),
                 document.getTitle(),
+                document.getGenerationRequest() == null ? null : document.getGenerationRequest().getGrade(),
+                document.getGenerationRequest() == null ? null : document.getGenerationRequest().getSubject(),
                 document.getContent(),
                 document.getCreatedAt()
         );
@@ -130,6 +136,10 @@ public class DocumentService {
 
     private String normalizeDuration(String duration) {
         return duration == null || duration.isBlank() ? "50 minutos" : duration.trim();
+    }
+
+    private String firstNonBlank(String preferred, String fallback) {
+        return preferred == null || preferred.isBlank() ? fallback : preferred.trim();
     }
 
     private String summarizeGrades(List<BNCCSkill> skills) {

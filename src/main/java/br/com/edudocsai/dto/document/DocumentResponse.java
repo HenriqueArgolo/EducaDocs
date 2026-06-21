@@ -9,6 +9,8 @@ public record DocumentResponse(
         Long userId,
         DocumentType type,
         String title,
+        String grade,
+        String subject,
         String content,
         OffsetDateTime createdAt
 ) {

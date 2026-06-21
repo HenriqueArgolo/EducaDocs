@@ -12,6 +12,8 @@ public class PromptTemplateService {
     public String buildPrompt(
             DocumentType documentType,
             List<BNCCSkill> bnccSkills,
+            String grade,
+            String subject,
             String topic,
             String duration,
             String additionalInstructions
@@ -104,8 +106,8 @@ public class PromptTemplateService {
 
                 Agora gere o documento completo.
                 """.formatted(
-                summarizeGrades(bnccSkills),
-                summarizeSubjects(bnccSkills),
+                blankToDefault(grade, summarizeGrades(bnccSkills)),
+                blankToDefault(subject, summarizeSubjects(bnccSkills)),
                 formatBnccSkills(bnccSkills),
                 topic,
                 documentTypeForPrompt(documentType),

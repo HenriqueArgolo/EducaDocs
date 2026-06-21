@@ -18,12 +18,22 @@ class PromptTemplateServiceTest {
                 .code("EF05MA03")
                 .description("Identificar fracoes")
                 .subject("Matematica")
-                .grade("5 ano")
+                .grade("1\u00ba ao 5\u00ba ano")
                 .build();
 
-        String prompt = service.buildPrompt(DocumentType.LESSON_PLAN, List.of(skill), "Fracoes", "50 minutos", null);
+        String prompt = service.buildPrompt(
+                DocumentType.LESSON_PLAN,
+                List.of(skill),
+                "5\u00ba ano",
+                "Matem\u00e1tica",
+                "Fracoes",
+                "50 minutos",
+                null
+        );
 
         assertThat(prompt).contains("EF05MA03");
+        assertThat(prompt).contains("Ano escolar: 5\u00ba ano");
+        assertThat(prompt).doesNotContain("Ano escolar: 1\u00ba ao 5\u00ba ano");
         assertThat(prompt).contains("Curriculo Nacional da Educacao Basica (BNCC)");
         assertThat(prompt).contains("Tempo de aula: 50 minutos");
         assertThat(prompt).contains("Tipo de documento: PLANO_DE_AULA");
