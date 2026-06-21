@@ -42,25 +42,33 @@ public class LessonPlanGenerationService {
         bnccCompatibilityValidator.validate(context.grade(), context.subject(), skills);
         String prompt = promptBuilder.build(context, skills);
         RuntimeException lastFailure = null;
+        String finalJson = null;
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                LessonPlanContent content = parser.parse(aiService.generateJsonObject(prompt));
-                templateValidator.validate(content, context.totalMinutes());
-                int topicScore = topicAlignmentValidator.score(context.topic(), content);
-                if (topicScore < MIN_ACCEPTABLE_SCORE) {
-                    throw new LessonPlanValidationException("Plano de aula desalinhado ao tema informado");
-                }
-                QualityScore qualityScore = qualityValidator.score(content, topicScore, true);
-                qualityValidator.assertAcceptable(qualityScore);
-                String finalJson = assembler.assembleJson(context, skills, content);
-                return save(user, context, finalJson);
+                finalJson = generateValidContentJson(context, skills, prompt);
+                break;
             } catch (RuntimeException exception) {
                 lastFailure = exception;
             }
         }
 
-        throw new AiProviderException("Nao foi possivel gerar plano de aula valido apos 3 tentativas", lastFailure);
+        if (finalJson == null) {
+            throw new AiProviderException("Nao foi possivel gerar plano de aula valido apos 3 tentativas", lastFailure);
+        }
+        return save(user, context, finalJson);
+    }
+
+    private String generateValidContentJson(LessonPlanRequestContext context, List<BNCCSkill> skills, String prompt) {
+        LessonPlanContent content = parser.parse(aiService.generateJsonObject(prompt));
+        templateValidator.validate(content, context.totalMinutes());
+        int topicScore = topicAlignmentValidator.score(context.topic(), content);
+        if (topicScore < MIN_ACCEPTABLE_SCORE) {
+            throw new LessonPlanValidationException("Plano de aula desalinhado ao tema informado");
+        }
+        QualityScore qualityScore = qualityValidator.score(content, topicScore, true);
+        qualityValidator.assertAcceptable(qualityScore);
+        return assembler.assembleJson(context, skills, content);
     }
 
     private Document save(User user, LessonPlanRequestContext context, String finalJson) {

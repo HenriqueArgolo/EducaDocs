@@ -82,6 +82,22 @@ class LessonPlanGenerationServiceTest {
         verify(documentRepository, never()).save(any());
     }
 
+    @Test
+    void propagatesPersistenceFailureWithoutRetryingAiGeneration() {
+        LessonPlanGenerationService service = service();
+        RuntimeException persistenceFailure = new RuntimeException("database unavailable");
+        when(bnccService.validateAndLoad(List.of(1L))).thenReturn(List.of(skill()));
+        when(aiService.generateJsonObject(any())).thenReturn(validJson());
+        when(generationRequestRepository.save(any(GenerationRequest.class))).thenThrow(persistenceFailure);
+
+        assertThatThrownBy(() -> service.generate(user(), request()))
+                .isSameAs(persistenceFailure)
+                .isNotInstanceOf(AiProviderException.class);
+
+        verify(aiService).generateJsonObject(any());
+        verify(documentRepository, never()).save(any());
+    }
+
     private LessonPlanGenerationService service() {
         ObjectMapper objectMapper = new ObjectMapper();
         return new LessonPlanGenerationService(
