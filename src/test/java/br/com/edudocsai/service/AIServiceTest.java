@@ -2,6 +2,7 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.config.AiProperties;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.exception.AiProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AIServiceTest {
 
@@ -68,6 +70,17 @@ class AIServiceTest {
         assertThat(result).contains("\"objectives\" :");
         assertThat(result).doesNotContain("\"tipo\"");
         assertThat(result).doesNotContain("\"titulo\"");
+    }
+
+    @Test
+    void generateJsonObjectRejectsTopLevelArrayFromBothProviders() throws Exception {
+        String arrayContent = "[{\"objectives\":[]}]";
+        WebClient gemini = webClientReturning(geminiBody(arrayContent));
+        WebClient openRouter = webClientReturning(openRouterBody(arrayContent));
+        AIService service = new AIService(gemini, openRouter, properties(), objectMapper);
+
+        assertThatThrownBy(() -> service.generateJsonObject("prompt"))
+                .isInstanceOf(AiProviderException.class);
     }
 
     private AiProperties properties() {

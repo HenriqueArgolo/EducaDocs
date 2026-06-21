@@ -201,7 +201,7 @@ public class AIService {
 
     private String normalizeJsonObject(String rawText) {
         try {
-            String json = extractJsonObject(rawText);
+            String json = extractStrictJsonObject(rawText);
             JsonNode root = objectMapper.readTree(json);
             if (!root.isObject()) {
                 throw new AiProviderException("IA nao retornou objeto JSON");
@@ -212,6 +212,17 @@ public class AIService {
         } catch (Exception exception) {
             throw new AiProviderException("IA nao retornou JSON estruturado valido", exception);
         }
+    }
+
+    private String extractStrictJsonObject(String rawText) {
+        String normalized = rawText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim();
+        if (!normalized.startsWith("{") || !normalized.endsWith("}")) {
+            throw new AiProviderException("IA nao retornou objeto JSON");
+        }
+        return normalized;
     }
 
     private String extractJsonObject(String rawText) {
