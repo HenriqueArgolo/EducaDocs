@@ -36,8 +36,15 @@ class LessonPlanAssemblerTest {
         assertThat(root.path("ano").asText()).isEqualTo("5 ano");
         assertThat(root.path("habilidadesBncc").path(0).path("codigo").asText()).isEqualTo("EF05MA03");
         assertThat(root.path("tempoEstimado").path("total").asInt()).isEqualTo(50);
+        assertThat(root.path("kitAulaCompleta").path("atividadeAluno").path("titulo").asText())
+                .isEqualTo("Linha do tempo das fracoes");
+        assertThat(root.path("kitAulaCompleta").path("gabaritoProfessor").path("respostasEsperadas").path(0).asText())
+                .contains("Fracoes equivalentes");
         assertThat(json).doesNotContain("question_number");
         assertThat(json).doesNotContain("teacher_notes");
+        assertThat(json).doesNotContain("studentActivity");
+        assertThat(json).doesNotContain("teacherAnswerKey");
+        assertThat(json).doesNotContain("tempo_sugerido");
     }
 
     @Test
@@ -59,6 +66,14 @@ class LessonPlanAssemblerTest {
                 "\"habilidadesBncc\"",
                 "\"codigo\"",
                 "\"descricao\""
+        );
+        assertThat(json).containsSubsequence(
+                "\"kitAulaCompleta\"",
+                "\"atividadeAluno\"",
+                "\"gabaritoProfessor\"",
+                "\"instrumentoAvaliativo\"",
+                "\"evidenciasPedagogicas\"",
+                "\"adaptacoesInclusivas\""
         );
         assertThat(json).containsSubsequence(
                 "\"tempoEstimado\"",

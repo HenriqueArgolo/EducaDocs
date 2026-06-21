@@ -83,6 +83,31 @@ class LessonPlanGenerationServiceTest {
     }
 
     @Test
+    void regeneratesWhenCompleteLessonKitIsMissing() {
+        LessonPlanGenerationService service = service();
+        when(bnccService.validateAndLoad(List.of(1L))).thenReturn(List.of(skill()));
+        when(aiService.generateJsonObject(any()))
+                .thenReturn(validJsonWithoutKit())
+                .thenReturn(validJson());
+        when(generationRequestRepository.save(any(GenerationRequest.class))).thenAnswer(invocation -> {
+            GenerationRequest entity = invocation.getArgument(0);
+            entity.setId(10L);
+            return entity;
+        });
+        when(documentRepository.save(any(Document.class))).thenAnswer(invocation -> {
+            Document entity = invocation.getArgument(0);
+            entity.setId(99L);
+            entity.setCreatedAt(OffsetDateTime.now());
+            return entity;
+        });
+
+        Document result = service.generate(user(), request());
+
+        assertThat(result.getContent()).contains("\"kitAulaCompleta\"");
+        verify(aiService, org.mockito.Mockito.times(2)).generateJsonObject(any());
+    }
+
+    @Test
     void propagatesPersistenceFailureWithoutRetryingAiGeneration() {
         LessonPlanGenerationService service = service();
         RuntimeException persistenceFailure = new RuntimeException("database unavailable");
@@ -160,7 +185,33 @@ class LessonPlanGenerationServiceTest {
                     "closing": {"durationMinutes": 10, "description": "Sistematizar aprendizagens sobre fracoes equivalentes"}
                   },
                   "resources": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
-                  "evaluation": {"observableCriteria": ["Identifica fracoes equivalentes", "Compara representacoes fracionarias", "Registra estrategias de resolucao"]}
+                  "evaluation": {"observableCriteria": ["Identifica fracoes equivalentes", "Compara representacoes fracionarias", "Registra estrategias de resolucao"]},
+                  "kit": {
+                    "studentActivity": {
+                      "title": "Linha do tempo das fracoes",
+                      "context": "Organizar representacoes de fracoes para explicar equivalencias.",
+                      "instructions": ["Leia cada cartao de fracao", "Agrupe representacoes equivalentes", "Explique uma equivalencia encontrada"],
+                      "questions": ["Quais fracoes representam a mesma parte?", "Como voce percebeu a equivalencia?", "Que estrategia ajudou na comparacao?"],
+                      "expectedProduct": "Registro com grupos de fracoes equivalentes"
+                    },
+                    "teacherAnswerKey": {
+                      "expectedAnswers": ["Fracoes equivalentes representam a mesma quantidade", "A comparacao deve usar desenho ou proporcionalidade", "A justificativa precisa explicar a relacao entre as fracoes"],
+                      "teacherGuidance": ["Valorizar estrategias visuais", "Pedir justificativas orais"]
+                    },
+                    "assessmentInstrument": {
+                      "criteria": ["Identifica fracoes equivalentes", "Compara representacoes fracionarias", "Registra justificativas matematicas"],
+                      "evidenceCollection": ["Recolher registros no caderno", "Anotar justificativas orais"]
+                    },
+                    "pedagogicalEvidence": {
+                      "observableEvidences": ["Agrupamento correto de cartoes", "Uso de justificativas matematicas", "Participacao na discussao em grupo"],
+                      "recordsForCoordination": ["Foto dos agrupamentos", "Amostra dos registros"]
+                    },
+                    "inclusiveAdaptations": {
+                      "readingSupport": ["Cartoes com fonte ampliada", "Leitura compartilhada"],
+                      "participationSupport": ["Explicacao oral em dupla", "Papeis simples no grupo"],
+                      "simplifiedAlternatives": ["Menos cartoes", "Desenhos junto das fracoes"]
+                    }
+                  }
                 }
                 """;
     }
@@ -176,7 +227,49 @@ class LessonPlanGenerationServiceTest {
                     "closing": {"durationMinutes": 10, "description": "Sistematizar aprendizagens sobre transformacoes politicas"}
                   },
                   "resources": ["Mapa da Europa", "Linha do tempo", "Texto historico"],
-                  "evaluation": {"observableCriteria": ["Identifica causas historicas", "Compara grupos sociais", "Registra conclusoes sobre fontes"]}
+                  "evaluation": {"observableCriteria": ["Identifica causas historicas", "Compara grupos sociais", "Registra conclusoes sobre fontes"]},
+                  "kit": {
+                    "studentActivity": {
+                      "title": "Linha do tempo da Revolucao Francesa",
+                      "context": "Organizar acontecimentos da Revolucao Francesa para compreender mudancas politicas.",
+                      "instructions": ["Leia cada cartao historico", "Ordene os acontecimentos", "Explique uma mudanca politica"],
+                      "questions": ["Qual acontecimento veio primeiro?", "Que grupo social aparece no texto?", "Que mudanca politica foi registrada?"],
+                      "expectedProduct": "Painel sobre a Revolucao Francesa"
+                    },
+                    "teacherAnswerKey": {
+                      "expectedAnswers": ["A queda da Bastilha marca uma ruptura politica", "Os grupos sociais tinham interesses diferentes", "A declaracao apresenta direitos defendidos no periodo"],
+                      "teacherGuidance": ["Valorizar leitura de fontes", "Pedir justificativas historicas"]
+                    },
+                    "assessmentInstrument": {
+                      "criteria": ["Identifica causas historicas", "Compara grupos sociais", "Registra conclusoes sobre fontes"],
+                      "evidenceCollection": ["Guardar painel historico", "Anotar falas dos grupos"]
+                    },
+                    "pedagogicalEvidence": {
+                      "observableEvidences": ["Discussao sobre fontes", "Organizacao dos acontecimentos", "Apresentacao oral"],
+                      "recordsForCoordination": ["Painel produzido", "Anotacoes do professor"]
+                    },
+                    "inclusiveAdaptations": {
+                      "readingSupport": ["Textos com frases curtas", "Leitura em dupla"],
+                      "participationSupport": ["Resposta oral", "Papeis no grupo"],
+                      "simplifiedAlternatives": ["Menos cartoes", "Imagens historicas"]
+                    }
+                  }
+                }
+                """;
+    }
+
+    private String validJsonWithoutKit() {
+        return """
+                {
+                  "objectives": ["Identificar fracoes equivalentes", "Comparar representacoes fracionarias", "Resolver situacoes-problema com fracoes"],
+                  "contents": ["Representacao de fracoes", "Equivalencia entre fracoes", "Resolucao de problemas com fracoes equivalentes"],
+                  "methodology": {
+                    "introduction": {"durationMinutes": 10, "description": "Ativar conhecimentos previos sobre fracoes equivalentes"},
+                    "development": {"durationMinutes": 30, "description": "Resolver atividade em duplas comparando fracoes equivalentes"},
+                    "closing": {"durationMinutes": 10, "description": "Sistematizar aprendizagens sobre fracoes equivalentes"}
+                  },
+                  "resources": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
+                  "evaluation": {"observableCriteria": ["Identifica fracoes equivalentes", "Compara representacoes fracionarias", "Registra estrategias de resolucao"]}
                 }
                 """;
     }

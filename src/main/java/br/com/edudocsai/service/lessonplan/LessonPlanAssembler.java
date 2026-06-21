@@ -29,6 +29,7 @@ public class LessonPlanAssembler {
             root.put("metodologia", methodology(content.methodology()));
             root.put("recursosDidaticos", content.resources());
             root.put("avaliacao", evaluation(content.evaluation()));
+            root.put("kitAulaCompleta", kit(content.kit()));
             root.put("tempoEstimado", estimatedTime(context, content.methodology()));
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
         } catch (Exception exception) {
@@ -62,6 +63,55 @@ public class LessonPlanAssembler {
         Map<String, Object> evaluationMap = new LinkedHashMap<>();
         evaluationMap.put("criteriosObservaveis", evaluation.observableCriteria());
         return evaluationMap;
+    }
+
+    private Map<String, Object> kit(CompleteLessonKit kit) {
+        Map<String, Object> kitMap = new LinkedHashMap<>();
+        kitMap.put("atividadeAluno", studentActivity(kit.studentActivity()));
+        kitMap.put("gabaritoProfessor", teacherAnswerKey(kit.teacherAnswerKey()));
+        kitMap.put("instrumentoAvaliativo", assessmentInstrument(kit.assessmentInstrument()));
+        kitMap.put("evidenciasPedagogicas", pedagogicalEvidence(kit.pedagogicalEvidence()));
+        kitMap.put("adaptacoesInclusivas", inclusiveAdaptations(kit.inclusiveAdaptations()));
+        return kitMap;
+    }
+
+    private Map<String, Object> studentActivity(StudentActivity activity) {
+        Map<String, Object> activityMap = new LinkedHashMap<>();
+        activityMap.put("titulo", activity.title());
+        activityMap.put("contexto", activity.context());
+        activityMap.put("orientacoes", activity.instructions());
+        activityMap.put("questoes", activity.questions());
+        activityMap.put("produtoEsperado", activity.expectedProduct());
+        return activityMap;
+    }
+
+    private Map<String, Object> teacherAnswerKey(TeacherAnswerKey answerKey) {
+        Map<String, Object> answerKeyMap = new LinkedHashMap<>();
+        answerKeyMap.put("respostasEsperadas", answerKey.expectedAnswers());
+        answerKeyMap.put("orientacoesProfessor", answerKey.teacherGuidance());
+        return answerKeyMap;
+    }
+
+    private Map<String, Object> assessmentInstrument(AssessmentInstrument instrument) {
+        Map<String, Object> instrumentMap = new LinkedHashMap<>();
+        instrumentMap.put("criterios", instrument.criteria());
+        instrumentMap.put("coletaEvidencias", instrument.evidenceCollection());
+        return instrumentMap;
+    }
+
+    private Map<String, Object> pedagogicalEvidence(PedagogicalEvidence evidence) {
+        Map<String, Object> evidenceMap = new LinkedHashMap<>();
+        evidenceMap.put("evidenciasObservaveis", evidence.observableEvidences());
+        evidenceMap.put("registrosParaCoordenacao", evidence.recordsForCoordination());
+        return evidenceMap;
+    }
+
+    private Map<String, Object> inclusiveAdaptations(InclusiveAdaptations adaptations) {
+        Map<String, Object> adaptationsMap = new LinkedHashMap<>();
+        adaptationsMap.put("apoioLeitura", adaptations.readingSupport());
+        adaptationsMap.put("apoioParticipacao", adaptations.participationSupport());
+        adaptationsMap.put("alternativasSimplificadas", adaptations.simplifiedAlternatives());
+        return adaptationsMap;
     }
 
     private Map<String, Object> estimatedTime(LessonPlanRequestContext context, Methodology methodology) {
