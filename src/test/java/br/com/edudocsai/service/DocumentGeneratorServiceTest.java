@@ -7,6 +7,7 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,13 +69,17 @@ class DocumentGeneratorServiceTest {
                           },
                           "recursosDidaticos": ["Quadro branco", "Cartoes de fracoes", "Caderno"],
                           "avaliacao": {"criteriosObservaveis": ["Identifica fracoes equivalentes", "Compara representacoes", "Registra estrategias"]},
-                          "tempoEstimado": {"introducao": 10, "desenvolvimento": 30, "fechamento": 10, "total": 50}
+                          "tempoEstimado": {"introducao": 10, "desenvolvimento": 30, "fechamento": 10, "total": 50},
+                          "teacher_notes": "Nao exportar notas internas",
+                          "question_number": "Q-INT-001",
+                          "stage": "draft-internal-stage"
                         }
                         """)
                 .build();
         DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
 
         String text = extractText(service.generateDocx(document));
+        List<String> lines = text.lines().toList();
 
         assertThat(text)
                 .contains("PLANO DE AULA")
@@ -86,13 +91,30 @@ class DocumentGeneratorServiceTest {
                 .contains("Recursos Didaticos:")
                 .contains("Avaliacao:")
                 .contains("Tempo Estimado:")
+                .contains("Introducao: 10 min - Ativar conhecimentos previos")
+                .contains("Desenvolvimento: 30 min - Resolver atividade em duplas")
+                .contains("Fechamento: 10 min - Sistematizar aprendizagens")
+                .contains("Total: 50 min");
+        assertThat(lines)
+                .contains("Introducao: 10 min")
+                .contains("Desenvolvimento: 30 min")
+                .contains("Fechamento: 10 min")
                 .contains("Total: 50 min");
         assertThat(text)
                 .doesNotContain("HABILIDADES BNCC")
                 .doesNotContain("ATIVIDADES DETALHADAS")
                 .doesNotContain("OBSERVACOES DO PROFESSOR")
+                .doesNotContain("Matematica")
+                .doesNotContain("5 ano")
+                .doesNotContain("EF05MA03")
+                .doesNotContain("codigo")
+                .doesNotContain("descricao")
                 .doesNotContain("teacher_notes")
-                .doesNotContain("question_number");
+                .doesNotContain("Nao exportar notas internas")
+                .doesNotContain("question_number")
+                .doesNotContain("Q-INT-001")
+                .doesNotContain("stage")
+                .doesNotContain("draft-internal-stage");
     }
 
     private String extractText(byte[] docxBytes) {
