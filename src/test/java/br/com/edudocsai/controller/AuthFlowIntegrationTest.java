@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +57,21 @@ class AuthFlowIntegrationTest {
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(loginResponse.getBody()).isNotNull();
         assertThat(loginResponse.getBody().accessToken()).isNotBlank();
+    }
+
+    @Test
+    void protectedEndpointReturnsUnauthorizedForInvalidJwt() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth("invalid.jwt.token");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/bncc"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     private String url(String path) {

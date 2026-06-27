@@ -5,6 +5,7 @@ import br.com.edudocsai.exception.BadRequestException;
 import br.com.edudocsai.exception.ConflictException;
 import br.com.edudocsai.repository.BNCCSkillRepository;
 import br.com.edudocsai.dto.bncc.BNCCSkillRequest;
+import br.com.edudocsai.dto.bncc.RecommendBNCCRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,6 +17,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,6 +25,9 @@ class BNCCServiceTest {
 
     @Mock
     private BNCCSkillRepository repository;
+
+    @Mock
+    private AIService aiService;
 
     @InjectMocks
     private BNCCService service;
@@ -59,13 +64,36 @@ class BNCCServiceTest {
         )))).isInstanceOf(ConflictException.class);
     }
 
+    @Test
+    void recommendSkillsNormalizesUiSubjectBeforeCallingAi() {
+        BNCCSkill first = skill(10L, "EF01LP05", "Língua Portuguesa", "1º ano");
+        BNCCSkill second = skill(11L, "EF01LP06", "Língua Portuguesa", "1º ano");
+        when(repository.findByGradeIgnoreCaseAndSubjectIgnoreCase("1º ano", "Português")).thenReturn(List.of());
+        when(repository.findByGradeIgnoreCaseAndSubjectIgnoreCase("1º ano", "Língua Portuguesa"))
+                .thenReturn(List.of(first, second));
+        when(aiService.generateJsonObject(any(String.class))).thenReturn("{\"recommendedIds\":[10,99,11]}");
+
+        var result = service.recommendSkills(new RecommendBNCCRequest(
+                "1º ano",
+                "Português",
+                "separar sílabas"
+        ));
+
+        assertThat(result.recommendedIds()).containsExactly(10L, 11L);
+        verify(aiService).generateJsonObject(any(String.class));
+    }
+
     private BNCCSkill skill(Long id, String code) {
+        return skill(id, code, "Matematica", "5 ano");
+    }
+
+    private BNCCSkill skill(Long id, String code, String subject, String grade) {
         return BNCCSkill.builder()
                 .id(id)
                 .code(code)
                 .description("Descricao")
-                .subject("Matematica")
-                .grade("5 ano")
+                .subject(subject)
+                .grade(grade)
                 .build();
     }
 }

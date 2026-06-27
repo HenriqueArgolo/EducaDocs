@@ -66,6 +66,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AiProviderException.class)
     ResponseEntity<ApiErrorResponse> handleAi(AiProviderException exception, HttpServletRequest request) {
+        if (isRateLimitError(exception)) {
+            return build(HttpStatus.TOO_MANY_REQUESTS, "A inteligência artificial está temporariamente indisponível (alta demanda) ou com limite de requisições excedido. Por favor, aguarde um minuto antes de tentar novamente ou configure uma chave reserva.", request, List.of());
+        }
         return build(HttpStatus.BAD_GATEWAY, exception.getMessage(), request, List.of());
     }
 
@@ -77,7 +80,35 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
         log.error("Unhandled API exception path={}", request.getRequestURI(), exception);
+        if (isRateLimitError(exception)) {
+            return build(HttpStatus.TOO_MANY_REQUESTS, "A inteligência artificial está temporariamente indisponível (alta demanda) ou com limite de requisições excedido. Por favor, aguarde um minuto antes de tentar novamente ou configure uma chave reserva.", request, List.of());
+        }
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno inesperado", request, List.of());
+    }
+
+    private boolean isRateLimitError(Throwable error) {
+        if (error == null) {
+            return false;
+        }
+        String msg = error.getMessage();
+        if (msg != null) {
+            String upper = msg.toUpperCase();
+            if (upper.contains("429") || 
+                upper.contains("503") || 
+                upper.contains("RESOURCE_EXHAUSTED") || 
+                upper.contains("QUOTA EXCEEDED") || 
+                upper.contains("LIMIT EXCEEDED") || 
+                upper.contains("TOO MANY REQUESTS") ||
+                upper.contains("UNAVAILABLE") ||
+                upper.contains("HIGH DEMAND") ||
+                upper.contains("TRY AGAIN LATER") ||
+                upper.contains("TEMPORARY") ||
+                upper.contains("INDISPONÍVEL") ||
+                upper.contains("INDISPONIVEL")) {
+                return true;
+            }
+        }
+        return isRateLimitError(error.getCause());
     }
 
     private FieldErrorResponse toFieldError(FieldError error) {

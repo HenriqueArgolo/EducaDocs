@@ -2,6 +2,7 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.dto.document.DocumentResponse;
 import br.com.edudocsai.dto.document.GenerateDocumentRequest;
+import br.com.edudocsai.dto.document.CreateDocumentRequest;
 import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
@@ -10,7 +11,9 @@ import br.com.edudocsai.entity.Role;
 import br.com.edudocsai.entity.User;
 import br.com.edudocsai.exception.ForbiddenException;
 import br.com.edudocsai.exception.NotFoundException;
+import br.com.edudocsai.repository.ClassroomTimelineItemRepository;
 import br.com.edudocsai.repository.DocumentRepository;
+import br.com.edudocsai.repository.StudentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
 import br.com.edudocsai.service.lessonplan.LessonPlanGenerationService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,8 @@ public class DocumentService {
     private final GenerationRequestRepository generationRequestRepository;
     private final DocumentRepository documentRepository;
     private final LessonPlanGenerationService lessonPlanGenerationService;
+    private final ClassroomTimelineItemRepository classroomTimelineItemRepository;
+    private final StudentRepository studentRepository;
 
     @Transactional
     public DocumentResponse generate(GenerateDocumentRequest request) {
@@ -45,6 +50,33 @@ public class DocumentService {
                 ? lessonPlanGenerationService.generate(user, request)
                 : generateGeneric(user, request);
         usageLimitService.increment(user);
+
+        if (request.timelineItemId() != null && request.documentType() != DocumentType.LESSON_PLAN) {
+            classroomTimelineItemRepository.findById(request.timelineItemId()).ifPresent(item -> {
+                item.setDocument(document);
+                item.setStatus(br.com.edudocsai.entity.TimelineItemStatus.COMPLETED);
+                classroomTimelineItemRepository.save(item);
+            });
+        }
+
+        return toResponse(document);
+    }
+
+    @Transactional
+    public DocumentResponse create(CreateDocumentRequest request) {
+        User currentUser = currentUserService.getCurrentUser();
+        GenerationRequest genReq = null;
+        if (request.generationRequestId() != null) {
+            genReq = generationRequestRepository.findById(request.generationRequestId())
+                    .orElse(null);
+        }
+        Document document = documentRepository.save(Document.builder()
+                .user(currentUser)
+                .generationRequest(genReq)
+                .type(request.type())
+                .title(limitTitle(request.title()))
+                .content(request.content())
+                .build());
         return toResponse(document);
     }
 
@@ -62,7 +94,24 @@ public class DocumentService {
                 .subject(selectedSubject)
                 .duration(normalizeDuration(request.duration()))
                 .additionalInstructions(blankToNull(request.additionalInstructions()))
+                .templateStyle(request.templateStyle() != null ? request.templateStyle() : br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL)
+                .numberOfQuestions(request.numberOfQuestions())
+                .includeHeader(request.includeHeader())
                 .build());
+
+        String studentNeeds = "";
+        if (request.classroomId() != null) {
+            List<br.com.edudocsai.entity.Student> students = studentRepository.findByClassroomIdOrderByCreatedAtDesc(request.classroomId());
+            if (!students.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                for (br.com.edudocsai.entity.Student student : students) {
+                    if (student.getNeeds() != null && !student.getNeeds().isBlank()) {
+                        sb.append(student.getName()).append(": ").append(student.getNeeds()).append("\n");
+                    }
+                }
+                studentNeeds = sb.toString();
+            }
+        }
 
         String prompt = promptTemplateService.buildPrompt(
                 request.documentType(),
@@ -71,7 +120,10 @@ public class DocumentService {
                 selectedSubject,
                 request.topic().trim(),
                 normalizeDuration(request.duration()),
-                request.additionalInstructions()
+                request.additionalInstructions(),
+                request.numberOfQuestions(),
+                request.includeHeader(),
+                studentNeeds
         );
         log.info("Generating document userId={} type={} bnccCount={}", user.getId(), request.documentType(), bnccSkills.size());
         AiGeneratedDocument generated = aiService.generate(request.documentType(), prompt);

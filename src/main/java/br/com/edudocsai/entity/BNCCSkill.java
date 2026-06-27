@@ -32,9 +32,9 @@ public class BNCCSkill {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, length = 80)
+    @Column(nullable = false, length = 160)
     private String subject;
 
-    @Column(nullable = false, length = 40)
+    @Column(nullable = false, length = 120)
     private String grade;
 }

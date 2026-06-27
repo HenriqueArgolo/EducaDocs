@@ -9,3 +9,6 @@ target/
 *.log
 hs_err_pid*
 replay_pid*
+tmp/
+output/
+

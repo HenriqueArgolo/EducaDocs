@@ -7,8 +7,10 @@ import br.com.edudocsai.entity.DocumentType;
 import br.com.edudocsai.entity.GenerationRequest;
 import br.com.edudocsai.entity.User;
 import br.com.edudocsai.exception.AiProviderException;
+import br.com.edudocsai.repository.ClassroomTimelineItemRepository;
 import br.com.edudocsai.repository.DocumentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
+import br.com.edudocsai.repository.StudentRepository;
 import br.com.edudocsai.service.AIService;
 import br.com.edudocsai.service.BNCCService;
 import lombok.RequiredArgsConstructor;
@@ -37,12 +39,29 @@ public class LessonPlanGenerationService {
     private final LessonPlanAssembler assembler;
     private final GenerationRequestRepository generationRequestRepository;
     private final DocumentRepository documentRepository;
+    private final StudentRepository studentRepository;
+    private final ClassroomTimelineItemRepository classroomTimelineItemRepository;
 
     public Document generate(User user, GenerateDocumentRequest request) {
         LessonPlanRequestContext context = requestValidator.validate(request);
         List<BNCCSkill> skills = bnccService.validateAndLoad(context.bnccSkillIds());
         bnccCompatibilityValidator.validate(context.grade(), context.subject(), skills);
-        String prompt = promptBuilder.build(context, skills);
+
+        String pdiContext = "";
+        if (context.classroomId() != null) {
+            List<br.com.edudocsai.entity.Student> students = studentRepository.findByClassroomIdOrderByCreatedAtDesc(context.classroomId());
+            if (!students.isEmpty()) {
+                StringBuilder pdiBuilder = new StringBuilder("\nAlunos com necessidades especiais de inclusão reais nesta turma. Adapte a seção 'inclusiveAdaptations' especificamente para eles:\n");
+                for (br.com.edudocsai.entity.Student student : students) {
+                    if (student.getNeeds() != null && !student.getNeeds().isBlank()) {
+                        pdiBuilder.append("- ").append(student.getName()).append(": ").append(student.getNeeds()).append("\n");
+                    }
+                }
+                pdiContext = pdiBuilder.toString();
+            }
+        }
+
+        String prompt = promptBuilder.build(context, skills) + pdiContext;
         RuntimeException lastFailure = null;
         String finalJson = null;
 
@@ -65,7 +84,18 @@ public class LessonPlanGenerationService {
         if (finalJson == null) {
             throw new AiProviderException("Nao foi possivel gerar plano de aula valido apos 3 tentativas", lastFailure);
         }
-        return save(user, context, finalJson);
+
+        Document savedDoc = save(user, context, finalJson);
+
+        if (context.timelineItemId() != null) {
+            classroomTimelineItemRepository.findById(context.timelineItemId()).ifPresent(item -> {
+                item.setDocument(savedDoc);
+                item.setStatus(br.com.edudocsai.entity.TimelineItemStatus.COMPLETED);
+                classroomTimelineItemRepository.save(item);
+            });
+        }
+
+        return savedDoc;
     }
 
     private String generateValidContentJson(LessonPlanRequestContext context, List<BNCCSkill> skills, String prompt) {
@@ -90,6 +120,7 @@ public class LessonPlanGenerationService {
                 .subject(context.subject())
                 .duration(context.durationText())
                 .additionalInstructions(context.additionalInstructions())
+                .templateStyle(context.templateStyle())
                 .build());
 
         return documentRepository.save(Document.builder()

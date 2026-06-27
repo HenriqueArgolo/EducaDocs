@@ -11,6 +11,7 @@ import br.com.edudocsai.entity.User;
 import br.com.edudocsai.exception.RateLimitException;
 import br.com.edudocsai.repository.DocumentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
+import br.com.edudocsai.repository.StudentRepository;
 import br.com.edudocsai.service.lessonplan.LessonPlanGenerationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,8 @@ class DocumentServiceTest {
     private DocumentRepository documentRepository;
     @Mock
     private LessonPlanGenerationService lessonPlanGenerationService;
+    @Mock
+    private StudentRepository studentRepository;
 
     @InjectMocks
     private DocumentService documentService;
@@ -70,7 +73,10 @@ class DocumentServiceTest {
                 eq("Matem\u00e1tica"),
                 eq("Fracoes"),
                 eq("50 minutos"),
-                isNull()
+                isNull(),
+                any(),
+                any(),
+                any()
         ))
                 .thenReturn("prompt");
         when(aiService.generate(DocumentType.EXAM, "prompt"))
@@ -113,7 +119,7 @@ class DocumentServiceTest {
 
         assertThat(result.title()).isEqualTo("Plano de aula - Fracoes");
         verify(lessonPlanGenerationService).generate(user, request);
-        verify(promptTemplateService, never()).buildPrompt(any(), anyList(), any(), any(), any(), any(), any());
+        verify(promptTemplateService, never()).buildPrompt(any(), anyList(), any(), any(), any(), any(), any(), any(), any(), any());
         verify(usageLimitService).increment(user);
     }
 
@@ -141,7 +147,8 @@ class DocumentServiceTest {
                 "5\u00ba ano",
                 "Matem\u00e1tica",
                 "50 minutos",
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
     }
 
@@ -153,7 +160,8 @@ class DocumentServiceTest {
                 "5\u00ba ano",
                 "Matem\u00e1tica",
                 "50 minutos",
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
     }
 

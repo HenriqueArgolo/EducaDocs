@@ -2,6 +2,8 @@ package br.com.edudocsai.controller;
 
 import br.com.edudocsai.dto.bncc.BNCCSkillRequest;
 import br.com.edudocsai.dto.bncc.BNCCSkillResponse;
+import br.com.edudocsai.dto.bncc.RecommendBNCCRequest;
+import br.com.edudocsai.dto.bncc.RecommendBNCCResponse;
 import br.com.edudocsai.service.BNCCService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +45,12 @@ public class BNCCController {
     @Operation(summary = "Busca habilidade BNCC por ID")
     public BNCCSkillResponse getById(@PathVariable Long id) {
         return bnccService.getById(id);
+    }
+
+    @PostMapping("/recommend")
+    @Operation(summary = "Recomenda habilidades BNCC com base no tema, serie e materia")
+    public RecommendBNCCResponse recommend(@Valid @RequestBody RecommendBNCCRequest request) {
+        return bnccService.recommendSkills(request);
     }
 
     @PostMapping

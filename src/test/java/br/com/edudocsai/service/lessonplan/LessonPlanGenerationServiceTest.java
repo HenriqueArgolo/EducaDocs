@@ -12,6 +12,7 @@ import br.com.edudocsai.repository.DocumentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
 import br.com.edudocsai.service.AIService;
 import br.com.edudocsai.service.BNCCService;
+import br.com.edudocsai.service.PromptBuilderHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,10 @@ class LessonPlanGenerationServiceTest {
     private GenerationRequestRepository generationRequestRepository;
     @Mock
     private DocumentRepository documentRepository;
+    @Mock
+    private br.com.edudocsai.repository.StudentRepository studentRepository;
+    @Mock
+    private br.com.edudocsai.repository.ClassroomTimelineItemRepository classroomTimelineItemRepository;
 
     @Test
     void regeneratesAfterInvalidTopicOutputAndSavesOnlyValidLessonPlan() {
@@ -129,7 +134,7 @@ class LessonPlanGenerationServiceTest {
                 new LessonPlanRequestValidator(),
                 bnccService,
                 new BnccCompatibilityValidator(),
-                new LessonPlanPromptBuilder(),
+                new LessonPlanPromptBuilder(new PromptBuilderHelper(), studentRepository),
                 aiService,
                 new LessonPlanAiParser(objectMapper),
                 new TemplateValidator(),
@@ -137,7 +142,9 @@ class LessonPlanGenerationServiceTest {
                 new QualityValidator(),
                 new LessonPlanAssembler(objectMapper),
                 generationRequestRepository,
-                documentRepository
+                documentRepository,
+                studentRepository,
+                classroomTimelineItemRepository
         );
     }
 
@@ -149,7 +156,8 @@ class LessonPlanGenerationServiceTest {
                 "5 ano",
                 "Matematica",
                 "50 minutos",
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
     }
 

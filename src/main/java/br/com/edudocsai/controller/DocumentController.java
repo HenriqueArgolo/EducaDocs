@@ -2,6 +2,7 @@ package br.com.edudocsai.controller;
 
 import br.com.edudocsai.dto.document.DocumentResponse;
 import br.com.edudocsai.dto.document.GenerateDocumentRequest;
+import br.com.edudocsai.dto.document.CreateDocumentRequest;
 import br.com.edudocsai.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,6 +41,13 @@ public class DocumentController {
     @Operation(summary = "Gera documento pedagogico com IA usando BNCC validada")
     public DocumentResponse generate(@Valid @RequestBody GenerateDocumentRequest request) {
         return documentService.generate(request);
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Salva um documento pedagogico manualmente na conta do usuario")
+    public DocumentResponse create(@Valid @RequestBody CreateDocumentRequest request) {
+        return documentService.create(request);
     }
 
     @GetMapping("/{id}")

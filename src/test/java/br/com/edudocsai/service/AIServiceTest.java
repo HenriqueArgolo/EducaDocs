@@ -26,7 +26,8 @@ class AIServiceTest {
     void generateUsesGeminiWhenPrimaryProviderReturnsValidJson() throws Exception {
         WebClient gemini = webClientReturning(geminiBody("{\"titulo\":\"Plano\",\"tipo\":\"LESSON_PLAN\",\"conteudo\":{}}"));
         WebClient openRouter = webClientFailing();
-        AIService service = new AIService(gemini, openRouter, properties(), objectMapper);
+        WebClient deepseek = webClientFailing();
+        AIService service = new AIService(gemini, openRouter, deepseek, properties(), objectMapper);
 
         AiGeneratedDocument result = service.generate(DocumentType.LESSON_PLAN, "prompt");
 
@@ -38,7 +39,8 @@ class AIServiceTest {
     void generateFallsBackToOpenRouterWhenGeminiFails() throws Exception {
         WebClient gemini = webClientFailing();
         WebClient openRouter = webClientReturning(openRouterBody("{\"titulo\":\"Rubrica\",\"tipo\":\"RUBRIC\",\"conteudo\":{}}"));
-        AIService service = new AIService(gemini, openRouter, properties(), objectMapper);
+        WebClient deepseek = webClientFailing();
+        AIService service = new AIService(gemini, openRouter, deepseek, properties(), objectMapper);
 
         AiGeneratedDocument result = service.generate(DocumentType.RUBRIC, "prompt");
 
@@ -63,7 +65,8 @@ class AIServiceTest {
                 """;
         WebClient gemini = webClientReturning(geminiBody(lessonPlanContent));
         WebClient openRouter = webClientFailing();
-        AIService service = new AIService(gemini, openRouter, properties(), objectMapper);
+        WebClient deepseek = webClientFailing();
+        AIService service = new AIService(gemini, openRouter, deepseek, properties(), objectMapper);
 
         String result = service.generateJsonObject("prompt");
 
@@ -73,11 +76,12 @@ class AIServiceTest {
     }
 
     @Test
-    void generateJsonObjectRejectsTopLevelArrayFromBothProviders() throws Exception {
-        String arrayContent = "[{\"objectives\":[]}]";
+    void generateJsonObjectRejectsTopLevelArrayWithoutObjectsFromBothProviders() throws Exception {
+        String arrayContent = "[\"objectives\"]";
         WebClient gemini = webClientReturning(geminiBody(arrayContent));
         WebClient openRouter = webClientReturning(openRouterBody(arrayContent));
-        AIService service = new AIService(gemini, openRouter, properties(), objectMapper);
+        WebClient deepseek = webClientFailing();
+        AIService service = new AIService(gemini, openRouter, deepseek, properties(), objectMapper);
 
         assertThatThrownBy(() -> service.generateJsonObject("prompt"))
                 .isInstanceOf(AiProviderException.class);
@@ -86,7 +90,8 @@ class AIServiceTest {
     private AiProperties properties() {
         return new AiProperties(
                 new AiProperties.Provider("https://gemini.example", "gemini-key", "gemini-1.5-flash"),
-                new AiProperties.Provider("https://openrouter.example", "openrouter-key", "deepseek/deepseek-chat")
+                new AiProperties.Provider("https://openrouter.example", "openrouter-key", "deepseek/deepseek-chat"),
+                new AiProperties.Provider("https://deepseek.example", "deepseek-key", "deepseek-chat")
         );
     }
 

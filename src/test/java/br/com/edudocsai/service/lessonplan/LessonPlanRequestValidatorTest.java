@@ -23,7 +23,8 @@ class LessonPlanRequestValidatorTest {
                 " 5 ano ",
                 " Matematica ",
                 "50 minutos",
-                " Usar material concreto "
+                " Usar material concreto ",
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
 
         LessonPlanRequestContext result = validator.validate(request);
@@ -47,7 +48,8 @@ class LessonPlanRequestValidatorTest {
                 " ",
                 "Matematica",
                 "50 minutos",
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
 
         assertThatThrownBy(() -> validator.validate(request))
@@ -64,7 +66,8 @@ class LessonPlanRequestValidatorTest {
                 "5 ano",
                 "Matematica",
                 "20 minutos",
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
 
         assertThatThrownBy(() -> validator.validate(request))

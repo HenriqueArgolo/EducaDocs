@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Size;
 public record BNCCSkillRequest(
         @NotBlank @Size(max = 20) String code,
         @NotBlank String description,
-        @NotBlank @Size(max = 80) String subject,
-        @NotBlank @Size(max = 40) String grade
+        @NotBlank @Size(max = 160) String subject,
+        @NotBlank @Size(max = 120) String grade
 ) {
 }

@@ -1,0 +1,1 @@
+ALTER TABLE generation_requests ADD COLUMN template_style VARCHAR(50) DEFAULT 'INSTITUTIONAL' NOT NULL;

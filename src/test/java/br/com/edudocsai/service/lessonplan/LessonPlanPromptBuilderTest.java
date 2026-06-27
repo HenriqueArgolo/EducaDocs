@@ -2,7 +2,10 @@ package br.com.edudocsai.service.lessonplan;
 
 import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.repository.StudentRepository;
+import br.com.edudocsai.service.PromptBuilderHelper;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.List;
 
@@ -10,7 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class LessonPlanPromptBuilderTest {
 
-    private final LessonPlanPromptBuilder builder = new LessonPlanPromptBuilder();
+    private final StudentRepository studentRepository = Mockito.mock(StudentRepository.class);
+    private final LessonPlanPromptBuilder builder = new LessonPlanPromptBuilder(new PromptBuilderHelper(), studentRepository);
 
     @Test
     void buildsPromptThatRestrictsAiToInternalContentOnly() {
@@ -22,7 +26,8 @@ class LessonPlanPromptBuilderTest {
                 "Matematica",
                 "50 minutos",
                 50,
-                null
+                "Adaptar para alunos surdos",
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
 
         String prompt = builder.build(context, List.of(skill()));
@@ -40,7 +45,7 @@ class LessonPlanPromptBuilderTest {
         assertThat(prompt).doesNotContain("\"tema\"");
         assertThat(prompt).doesNotContain("\"disciplina\"");
         assertThat(prompt).doesNotContain("\"ano\"");
-        assertThat(prompt).contains("nao crie secoes finais");
+        assertThat(prompt).contains("não crie seções finais");
     }
 
     @Test
@@ -61,9 +66,55 @@ class LessonPlanPromptBuilderTest {
         String prompt = builder.build(context, List.of(skill()));
 
         assertThat(prompt).contains(conflictingInstruction);
-        assertThat(prompt).contains("instrucoes adicionais conflitantes");
-        assertThat(prompt.indexOf("instrucoes adicionais conflitantes"))
+        assertThat(prompt).contains("instruções adicionais");
+        assertThat(prompt.indexOf("instruções adicionais"))
                 .isGreaterThan(prompt.indexOf(conflictingInstruction));
+    }
+
+    @Test
+    void usesEarlyChildhoodExperienceGuidanceFromMasterPrompt() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "As cores da natureza",
+                "Crianças pequenas",
+                "Traços, sons, cores e formas",
+                "45 minutos",
+                45,
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
+        );
+
+        String prompt = builder.build(context, List.of(earlyChildhoodSkill()));
+
+        assertThat(prompt)
+                .contains("Proposta de Experiência")
+                .contains("experiência de aprendizagem lúdica e significativa")
+                .contains("atividades abertas, que permitam diferentes desfechos")
+                .contains("observar e registrar o desenvolvimento");
+    }
+
+    @Test
+    void usesEjaLessonPlanGuidanceFromMasterPrompt() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Educação financeira para o dia a dia",
+                "EJA",
+                "Matemática",
+                "50 minutos",
+                50,
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
+        );
+
+        String prompt = builder.build(context, List.of(ejaSkill()));
+
+        assertThat(prompt)
+                .contains("atividade inicial que valorize os saberes prévios e a experiência de vida")
+                .contains("documentos do cotidiano")
+                .contains("metodologias andragógicas")
+                .contains("conexão com o mundo do trabalho e a vida adulta");
     }
 
     private LessonPlanRequestContext context(int totalMinutes, String additionalInstructions) {
@@ -75,7 +126,8 @@ class LessonPlanPromptBuilderTest {
                 "Matematica",
                 totalMinutes + " minutos",
                 totalMinutes,
-                additionalInstructions
+                additionalInstructions,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
     }
 
@@ -86,6 +138,26 @@ class LessonPlanPromptBuilderTest {
                 .description("Identificar fracoes equivalentes")
                 .subject("Matematica")
                 .grade("5 ano")
+                .build();
+    }
+
+    private BNCCSkill earlyChildhoodSkill() {
+        return BNCCSkill.builder()
+                .id(2L)
+                .code("EI03TS02")
+                .description("Expressar-se livremente por meio de desenho, pintura, colagem e dobradura")
+                .subject("Traços, sons, cores e formas")
+                .grade("Crianças pequenas")
+                .build();
+    }
+
+    private BNCCSkill ejaSkill() {
+        return BNCCSkill.builder()
+                .id(3L)
+                .code("EJAMA01")
+                .description("Resolver problemas financeiros do cotidiano")
+                .subject("Matemática")
+                .grade("EJA")
                 .build();
     }
 }

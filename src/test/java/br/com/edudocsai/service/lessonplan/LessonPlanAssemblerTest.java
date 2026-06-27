@@ -25,7 +25,8 @@ class LessonPlanAssemblerTest {
                 "Matematica",
                 "50 minutos",
                 50,
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
 
         String json = assembler.assembleJson(context, List.of(skill()), TemplateValidatorTest.validContent());
@@ -57,7 +58,8 @@ class LessonPlanAssemblerTest {
                 "Matematica",
                 "50 minutos",
                 50,
-                null
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
         );
 
         String json = assembler.assembleJson(context, List.of(skill()), TemplateValidatorTest.validContent());

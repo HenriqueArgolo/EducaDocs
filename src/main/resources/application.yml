@@ -41,6 +41,15 @@ edudocs:
   usage:
     daily-generation-limit: ${APP_DAILY_GENERATION_LIMIT:20}
   ai:
+    image:
+      enabled: ${GEMINI_IMAGE_ENABLED:true}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_IMAGE_MODEL:gemini-3.1-flash-image}
+      image-size: ${GEMINI_IMAGE_SIZE:512}
+      max-attempts: ${GEMINI_IMAGE_MAX_ATTEMPTS:3}
+      max-assets-per-activity: ${GEMINI_IMAGE_MAX_ASSETS:8}
+      max-concurrency: ${GEMINI_IMAGE_MAX_CONCURRENCY:2}
     gemini:
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
       api-key: ${GEMINI_API_KEY:}
@@ -49,3 +58,7 @@ edudocs:
       base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
       api-key: ${OPENROUTER_API_KEY:}
       model: ${OPENROUTER_MODEL:deepseek/deepseek-chat}
+    deepseek:
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}
+      model: ${DEEPSEEK_MODEL:deepseek-chat}

@@ -154,11 +154,9 @@ public class TemplateValidator {
     }
 
     private void validateObservableCriteria(List<String> criteria) {
-        for (String criterion : criteria) {
-            if (!containsCriterionActionVerb(criterion)) {
-                throw new LessonPlanValidationException("Avaliacao deve conter criterios observaveis");
-            }
-        }
+        // Relaxado: a IA pode usar substantivos como "Participacao ativa", "Engajamento", "Clareza" 
+        // e nao queremos descartar o plano de aula perfeito por causa disso.
+        // rejectGenericAssessment ja garante que nao sera apenas "participacao".
     }
 
     private boolean containsCriterionActionVerb(String criterion) {

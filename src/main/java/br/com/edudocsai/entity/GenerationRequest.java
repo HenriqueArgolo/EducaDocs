@@ -46,6 +46,11 @@ public class GenerationRequest {
     @Column(nullable = false, length = 40)
     private DocumentType documentType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    @Builder.Default
+    private TemplateStyle templateStyle = TemplateStyle.INSTITUTIONAL;
+
     @ElementCollection
     @CollectionTable(
             name = "generation_request_bncc_skill_ids",
@@ -69,6 +74,12 @@ public class GenerationRequest {
 
     @Column(columnDefinition = "TEXT")
     private String additionalInstructions;
+
+    @Column(name = "number_of_questions")
+    private Integer numberOfQuestions;
+
+    @Column(name = "include_header")
+    private Boolean includeHeader;
 
     @Column(nullable = false)
     private OffsetDateTime createdAt;

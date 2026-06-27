@@ -24,17 +24,20 @@ public class AIService {
 
     private final WebClient geminiWebClient;
     private final WebClient openRouterWebClient;
+    private final WebClient deepseekWebClient;
     private final AiProperties properties;
     private final ObjectMapper objectMapper;
 
     public AIService(
             @Qualifier("geminiWebClient") WebClient geminiWebClient,
             @Qualifier("openRouterWebClient") WebClient openRouterWebClient,
+            @Qualifier("deepseekWebClient") WebClient deepseekWebClient,
             AiProperties properties,
             ObjectMapper objectMapper
     ) {
         this.geminiWebClient = geminiWebClient;
         this.openRouterWebClient = openRouterWebClient;
+        this.deepseekWebClient = deepseekWebClient;
         this.properties = properties;
         this.objectMapper = objectMapper;
     }
@@ -43,13 +46,32 @@ public class AIService {
         try {
             return parseAiJson(callGemini(prompt), documentType);
         } catch (RuntimeException primaryException) {
-            log.warn("Gemini provider failed. Falling back to OpenRouter. reason={}", primaryException.getMessage());
-            try {
-                return parseAiJson(callOpenRouter(prompt), documentType);
-            } catch (RuntimeException fallbackException) {
-                log.warn("OpenRouter provider failed. reason={}", fallbackException.getMessage());
-                throw new AiProviderException("Falha ao gerar documento com os provedores de IA", fallbackException);
+            log.warn("Gemini provider failed. reason={}", primaryException.getMessage());
+            
+            if (properties.deepseek() != null && properties.deepseek().hasApiKey()) {
+                try {
+                    log.info("Attempting fallback to DeepSeek...");
+                    return parseAiJson(callDeepSeek(prompt), documentType);
+                } catch (RuntimeException dsException) {
+                    log.warn("DeepSeek provider failed. reason={}", dsException.getMessage());
+                    return tryOpenRouterFallback(prompt, documentType, primaryException, dsException);
+                }
+            } else {
+                return tryOpenRouterFallback(prompt, documentType, primaryException, null);
             }
+        }
+    }
+
+    private AiGeneratedDocument tryOpenRouterFallback(String prompt, DocumentType documentType, RuntimeException geminiErr, RuntimeException dsErr) {
+        log.warn("Attempting fallback to OpenRouter...");
+        try {
+            return parseAiJson(callOpenRouter(prompt), documentType);
+        } catch (RuntimeException fallbackException) {
+            log.warn("OpenRouter provider failed. reason={}", fallbackException.getMessage());
+            if (isRateLimit(geminiErr) || isRateLimit(dsErr) || isRateLimit(fallbackException)) {
+                throw new AiProviderException("A inteligência artificial está temporariamente indisponível (alta demanda) ou com limite de requisições excedido. Por favor, aguarde um minuto antes de tentar novamente ou configure uma chave reserva.", fallbackException);
+            }
+            throw new AiProviderException("Falha ao gerar documento com os provedores de IA", fallbackException);
         }
     }
 
@@ -57,14 +79,56 @@ public class AIService {
         try {
             return normalizeJsonObject(callGemini(prompt));
         } catch (RuntimeException primaryException) {
-            log.warn("Gemini provider failed. Falling back to OpenRouter. reason={}", primaryException.getMessage());
-            try {
-                return normalizeJsonObject(callOpenRouter(prompt));
-            } catch (RuntimeException fallbackException) {
-                log.warn("OpenRouter provider failed. reason={}", fallbackException.getMessage());
-                throw new AiProviderException("Falha ao gerar JSON estruturado com os provedores de IA", fallbackException);
+            log.warn("Gemini provider failed. reason={}", primaryException.getMessage());
+            
+            if (properties.deepseek() != null && properties.deepseek().hasApiKey()) {
+                try {
+                    log.info("Attempting fallback to DeepSeek...");
+                    return normalizeJsonObject(callDeepSeek(prompt));
+                } catch (RuntimeException dsException) {
+                    log.warn("DeepSeek provider failed. reason={}", dsException.getMessage());
+                    return tryOpenRouterFallbackJson(prompt, primaryException, dsException);
+                }
+            } else {
+                return tryOpenRouterFallbackJson(prompt, primaryException, null);
             }
         }
+    }
+
+    private String tryOpenRouterFallbackJson(String prompt, RuntimeException geminiErr, RuntimeException dsErr) {
+        log.warn("Attempting fallback to OpenRouter...");
+        try {
+            return normalizeJsonObject(callOpenRouter(prompt));
+        } catch (RuntimeException fallbackException) {
+            log.warn("OpenRouter provider failed. reason={}", fallbackException.getMessage());
+            if (isRateLimit(geminiErr) || isRateLimit(dsErr) || isRateLimit(fallbackException)) {
+                throw new AiProviderException("A inteligência artificial está temporariamente indisponível (alta demanda) ou com limite de requisições excedido. Por favor, aguarde um minuto antes de tentar novamente ou configure uma chave reserva.", fallbackException);
+            }
+            throw new AiProviderException("Falha ao gerar JSON estruturado com os provedores de IA", fallbackException);
+        }
+    }
+
+    private boolean isRateLimit(Throwable error) {
+        if (error == null) {
+            return false;
+        }
+        String msg = error.getMessage();
+        if (msg != null) {
+            String upper = msg.toUpperCase();
+            if (upper.contains("429") || 
+                upper.contains("503") || 
+                upper.contains("RESOURCE_EXHAUSTED") || 
+                upper.contains("QUOTA EXCEEDED") || 
+                upper.contains("LIMIT EXCEEDED") || 
+                upper.contains("TOO MANY REQUESTS") ||
+                upper.contains("UNAVAILABLE") ||
+                upper.contains("HIGH DEMAND") ||
+                upper.contains("TRY AGAIN LATER") ||
+                upper.contains("TEMPORARY")) {
+                return true;
+            }
+        }
+        return isRateLimit(error.getCause());
     }
 
     private String callGemini(String prompt) {
@@ -77,7 +141,8 @@ public class AIService {
                         "parts", List.of(Map.of("text", prompt))
                 )),
                 "generationConfig", Map.of(
-                        "responseMimeType", "application/json"
+                        "responseMimeType", "application/json",
+                        "temperature", 0.4
                 )
         );
 
@@ -110,7 +175,8 @@ public class AIService {
                         "role", "user",
                         "content", prompt
                 )),
-                "response_format", Map.of("type", "json_object")
+                "response_format", Map.of("type", "json_object"),
+                "temperature", 0.4
         );
 
         String response = openRouterWebClient.post()
@@ -131,6 +197,50 @@ public class AIService {
             throw new AiProviderException("OpenRouter retornou resposta vazia");
         }
         return extractOpenRouterText(response);
+    }
+
+    private String callDeepSeek(String prompt) {
+        AiProperties.Provider deepseek = properties.deepseek();
+        if (deepseek == null || !deepseek.hasApiKey()) {
+            throw new AiProviderException("Chave DeepSeek nao configurada");
+        }
+        Map<String, Object> payload = Map.of(
+                "model", deepseek.model(),
+                "messages", List.of(Map.of(
+                        "role", "user",
+                        "content", prompt
+                )),
+                "response_format", Map.of("type", "json_object"),
+                "temperature", 0.4
+        );
+
+        String response = deepseekWebClient.post()
+                .uri("/chat/completions")
+                .headers(headers -> headers.setBearerAuth(deepseek.apiKey()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(payload)
+                .exchangeToMono(clientResponse -> readProviderResponse("DeepSeek", clientResponse))
+                .timeout(Duration.ofSeconds(60))
+                .onErrorResume(error -> Mono.error(wrapProviderError("Erro no DeepSeek", error)))
+                .block();
+
+        if (response == null || response.isBlank()) {
+            throw new AiProviderException("DeepSeek retornou resposta vazia");
+        }
+        return extractDeepSeekText(response);
+    }
+
+    private String extractDeepSeekText(String response) {
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode textNode = root.path("choices").path(0).path("message").path("content");
+            if (textNode.isMissingNode() || textNode.asText().isBlank()) {
+                throw new AiProviderException("DeepSeek retornou formato inesperado");
+            }
+            return textNode.asText();
+        } catch (Exception exception) {
+            throw new AiProviderException("Nao foi possivel ler resposta do DeepSeek", exception);
+        }
     }
 
     private RuntimeException wrapProviderError(String fallbackMessage, Throwable error) {
@@ -201,7 +311,7 @@ public class AIService {
 
     private String normalizeJsonObject(String rawText) {
         try {
-            String json = extractStrictJsonObject(rawText);
+            String json = extractJsonObject(rawText);
             JsonNode root = objectMapper.readTree(json);
             if (!root.isObject()) {
                 throw new AiProviderException("IA nao retornou objeto JSON");
@@ -212,17 +322,6 @@ public class AIService {
         } catch (Exception exception) {
             throw new AiProviderException("IA nao retornou JSON estruturado valido", exception);
         }
-    }
-
-    private String extractStrictJsonObject(String rawText) {
-        String normalized = rawText
-                .replace("```json", "")
-                .replace("```", "")
-                .trim();
-        if (!normalized.startsWith("{") || !normalized.endsWith("}")) {
-            throw new AiProviderException("IA nao retornou objeto JSON");
-        }
-        return normalized;
     }
 
     private String extractJsonObject(String rawText) {

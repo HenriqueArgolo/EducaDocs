@@ -2,6 +2,7 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.entity.GenerationRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.jupiter.api.Test;
@@ -43,9 +44,9 @@ class DocumentGeneratorServiceTest {
         assertThat(extractText(result))
                 .contains("PLANO DE AULA")
                 .contains("Escola: __________________________")
-                .contains("1. OBJETIVO DA AULA")
-                .contains("2. HABILIDADES BNCC")
-                .contains("6. AVALIACAO");
+                .contains("Objetivos de Aprendizagem:")
+                .contains("Conteúdo:")
+                .contains("Avaliação:");
     }
 
     @Test
@@ -86,17 +87,17 @@ class DocumentGeneratorServiceTest {
                 .contains("Tema:")
                 .contains("Fracoes equivalentes")
                 .contains("Objetivos de Aprendizagem:")
-                .contains("Conteudo:")
+                .contains("Conteúdo:")
                 .contains("Metodologia:")
-                .contains("Recursos Didaticos:")
-                .contains("Avaliacao:")
+                .contains("Recursos Didáticos:")
+                .contains("Avaliação:")
                 .contains("Tempo Estimado:")
-                .contains("Introducao: 10 min - Ativar conhecimentos previos")
+                .contains("Introdução: 10 min - Ativar conhecimentos previos")
                 .contains("Desenvolvimento: 30 min - Resolver atividade em duplas")
                 .contains("Fechamento: 10 min - Sistematizar aprendizagens")
                 .contains("Total: 50 min");
         assertThat(lines)
-                .contains("Introducao: 10 min")
+                .contains("Introdução: 10 min")
                 .contains("Desenvolvimento: 30 min")
                 .contains("Fechamento: 10 min")
                 .contains("Total: 50 min");
@@ -176,18 +177,138 @@ class DocumentGeneratorServiceTest {
                 .contains("PLANO DE AULA")
                 .contains("Tema:")
                 .contains("KIT AULA COMPLETA")
-                .contains("ATIVIDADE DO ALUNO")
+                .contains("Título:")
                 .contains("Linha do tempo das fracoes")
                 .contains("GABARITO DO PROFESSOR")
                 .contains("INSTRUMENTO AVALIATIVO")
-                .contains("EVIDENCIAS PEDAGOGICAS")
-                .contains("ADAPTACOES INCLUSIVAS")
+                .contains("EVIDÊNCIAS PEDAGÓGICAS")
+                .contains("ADAPTAÇÕES INCLUSIVAS")
                 .doesNotContain("http://")
                 .doesNotContain("https://")
                 .doesNotContain("question_number")
                 .doesNotContain("tempo_sugerido")
                 .doesNotContain("kitAulaCompleta")
                 .doesNotContain("codigo");
+    }
+
+    @Test
+    void generateDocxRendersEarlyChildhoodObservationWithoutFormalQuestions() {
+        Document document = Document.builder()
+                .id(3L)
+                .type(DocumentType.EXAM)
+                .title("Explorando as Cores da Natureza")
+                .generationRequest(GenerationRequest.builder()
+                        .grade("Crianças pequenas")
+                        .subject("Traços, sons, cores e formas")
+                        .duration("30 minutos")
+                        .includeHeader(true)
+                        .build())
+                .content("""
+                        {
+                          "titulo": "Explorando as Cores da Natureza",
+                          "tipoAvaliacao": "OBSERVACAO_INFANTIL",
+                          "orientacoesGerais": ["Disponha elementos naturais coloridos para livre exploração."],
+                          "contextoObservacao": "Observe as crianças durante uma proposta de exploração de cores no jardim.",
+                          "indicadoresObservaveis": [
+                            {
+                              "indicador": "Exploração de cores",
+                              "oQueObservar": "A criança observa, aponta, escolhe ou nomeia cores presentes em elementos naturais.",
+                              "possiveisRegistros": ["Apontou uma flor vermelha", "Separou folhas verdes"],
+                              "perguntasMediadoras": ["Que cor você encontrou?", "Onde mais vemos essa cor?"]
+                            }
+                          ],
+                          "registrosProfessor": [
+                            {
+                              "campo": "Falas e gestos observados",
+                              "orientacao": "Registre palavras, gestos, escolhas e interações sem exigir resposta escrita."
+                            }
+                          ],
+                          "sugestoesIntervencao": ["Ofereça objetos reais e tempo para exploração sensorial."],
+                          "adaptacoesInclusivas": {
+                            "participacao": "Permita respostas por gesto, olhar, escolha de objeto ou fala espontânea."
+                          }
+                        }
+                        """)
+                .build();
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+
+        String text = extractText(service.generateDocx(document));
+
+        assertThat(text)
+                .contains("ROTEIRO DE OBSERVAÇÃO E REGISTRO")
+                .contains("Contexto da observação:")
+                .contains("Indicadores observáveis:")
+                .contains("Exploração de cores")
+                .contains("Registros do professor:")
+                .contains("sem exigir resposta escrita")
+                .doesNotContain("Questão 1")
+                .doesNotContain("GABARITO DO PROFESSOR")
+                .doesNotContain("Dificuldade:");
+    }
+
+    @Test
+    void generateDocxRendersInitialLiteracyActivityWithoutTeacherAnswerKey() {
+        Document document = Document.builder()
+                .id(4L)
+                .type(DocumentType.EXAM)
+                .title("Separando Sílabas")
+                .generationRequest(GenerationRequest.builder()
+                        .grade("1º ano")
+                        .subject("Língua Portuguesa")
+                        .duration("40 minutos")
+                        .includeHeader(true)
+                        .build())
+                .content("""
+                        {
+                          "titulo": "Separando Sílabas",
+                          "tipoAvaliacao": "ALFABETIZACAO_INICIAL",
+                          "orientacoesGerais": ["Professor(a), leia cada comando em voz alta."],
+                          "atividadesVisuais": [
+                            {
+                              "numero": 1,
+                              "tipo": "SEPARAR_SILABAS",
+                              "comando": "Separe as sílabas.",
+                              "itens": [
+                                {"palavra": "BOLO", "figura": "bolo", "caixasResposta": 2},
+                                {"palavra": "MALA", "figura": "mala", "caixasResposta": 2}
+                              ],
+                              "gabarito": "BO-LO; MA-LA"
+                            },
+                            {
+                              "numero": 2,
+                              "tipo": "LETRA_INICIAL",
+                              "comando": "Pinte a letra inicial.",
+                              "itens": [
+                                {"palavra": "SAPO", "figura": "sapo", "opcoes": ["S", "P", "O"], "resposta": "S"}
+                              ],
+                              "gabarito": "S"
+                            }
+                          ],
+                          "gabaritoProfessor": [
+                            {"numeroAtividade": 1, "resposta": "BO-LO; MA-LA"},
+                            {"numeroAtividade": 2, "resposta": "S"}
+                          ]
+                        }
+                        """)
+                .build();
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+
+        String text = extractText(service.generateDocx(document));
+
+        assertThat(text)
+                .contains("ATIVIDADE DE ALFABETIZAÇÃO")
+                .contains("Separando Sílabas")
+                .contains("Separe as sílabas.")
+                .contains("BOLO")
+                .contains("MALA")
+                .contains("[   ]")
+                .contains("Pinte a letra inicial.")
+                .contains("(   ) S");
+        assertThat(text)
+                .doesNotContain("Questão 1")
+                .doesNotContain("GABARITO DO PROFESSOR")
+                .doesNotContain("BO-LO; MA-LA")
+                .doesNotContain("Dificuldade:");
     }
 
     private String extractText(byte[] docxBytes) {

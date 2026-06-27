@@ -37,7 +37,7 @@ class RepositoryIntegrationTest {
     private BNCCSkillRepository bnccSkillRepository;
 
     @Test
-    void persistsUserAndFindsSeededBnccByGradeAndSubject() {
+    void persistsUserAndFindsImportedBnccCoverage() {
         User saved = userRepository.save(User.builder()
                 .name("Maria")
                 .email("maria@escola.com")
@@ -47,7 +47,10 @@ class RepositoryIntegrationTest {
 
         assertThat(userRepository.findByEmail("maria@escola.com")).contains(saved);
 
-        assertThat(bnccSkillRepository.findByGradeIgnoreCaseAndSubjectIgnoreCase("5º ano", "Matemática"))
+        assertThat(bnccSkillRepository.count()).isGreaterThanOrEqualTo(1500);
+        assertThat(bnccSkillRepository.findByCodeIgnoreCase("EI03TS03")).isPresent();
+        assertThat(bnccSkillRepository.findByCodeIgnoreCase("EM13CHS605")).isPresent();
+        assertThat(bnccSkillRepository.findByGradeIgnoreCaseAndSubjectIgnoreCase("5\u00ba ano", "Matem\u00e1tica"))
                 .extracting(BNCCSkill::getCode)
                 .contains("EF05MA03");
     }
