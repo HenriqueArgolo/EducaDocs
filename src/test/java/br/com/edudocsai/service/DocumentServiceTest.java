@@ -56,6 +56,8 @@ class DocumentServiceTest {
     private LessonPlanGenerationService lessonPlanGenerationService;
     @Mock
     private StudentRepository studentRepository;
+    @Mock
+    private ActivityImageEnricher activityImageEnricher;
 
     @InjectMocks
     private DocumentService documentService;
@@ -81,6 +83,8 @@ class DocumentServiceTest {
                 .thenReturn("prompt");
         when(aiService.generate(DocumentType.EXAM, "prompt"))
                 .thenReturn(new AiGeneratedDocument("Prova", "{\"titulo\":\"Prova\",\"tipo\":\"EXAM\"}"));
+        when(activityImageEnricher.enrich(any(), any(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(generationRequestRepository.save(any(GenerationRequest.class))).thenAnswer(invocation -> {
             GenerationRequest entity = invocation.getArgument(0);
             entity.setId(10L);

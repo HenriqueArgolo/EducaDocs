@@ -41,6 +41,7 @@ public class DocumentService {
     private final LessonPlanGenerationService lessonPlanGenerationService;
     private final ClassroomTimelineItemRepository classroomTimelineItemRepository;
     private final StudentRepository studentRepository;
+    private final ActivityImageEnricher activityImageEnricher;
 
     @Transactional
     public DocumentResponse generate(GenerateDocumentRequest request) {
@@ -128,12 +129,17 @@ public class DocumentService {
         log.info("Generating document userId={} type={} bnccCount={}", user.getId(), request.documentType(), bnccSkills.size());
         AiGeneratedDocument generated = aiService.generate(request.documentType(), prompt);
 
+        String contentJson = generated.contentJson();
+        if (request.documentType() == DocumentType.EXAM) {
+            contentJson = activityImageEnricher.enrich(contentJson, selectedGrade, request.topic().trim());
+        }
+
         Document document = documentRepository.save(Document.builder()
                 .user(user)
                 .generationRequest(generationRequest)
                 .type(request.documentType())
                 .title(limitTitle(generated.title()))
-                .content(generated.contentJson())
+                .content(contentJson)
                 .build());
         return document;
     }
