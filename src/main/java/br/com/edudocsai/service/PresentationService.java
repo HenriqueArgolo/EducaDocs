@@ -147,6 +147,18 @@ public class PresentationService {
         String suggestedStructure = "";
 
         switch (level) {
+            case FUNDAMENTAL_1_ANO -> {
+                minSlides = 5;
+                maxSlides = 8;
+                suggestedStructure = """
+                        - Slide 1: Título com imagem grande, colorida e atrativa (sem texto longo)
+                        - Slide 2: "O QUE VAMOS FAZER HOJE?" (1 frase curta + imagem ilustrativa)
+                        - Slides 3-5: Conteúdo visual (1 palavra/sílaba/letra por slide, com figura grande e cor)
+                        - Slide 6: "VAMOS BRINCAR!" (Atividade oral ou motora guiada pelo professor)
+                        - Slide 7: "O QUE APRENDEMOS?" (Revisão visual com imagens)
+                        - Slide 8: Encerramento com música ou parlenda (opcional)
+                        REGRAS OBRIGATÓRIAS: Máx. 5 palavras por slide. Fonte grande (mín. 40pt). Sem textos corridos. Fundo colorido e alegre. Imagens grandes e simples.""";
+            }
             case INFANTIL -> {
                 minSlides = 5;
                 maxSlides = 7;

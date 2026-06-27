@@ -1,5 +1,6 @@
 package br.com.edudocsai.service;
-
+import java.text.Normalizer;
+import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -7,47 +8,91 @@ public class PromptBuilderHelper {
 
     public enum GradeLevel {
         INFANTIL,
-        FUNDAMENTAL_INICIAIS,
-        FUNDAMENTAL_FINAIS,
+        FUNDAMENTAL_1_ANO,   // 1º ano: alfabetização inicial — persona exclusiva
+        FUNDAMENTAL_INICIAIS, // 2º ao 5º ano
+        FUNDAMENTAL_FINAIS,   // 6º ao 9º ano
         ENSINO_MEDIO,
         EJA
     }
 
+    /**
+     * Classifica o ano escolar informado em um GradeLevel.
+     * A normalização remove acentos e converte para minúsculas para garantir
+     * compatibilidade com qualquer formato de entrada do usuário.
+     */
     public GradeLevel classifyGrade(String grade) {
         if (grade == null || grade.isBlank()) {
-            return GradeLevel.FUNDAMENTAL_INICIAIS; // Default fallback
-        }
-        String normalized = grade.toLowerCase();
-
-        if (normalized.contains("eja") || normalized.contains("jovens e adultos") || normalized.contains("adultos")) {
-            return GradeLevel.EJA;
-        }
-        if (normalized.contains("médio") || normalized.contains("medio") || normalized.contains("médias") || normalized.contains("e.m.")) {
-            return GradeLevel.ENSINO_MEDIO;
-        }
-        if (normalized.contains("infantil") || normalized.contains("creche") || normalized.contains("bebê") || normalized.contains("bebe") || 
-            normalized.contains("crianças bem pequenas") || normalized.contains("crianças pequenas") || normalized.contains("maternal") || 
-            normalized.contains("jardim") || normalized.contains("pré") || normalized.contains("pre-escola")) {
-            return GradeLevel.INFANTIL;
-        }
-
-        // Check Fundamental Years (Anos Finais: 6º to 9º)
-        if (normalized.contains("6º") || normalized.contains("7º") || normalized.contains("8º") || normalized.contains("9º") ||
-            normalized.contains("6o") || normalized.contains("7o") || normalized.contains("8o") || normalized.contains("9o") ||
-            normalized.matches(".*[6-9](º|o|a|ª|\\s)?\\s?(ano|série|serie).*")) {
-            return GradeLevel.FUNDAMENTAL_FINAIS;
-        }
-
-        // Check Fundamental Years (Anos Iniciais: 1º to 5º)
-        if (normalized.contains("1º") || normalized.contains("2º") || normalized.contains("3º") || normalized.contains("4º") || normalized.contains("5º") ||
-            normalized.contains("1o") || normalized.contains("2o") || normalized.contains("3o") || normalized.contains("4o") || normalized.contains("5o") ||
-            normalized.matches(".*[1-5](º|o|a|ª|\\s)?\\s?(ano|série|serie).*") || normalized.contains("alfabetiza")) {
             return GradeLevel.FUNDAMENTAL_INICIAIS;
         }
 
-        // Additional fallbacks based on numbers alone
-        if (normalized.contains("6") || normalized.contains("7") || normalized.contains("8") || normalized.contains("9")) {
+        // Normalização robusta: remove acentos, converte para minúsculas,
+        // substitui caracteres ordinais (º/ª/°) por 'o'/'a'
+        String normalized = Normalizer.normalize(grade, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replace('º', 'o')
+                .replace('ª', 'a')
+                .replace('°', 'o');
+
+        // EJA — verificar antes de qualquer número para evitar falsos positivos
+        if (normalized.contains("eja")
+                || normalized.contains("jovens e adultos")
+                || normalized.contains("educacao de jovens")
+                || normalized.contains("adultos")) {
+            return GradeLevel.EJA;
+        }
+
+        // Ensino Médio
+        if (normalized.contains("medio")
+                || normalized.contains("medias")
+                || normalized.contains("e.m.")
+                || normalized.matches(".*\\b[123](o|a)?\\s*(serie|ano)\\s*(do\\s*)?ensino\\s*medio.*")
+                || normalized.matches(".*ensino\\s*medio.*")) {
+            return GradeLevel.ENSINO_MEDIO;
+        }
+
+        // Educação Infantil
+        if (normalized.contains("infantil")
+                || normalized.contains("creche")
+                || normalized.contains("bebe")
+                || normalized.contains("criancas bem pequenas")
+                || normalized.contains("criancas pequenas")
+                || normalized.contains("maternal")
+                || normalized.contains("jardim")
+                || normalized.contains("pre-escola")
+                || normalized.contains("pre escola")
+                || normalized.matches(".*\\bpre\\b.*")) {
+            return GradeLevel.INFANTIL;
+        }
+
+        // Anos Finais do Fundamental (6º ao 9º) — verificar ANTES dos Anos Iniciais
+        // para evitar que "6" seja capturado pelo fallback numérico de Iniciais
+        if (normalized.matches(".*\\b[6789](o|a)?\\s*(ano|serie).*")
+                || normalized.contains("6o ano") || normalized.contains("7o ano")
+                || normalized.contains("8o ano") || normalized.contains("9o ano")) {
             return GradeLevel.FUNDAMENTAL_FINAIS;
+        }
+
+        // 1º Ano — persona exclusiva de alfabetização inicial
+        // Deve ser verificado ANTES do bloco geral de Anos Iniciais
+        if (EarlyLiteracySupport.isInitialLiteracyGrade(grade)) {
+            return GradeLevel.FUNDAMENTAL_1_ANO;
+        }
+
+        // Anos Iniciais do Fundamental (2º ao 5º)
+        if (normalized.matches(".*\\b[2345](o|a)?\\s*(ano|serie).*")
+                || normalized.contains("alfabetiza")
+                || normalized.contains("anos iniciais")
+                || normalized.contains("fundamental i")) {
+            return GradeLevel.FUNDAMENTAL_INICIAIS;
+        }
+
+        // Fallback numérico seguro: apenas dígitos isolados
+        if (normalized.matches(".*\\b[6789]\\b.*")) {
+            return GradeLevel.FUNDAMENTAL_FINAIS;
+        }
+        if (normalized.matches(".*\\b[12345]\\b.*")) {
+            return GradeLevel.FUNDAMENTAL_INICIAIS;
         }
 
         return GradeLevel.FUNDAMENTAL_INICIAIS;
