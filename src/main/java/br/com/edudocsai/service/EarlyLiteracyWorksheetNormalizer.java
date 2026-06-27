@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 final class EarlyLiteracyWorksheetNormalizer {
 
@@ -19,6 +20,20 @@ final class EarlyLiteracyWorksheetNormalizer {
             "COMPLETAR_PALAVRA",
             "CONTAR_LETRAS",
             "CIRCULAR_LETRA"
+    );
+
+    // Remove emojis e símbolos unicode não-ASCII que não sejam letras, números ou pontuação básica
+    private static final Pattern EMOJI_PATTERN = Pattern.compile(
+            "[\\p{So}\\p{Sm}\\p{Sk}\\p{Sc}\\p{Cs}\\p{Co}" +
+            "\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]" +
+            "|\u2600-\u27BF|\u2300-\u23FF|\u2B50|\u2B55|\u231A|\u231B" +
+            "|\u25AA-\u25FE|\u2614|\u2615|\u2648-\u2653|\u26AA|\u26AB" +
+            "|\u26BD|\u26BE|\u26C4|\u26C5|\u26CE|\u26D4|\u26EA|\u26F2" +
+            "|\u26F3|\u26F5|\u26FA|\u26FD|\u2702|\u2705|\u2708-\u270D" +
+            "|\u270F|\u2712|\u2714|\u2716|\u271D|\u2721|\u2728|\u2733" +
+            "|\u2734|\u2744|\u2747|\u274C|\u274E|\u2753-\u2755|\u2757" +
+            "|\u2763|\u2764|\u2795-\u2797|\u27A1|\u27B0|\u27BF]",
+            Pattern.UNICODE_CHARACTER_CLASS
     );
 
     private final ObjectMapper objectMapper;
@@ -45,9 +60,20 @@ final class EarlyLiteracyWorksheetNormalizer {
         }
 
         ObjectNode output = objectMapper.createObjectNode();
-        output.put("titulo", text(root, "titulo", "Atividade de alfabetizacao"));
+
+        // FIX 1: Sempre usa o tema do usuário como título base.
+        // Se a IA gerou um título diferente do padrão, usa o título da IA (ela pode ter criado algo criativo).
+        // Mas se o título da IA estiver em branco ou for o padrão genérico, usa o tema do usuário diretamente.
+        String aiTitle = text(root, "titulo", "");
+        String finalTitle = (aiTitle.isBlank()
+                || aiTitle.equalsIgnoreCase("Atividade de alfabetizacao")
+                || aiTitle.equalsIgnoreCase("Atividade de Alfabetização"))
+                ? topic
+                : aiTitle;
+        output.put("titulo", stripEmoji(finalTitle));
+
         output.put("layout", "ALFABETIZACAO_VISUAL_V2");
-        output.put("descricao", text(root, "descricao", "Ficha visual para alfabetizacao inicial."));
+        output.put("descricao", stripEmoji(text(root, "descricao", "Ficha visual para alfabetizacao inicial.")));
         output.put("instrucoes_alunos", "Professor(a), leia os comandos em voz alta.");
         output.put("schemaVersion", 2);
 
@@ -95,7 +121,14 @@ final class EarlyLiteracyWorksheetNormalizer {
                         .findByWordOrFigure(text(itemNode, "palavra", ""), text(itemNode, "figura", ""))
                         .orElse(null);
                 if (entry != null && EarlyLiteracyWordBank.candidatesForTopic(topic).contains(entry)) {
-                    items.add(itemForType(type, entry, itemNode));
+                    ObjectNode item = itemForType(type, entry, itemNode);
+                    // FIX 2: Preserva imagemUrl se já foi adicionado pelo enricher (não deve acontecer aqui,
+                    // mas garante que o campo não seja perdido em reprocessamentos futuros)
+                    String existingUrl = itemNode.path("imagemUrl").asText("");
+                    if (!existingUrl.isBlank()) {
+                        item.put("imagemUrl", existingUrl);
+                    }
+                    items.add(item);
                 }
             }
         }
@@ -107,7 +140,8 @@ final class EarlyLiteracyWorksheetNormalizer {
         ObjectNode exercise = objectMapper.createObjectNode();
         exercise.put("numero", number);
         exercise.put("tipo", type);
-        String command = text(node, "comando", "");
+        // FIX 3: Limpa emojis do comando
+        String command = stripEmoji(text(node, "comando", ""));
         exercise.put("comando", isShortCommand(command) ? command : commandFor(type));
         exercise.set("itens", items);
         exercise.put("gabarito", text(node, "gabarito", generatedAnswer(type, items)));
@@ -257,6 +291,24 @@ final class EarlyLiteracyWorksheetNormalizer {
 
     private boolean isShortCommand(String command) {
         return command != null && !command.isBlank() && command.trim().split("\\s+").length <= 8;
+    }
+
+    /**
+     * Remove emojis e símbolos unicode que não pertencem ao texto pedagógico.
+     * Garante que nenhum emoji inserido pela IA apareça no documento final.
+     */
+    static String stripEmoji(String text) {
+        if (text == null || text.isBlank()) return text;
+        // Remove blocos de emoji Unicode (supplementary planes e blocos de símbolos comuns)
+        return text
+                .replaceAll("[\\x{1F000}-\\x{1FFFF}]", "")   // Misc symbols, emoticons, transport, etc.
+                .replaceAll("[\\x{2600}-\\x{27BF}]", "")     // Misc symbols, dingbats
+                .replaceAll("[\\x{2300}-\\x{23FF}]", "")     // Misc technical
+                .replaceAll("[\\x{2B00}-\\x{2BFF}]", "")     // Misc symbols and arrows
+                .replaceAll("[\\x{FE00}-\\x{FE0F}]", "")     // Variation selectors
+                .replaceAll("[\\x{1F300}-\\x{1F9FF}]", "")   // Supplemental symbols
+                .replaceAll("\\s{2,}", " ")                   // Colapsa espaços duplos deixados pelos emojis
+                .trim();
     }
 
     private JsonNode parseObject(String json) {
