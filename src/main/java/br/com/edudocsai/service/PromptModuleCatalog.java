@@ -41,7 +41,7 @@ public class PromptModuleCatalog {
 
                     **Instruções Obrigatórias para o 1º Ano:**
                     - Use palavras curtas, familiares e concretas (animais, objetos do dia a dia, família).
-                    - Sempre inclua apoio visual (descrição de figuras, ícones ou desenhos simples).
+                    - Sempre inclua apoio visual: para cada item, preencha o campo \"figura\" com o nome do objeto ou animal (ex: \"vaca\", \"pato\"). O sistema irá gerar automaticamente uma ilustração real para cada figura. NUNCA use emojis, símbolos unicode ou caracteres especiais como substituto de imagens.
                     - Priorize: separação de sílabas, identificação de letra inicial, ligação figura-palavra, completar sílabas, circular letras, contar letras.
                     - Escreva todos os comandos em CAIXA ALTA para facilitar a leitura emergente.
                     - O professor deve poder ler todos os comandos em voz alta; a criança responde com marcação, pintura, ligação ou escrita de 1 a 3 letras.

@@ -2,26 +2,34 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.entity.GeneratedImageAsset;
 import br.com.edudocsai.entity.GenerationRequest;
 import br.com.edudocsai.entity.TemplateStyle;
 import br.com.edudocsai.exception.BadRequestException;
+import br.com.edudocsai.repository.GeneratedImageAssetRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DocumentGeneratorService {
 
     private final ObjectMapper objectMapper;
+    private final GeneratedImageAssetRepository imageAssetRepository;
 
     public byte[] generateDocx(Document document) {
         try (XWPFDocument docx = new XWPFDocument();
@@ -199,6 +207,9 @@ public class DocumentGeneratorService {
      * diferenciando a apresentação por tipo de exercício (schema V2).
      */
     private void addInitialLiteracyItemV2(XWPFDocument docx, JsonNode item, String tipo, TemplateStyle style) {
+        // Inserir imagem gerada pelo Gemini (se disponível) antes do exercício
+        insertImageFromNode(docx, item, style);
+
         String figure = scalarText(item.path("figura"));
         String word = scalarText(item.path("palavra"));
         String label = (figure.isBlank() ? word : figure).toUpperCase();
@@ -276,6 +287,45 @@ public class DocumentGeneratorService {
                     addParagraph(docx, optionLine.toString(), false, style);
                 }
             }
+        }
+    }
+
+    /**
+     * Tenta inserir a imagem gerada pelo Gemini no documento DOCX.
+     * Busca o asset pelo ID contido no campo 'imagemUrl' do nó JSON.
+     * Se não encontrar ou falhar, não insere nada (sem emojis de fallback).
+     */
+    private void insertImageFromNode(XWPFDocument docx, JsonNode node, TemplateStyle style) {
+        String imagemUrl = node.path("imagemUrl").asText("");
+        if (imagemUrl.isBlank()) return;
+        // URL format: /images/generated/{id}
+        String[] parts = imagemUrl.split("/");
+        if (parts.length == 0) return;
+        try {
+            long assetId = Long.parseLong(parts[parts.length - 1]);
+            Optional<GeneratedImageAsset> assetOpt = imageAssetRepository.findById(assetId);
+            if (assetOpt.isEmpty()) {
+                log.warn("Image asset not found for id={}", assetId);
+                return;
+            }
+            GeneratedImageAsset asset = assetOpt.get();
+            int pictureType = asset.getMimeType().contains("png")
+                    ? XWPFDocument.PICTURE_TYPE_PNG
+                    : XWPFDocument.PICTURE_TYPE_JPEG;
+            XWPFParagraph imgParagraph = docx.createParagraph();
+            imgParagraph.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun imgRun = imgParagraph.createRun();
+            imgRun.addPicture(
+                    new ByteArrayInputStream(asset.getImageData()),
+                    pictureType,
+                    asset.getSubject(),
+                    Units.toEMU(120),  // largura: 120pt (~4.2cm) - adequado para atividade infantil
+                    Units.toEMU(120)   // altura: 120pt
+            );
+        } catch (NumberFormatException e) {
+            log.warn("Invalid image asset id in imagemUrl={}", imagemUrl);
+        } catch (Exception e) {
+            log.warn("Failed to insert image assetUrl={} reason={}", imagemUrl, e.getMessage());
         }
     }
 
