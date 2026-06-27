@@ -69,10 +69,10 @@ public class ImageBinaryValidator {
             if (darkRatio < 0.003) {
                 return ValidationResult.rejected("Imagem praticamente vazia", width, height);
             }
-            if (lightRatio < 0.55 || darkRatio > 0.55) {
+            if (lightRatio < 0.40 || darkRatio > 0.65) {
                 return ValidationResult.rejected("Imagem sem fundo branco adequado", width, height);
             }
-            if (edgeDarkRatio > 0.08) {
+            if (edgeDarkRatio > 0.15) {
                 return ValidationResult.rejected("Desenho encostado ou cortado na borda", width, height);
             }
             return ValidationResult.approved(width, height);

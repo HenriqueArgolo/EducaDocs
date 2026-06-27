@@ -485,7 +485,7 @@ public class PromptModuleCatalog {
 
     private String alternativesExample(GradeLevel level) {
         return switch (level) {
-            case FUNDAMENTAL_INICIAIS -> "[\"a) ...\", \"b) ...\", \"c) ...\"]";
+            case FUNDAMENTAL_1_ANO, FUNDAMENTAL_INICIAIS -> "[\"a) ...\", \"b) ...\", \"c) ...\"]";
             case FUNDAMENTAL_FINAIS, ENSINO_MEDIO -> "[\"a) ...\", \"b) ...\", \"c) ...\", \"d) ...\", \"e) ...\"]";
             case EJA -> "[\"a) ...\", \"b) ...\", \"c) ...\", \"d) ...\"]";
             case INFANTIL -> "[]";

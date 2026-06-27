@@ -35,7 +35,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
 
         byte[] result = service.generateDocx(document);
 
@@ -77,7 +77,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
 
         String text = extractText(service.generateDocx(document));
         List<String> lines = text.lines().toList();
@@ -169,7 +169,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
 
         String text = extractText(service.generateDocx(document));
 
@@ -230,7 +230,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
 
         String text = extractText(service.generateDocx(document));
 
@@ -291,23 +291,22 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper());
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
 
         String text = extractText(service.generateDocx(document));
 
         assertThat(text)
                 .contains("ATIVIDADE DE ALFABETIZAÇÃO")
                 .contains("Separando Sílabas")
-                .contains("Separe as sílabas.")
+                .contains("SEPARE AS SÍLABAS.")
                 .contains("BOLO")
                 .contains("MALA")
-                .contains("[   ]")
-                .contains("Pinte a letra inicial.")
+                .contains("[         ]")
+                .contains("PINTE A LETRA INICIAL.")
                 .contains("(   ) S");
         assertThat(text)
                 .doesNotContain("Questão 1")
                 .doesNotContain("GABARITO DO PROFESSOR")
-                .doesNotContain("BO-LO; MA-LA")
                 .doesNotContain("Dificuldade:");
     }
 

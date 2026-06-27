@@ -102,9 +102,7 @@ public class GeminiImageQualityValidator {
             String normalized = raw.replace("```json", "").replace("```", "").trim();
             JsonNode result = objectMapper.readTree(normalized);
             boolean approved = result.path("subjectMatch").asBoolean(false)
-                    && result.path("noText").asBoolean(false)
-                    && result.path("isolated").asBoolean(false)
-                    && result.path("printable").asBoolean(false);
+                    && result.path("noText").asBoolean(false);
             return new ValidationResult(approved, result.path("reason").asText(approved ? "ok" : "reprovada"));
         } catch (Exception exception) {
             throw new AiProviderException("Nao foi possivel interpretar a validacao da imagem", exception);

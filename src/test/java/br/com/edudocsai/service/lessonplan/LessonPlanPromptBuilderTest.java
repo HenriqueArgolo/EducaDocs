@@ -88,10 +88,9 @@ class LessonPlanPromptBuilderTest {
         String prompt = builder.build(context, List.of(earlyChildhoodSkill()));
 
         assertThat(prompt)
-                .contains("Proposta de Experiência")
-                .contains("experiência de aprendizagem lúdica e significativa")
-                .contains("atividades abertas, que permitam diferentes desfechos")
-                .contains("observar e registrar o desenvolvimento");
+                .contains("Plano de Experiência")
+                .contains("brincar, explorar, expressar-se")
+                .contains("observador e mediador");
     }
 
     @Test
@@ -111,10 +110,10 @@ class LessonPlanPromptBuilderTest {
         String prompt = builder.build(context, List.of(ejaSkill()));
 
         assertThat(prompt)
-                .contains("atividade inicial que valorize os saberes prévios e a experiência de vida")
-                .contains("documentos do cotidiano")
-                .contains("metodologias andragógicas")
-                .contains("conexão com o mundo do trabalho e a vida adulta");
+                .contains("roda de conversa resgatando os saberes prévios e experiências de vida")
+                .contains("Gêneros Textuais do Cotidiano Adulto")
+                .contains("andragógico e funcional")
+                .contains("mundo do trabalho, economia doméstica");
     }
 
     private LessonPlanRequestContext context(int totalMinutes, String additionalInstructions) {

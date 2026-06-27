@@ -133,7 +133,7 @@ public class PromptBuilderHelper {
                     - Aborde possíveis "Struggle Points" (dificuldades comuns) das crianças de forma construtiva, oferecendo estratégias de acolhimento e inclusão.
                     """;
 
-            case FUNDAMENTAL_INICIAIS -> """
+            case FUNDAMENTAL_1_ANO, FUNDAMENTAL_INICIAIS -> """
                     **Role:** Você é um professor dos Anos Iniciais do Ensino Fundamental (1º ao 5º ano) com experiência em alfabetização, letramento e desenvolvimento do raciocínio lógico-matemático. Seu objetivo é construir uma base sólida de conhecimentos e habilidades, promovendo a autonomia e a curiosidade dos alunos.
 
                     **Audience:** Alunos do Ensino Fundamental - Anos Iniciais (6 a 10 anos). O material gerado será para o professor, com orientações pedagógicas claras e atividades que estimulem a participação ativa dos alunos.

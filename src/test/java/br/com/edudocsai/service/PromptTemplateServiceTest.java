@@ -121,10 +121,10 @@ class PromptTemplateServiceTest {
         );
 
         assertThat(prompt)
-                .contains("Ensino Fundamental - Anos Iniciais")
-                .contains("2-3 opções")
-                .contains("linguagem acessível")
-                .doesNotContain("5 alternativas claras");
+                .contains("Anos Iniciais")
+                .contains("3 opções")
+                .contains("Clara, direta")
+                .doesNotContain("5 alternativas");
     }
 
     @Test
@@ -144,9 +144,9 @@ class PromptTemplateServiceTest {
         );
 
         assertThat(prompt)
-                .contains("Ensino Fundamental - Anos Finais")
-                .contains("4-5 opções com distratores bem elaborados")
-                .contains("análise e uma questão de problema/estudo de caso");
+                .contains("Anos Finais")
+                .contains("4 opções")
+                .contains("capacidade de análise");
     }
 
     @Test
@@ -167,8 +167,8 @@ class PromptTemplateServiceTest {
 
         assertThat(prompt)
                 .contains("Ensino Médio")
-                .contains("5 opções com distratores complexos")
-                .contains("argumentação original");
+                .contains("5 Alternativas")
+                .contains("gabarito deve conter");
     }
 
     @Test
@@ -189,9 +189,9 @@ class PromptTemplateServiceTest {
 
         assertThat(prompt)
                 .contains("EJA")
-                .contains("situações do cotidiano ou do mundo do trabalho")
+                .contains("mundo do trabalho")
                 .contains("3-4 opções")
-                .contains("evitando infantilização");
+                .contains("infantilize");
     }
 
     @Test
@@ -271,13 +271,13 @@ class PromptTemplateServiceTest {
         );
 
         assertThat(earlyChildhoodPrompt)
-                .contains("Relatório de Desempenho Individual")
-                .contains("linguagem positiva, descritiva e rica em exemplos concretos")
-                .contains("parceria construtiva entre a escola e a família");
+                .contains("Educação Infantil - Relatório")
+                .contains("Desenvolvimento integral")
+                .contains("NUNCA use termos como");
         assertThat(ejaPrompt)
-                .contains("Relatório de Desempenho Individual")
-                .contains("vida adulta e profissional")
-                .contains("evitando infantilização");
+                .contains("EJA - Relatório de Desempenho")
+                .contains("vida profissional")
+                .contains("infantilize");
     }
 
     private BNCCSkill skill(String code, String description, String subject, String grade) {

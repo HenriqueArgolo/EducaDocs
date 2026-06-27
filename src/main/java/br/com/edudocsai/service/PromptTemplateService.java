@@ -82,6 +82,7 @@ public class PromptTemplateService {
             case RUBRIC -> promptModuleCatalog.rubricTaskPrompt(level);
             case REPORT -> promptModuleCatalog.reportTaskPrompt(level);
             case LESSON_PLAN -> throw new IllegalArgumentException("LESSON_PLAN tem fluxo proprio via LessonPlanPromptBuilder");
+            default -> throw new IllegalArgumentException("Tipo de documento desconhecido: " + documentType);
         };
 
         return String.join("\n\n",
