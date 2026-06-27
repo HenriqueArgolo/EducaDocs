@@ -45,7 +45,15 @@ final class EarlyLiteracyWordBank {
             entry("NOEL", "noel", List.of("NO", "EL"), "natal", "pessoas"),
             entry("ESTRELA", "estrela", List.of("ES", "TRE", "LA"), "natal", "natureza", "ceu"),
             entry("PRESENTE", "presente", List.of("PRE", "SEN", "TE"), "natal", "festa", "brinquedos"),
-            entry("PINHEIRO", "pinheiro", List.of("PI", "NHEI", "RO"), "natal", "natureza", "plantas")
+            entry("PINHEIRO", "pinheiro", List.of("PI", "NHEI", "RO"), "natal", "natureza", "plantas"),
+            entry("SACI", "saci", List.of("SA", "CI"), "folclore", "bichos", "pessoas", "personagens"),
+            entry("CUCA", "cuca", List.of("CU", "CA"), "folclore", "bichos", "personagens"),
+            entry("IARA", "iara", List.of("I", "A", "RA"), "folclore", "natureza", "ceu", "personagens"),
+            entry("MULA", "mula", List.of("MU", "LA"), "folclore", "animais", "bichos", "personagens"),
+            entry("BOTO", "boto", List.of("BO", "TO"), "folclore", "animais", "bichos", "personagens"),
+            entry("BOITATA", "boitata", List.of("BOI", "TA", "TA"), "folclore", "bichos", "personagens"),
+            entry("CURUPIRA", "curupira", List.of("CU", "RU", "PI", "RA"), "folclore", "natureza", "personagens"),
+            entry("LOBISOMEM", "lobisomem", List.of("LO", "BI", "SO", "MEM"), "folclore", "animais", "bichos", "personagens")
     );
 
     private EarlyLiteracyWordBank() {
