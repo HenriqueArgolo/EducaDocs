@@ -130,8 +130,16 @@ public class DocumentGeneratorService {
 
     private boolean isInitialLiteracyAssessment(JsonNode root) {
         String assessmentType = root.path("tipoAvaliacao").asText("");
+        String layout = root.path("layout").asText("");
+        // Suporte ao schema V2 (layout ALFABETIZACAO_VISUAL_V2 + campo exercicios)
+        // e ao schema legado (campo atividadesVisuais)
         return "ALFABETIZACAO_INICIAL".equalsIgnoreCase(assessmentType)
-                || (!root.path("atividadesVisuais").isMissingNode() && root.path("questoes").isMissingNode());
+                || layout.startsWith("ALFABETIZACAO_VISUAL")
+                || (!root.path("atividadesVisuais").isMissingNode() && root.path("questoes").isMissingNode())
+                || (root.path("schemaVersion").asInt(0) >= 2
+                    && root.path("exercicios").isArray()
+                    && !root.path("exercicios").isEmpty()
+                    && root.path("questoes").isMissingNode());
     }
 
     private void renderInitialLiteracyAssessmentTemplate(
@@ -143,8 +151,16 @@ public class DocumentGeneratorService {
         addTitle(docx, "ATIVIDADE DE ALFABETIZAÇÃO", style);
         addInstitutionalHeader(docx, request, style);
         addTextSection(docx, "Título:", text(root, "titulo", "Atividade de alfabetização"), style);
-        addListSection(docx, "Orientações para aplicação:", root.path("orientacoesGerais"), style);
-        addInitialLiteracyActivitiesSection(docx, root.path("atividadesVisuais"), style);
+        // Schema V2: usa 'exercicios' e 'orientacoesProfessor'; Schema legado: usa 'atividadesVisuais' e 'orientacoesGerais'
+        boolean isV2 = root.path("schemaVersion").asInt(0) >= 2;
+        JsonNode activities = isV2 && root.path("exercicios").isArray()
+                ? root.path("exercicios")
+                : root.path("atividadesVisuais");
+        JsonNode notes = isV2 && root.path("orientacoesProfessor").isArray()
+                ? root.path("orientacoesProfessor")
+                : root.path("orientacoesGerais");
+        addListSection(docx, "Orientações para o(a) Professor(a):", notes, style);
+        addInitialLiteracyActivitiesSection(docx, activities, style);
     }
 
     private void addInitialLiteracyActivitiesSection(XWPFDocument docx, JsonNode activities, TemplateStyle style) {
@@ -157,38 +173,109 @@ public class DocumentGeneratorService {
 
         for (JsonNode activity : activities) {
             String number = scalarText(activity.path("numero"));
+            String tipo = activity.path("tipo").asText("").toUpperCase();
             String command = valueOrLine(scalarText(activity.path("comando")));
-            addParagraph(docx, number + ". " + command, true, style);
+            // Comando em caixa alta e negrito para facilitar leitura pelo professor
+            addParagraph(docx, number + ". " + command.toUpperCase(), true, style);
             JsonNode items = activity.path("itens");
             if (items.isArray() && !items.isEmpty()) {
                 for (JsonNode item : items) {
-                    addInitialLiteracyItem(docx, item, style);
+                    addInitialLiteracyItemV2(docx, item, tipo, style);
                 }
             } else {
-                addParagraph(docx, "Figura: ____________________    Palavra: ____________________    [   ]", false, style);
+                addParagraph(docx, "   Figura: ____________________    Palavra: ____________________    [   ]", false, style);
+            }
+            // Gabarito inline para o professor
+            String gabarito = activity.path("gabarito").asText("");
+            if (!gabarito.isBlank()) {
+                addParagraph(docx, "   \u2192 Gabarito: " + gabarito, false, style);
             }
             docx.createParagraph();
         }
     }
 
-    private void addInitialLiteracyItem(XWPFDocument docx, JsonNode item, TemplateStyle style) {
+    /**
+     * Renderiza um item de atividade de alfabetização com layout visual rico,
+     * diferenciando a apresentação por tipo de exercício (schema V2).
+     */
+    private void addInitialLiteracyItemV2(XWPFDocument docx, JsonNode item, String tipo, TemplateStyle style) {
         String figure = scalarText(item.path("figura"));
         String word = scalarText(item.path("palavra"));
-        String boxes = responseBoxes(item);
-        String label = figure.isBlank() ? "Figura" : "Figura: " + figure;
-        String line = label + "    " + valueOrLine(word) + (boxes.isBlank() ? "" : "    " + boxes);
-        addParagraph(docx, line, false, style);
+        String label = (figure.isBlank() ? word : figure).toUpperCase();
+        if (label.isBlank()) label = "______";
 
-        JsonNode options = item.path("opcoes");
-        if (options.isArray() && !options.isEmpty()) {
-            StringBuilder optionLine = new StringBuilder();
-            for (JsonNode option : options) {
-                if (optionLine.length() > 0) {
-                    optionLine.append("   ");
+        switch (tipo) {
+            case "SEPARAR_SILABAS" -> {
+                JsonNode silabas = item.path("silabas");
+                int numSilabas = silabas.isArray() && !silabas.isEmpty()
+                        ? silabas.size()
+                        : Math.max(2, item.path("caixasResposta").asInt(2));
+                StringBuilder silBox = new StringBuilder();
+                for (int i = 0; i < numSilabas; i++) {
+                    if (i > 0) silBox.append("  ");
+                    silBox.append("[         ]");
                 }
-                optionLine.append("(   ) ").append(option.asText());
+                addParagraph(docx, "   " + label + "   \u2192   " + silBox, false, style);
             }
-            addParagraph(docx, optionLine.toString(), false, style);
+            case "LETRA_INICIAL" -> {
+                JsonNode options = item.path("opcoes");
+                StringBuilder optLine = new StringBuilder("   " + label + "   ");
+                if (options.isArray() && !options.isEmpty()) {
+                    for (JsonNode opt : options) optLine.append("(   ) ").append(opt.asText()).append("   ");
+                } else {
+                    optLine.append("(   ) ___   (   ) ___   (   ) ___");
+                }
+                addParagraph(docx, optLine.toString(), false, style);
+            }
+            case "LIGAR_FIGURA_PALAVRA" -> {
+                String wordLabel = word.isBlank() ? label : word.toUpperCase();
+                addParagraph(docx, "   " + label + "   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500   " + wordLabel, false, style);
+            }
+            case "COMPLETAR_PALAVRA" -> {
+                JsonNode options = item.path("opcoes");
+                String wordDisplay = label.length() > 3
+                        ? label.substring(0, 2) + "___" + label.substring(label.length() - 2)
+                        : label + "___";
+                StringBuilder optLine = new StringBuilder("   " + wordDisplay + "   ");
+                if (options.isArray() && !options.isEmpty()) {
+                    for (JsonNode opt : options) optLine.append("(   ) ").append(opt.asText()).append("   ");
+                } else {
+                    optLine.append("(   ) ___   (   ) ___");
+                }
+                addParagraph(docx, optLine.toString(), false, style);
+            }
+            case "CONTAR_LETRAS" -> {
+                int numLetras = item.path("caixasResposta").asInt(label.replaceAll("\\s", "").length());
+                addParagraph(docx, "   " + label + "   \u2192   Quantas letras tem essa palavra?   ___ letras", false, style);
+            }
+            case "CIRCULAR_LETRA", "CACA_LETRA" -> {
+                String letraAlvo = item.path("letraAlvo").asText("");
+                if (letraAlvo.isBlank() && !label.isBlank()) letraAlvo = String.valueOf(label.charAt(0));
+                JsonNode letras = item.path("letras");
+                StringBuilder letrasLine = new StringBuilder("   ");
+                if (letras.isArray() && !letras.isEmpty()) {
+                    for (JsonNode l : letras) letrasLine.append(l.asText()).append("  ");
+                } else {
+                    letrasLine.append(label);
+                }
+                addParagraph(docx, "   Circule a letra \"" + letraAlvo + "\":", false, style);
+                addParagraph(docx, letrasLine.toString(), false, style);
+            }
+            default -> {
+                // Renderização genérica para tipos não mapeados
+                String boxes = responseBoxes(item);
+                String line = "   " + label + (boxes.isBlank() ? "    ____________________________" : "    " + boxes);
+                addParagraph(docx, line, false, style);
+                JsonNode options = item.path("opcoes");
+                if (options.isArray() && !options.isEmpty()) {
+                    StringBuilder optionLine = new StringBuilder();
+                    for (JsonNode option : options) {
+                        if (optionLine.length() > 0) optionLine.append("   ");
+                        optionLine.append("(   ) ").append(option.asText());
+                    }
+                    addParagraph(docx, optionLine.toString(), false, style);
+                }
+            }
         }
     }
 
