@@ -32,6 +32,7 @@ import {
   documentTypeFromSlug,
   type BNCCSkill,
   type DocumentFormData,
+  type PlanningPeriod,
 } from "@/lib/types";
 
 const STEPS = ["Tipo", "Estilo", "Filtro", "Tema", "BNCC", "Ajustes"];
@@ -189,6 +190,7 @@ function WizardContent() {
     additionalInstructions: "",
     numberOfQuestions: 5,
     includeHeader: true,
+    planningPeriod: "SINGLE" as PlanningPeriod,
   });
 
   React.useEffect(() => {
@@ -397,6 +399,7 @@ function WizardContent() {
         additionalInstructions: formData.additionalInstructions.trim(),
         numberOfQuestions: formData.numberOfQuestions,
         includeHeader: formData.includeHeader,
+        planningPeriod: formData.planningPeriod,
         classroomId: classroomIdParam ? parseInt(classroomIdParam) : undefined,
         timelineItemId: timelineItemIdParam ? parseInt(timelineItemIdParam) : undefined,
       });
@@ -572,6 +575,10 @@ function WizardContent() {
                 includeHeader={formData.includeHeader}
                 onIncludeHeaderChange={(includeHeader) =>
                   setFormData({ ...formData, includeHeader })
+                }
+                planningPeriod={formData.planningPeriod}
+                onPlanningPeriodChange={(planningPeriod) =>
+                  setFormData({ ...formData, planningPeriod })
                 }
               />
             )}

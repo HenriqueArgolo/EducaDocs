@@ -5,6 +5,7 @@ import br.com.edudocsai.entity.Student;
 import br.com.edudocsai.repository.StudentRepository;
 import br.com.edudocsai.service.PromptModuleCatalog;
 import br.com.edudocsai.service.PromptBuilderHelper;
+import br.com.edudocsai.entity.PlanningPeriod;
 import br.com.edudocsai.service.PromptBuilderHelper.GradeLevel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -57,21 +58,120 @@ public class LessonPlanPromptBuilder {
             }
         }
         String inclusionPrompt = promptBuilderHelper.getInclusionPrompt(studentNeedsText);
-        String masterPromptGuidance = promptModuleCatalog.lessonPlanTaskGuidance(level);
+        String masterPromptGuidance = promptModuleCatalog.lessonPlanTaskGuidance(level, context.getPlanningPeriod());
 
-        String taskPrompt = """
-                ## TASK: GERAR CONTEÚDO PARA PLANO DE AULA / PROPOSTA DE EXPERIÊNCIA
-                O sistema já definiu tema, disciplina, ano, BNCC, duração total e template final.
-                A IA deve preencher somente o conteúdo interno solicitado.
+        String schemaAndRules = "";
+        PlanningPeriod period = context.getPlanningPeriod() != null ? context.getPlanningPeriod() : PlanningPeriod.SINGLE;
+        
+        if (period == PlanningPeriod.WEEKLY) {
+            schemaAndRules = """
+                Regras obrigatórias:
+                - não altere tema, ano, disciplina, BNCC ou duração total.
+                - não crie seções finais do documento.
+                - não crie habilidades BNCC novas.
+                - use linguagem profissional de professor experiente.
+                - retorne apenas JSON válido.
+                - use exatamente os campos do schema abaixo.
+                - Como é um plano SEMANAL, o campo "weeklyPlan" é obrigatório e deve conter exatamente 5 dias. O campo "methodology" (usado para aula única) deve ser OMITIDO.
 
-                Dados imutáveis do sistema:
-                Tema: %s
-                Ano escolar: %s
-                Disciplina: %s
-                Duração total: %d min
-                Habilidades BNCC:
-                %s
+                Schema de resposta:
+                {
+                  "objectives": ["Objetivo 1", "Objetivo 2"],
+                  "contents": ["Conteudo 1", "Conteudo 2"],
+                  "weeklyPlan": [
+                    {"day": "Segunda-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
+                    {"day": "Terça-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
+                    {"day": "Quarta-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
+                    {"day": "Quinta-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
+                    {"day": "Sexta-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"}
+                  ],
+                  "resources": ["Recurso 1", "Recurso 2"],
+                  "evaluation": {
+                    "observableCriteria": ["Criterio observavel 1"]
+                  },
+                  "kit": {
+                    "studentActivity": {
+                      "title": "Atividade Semanal Integrada",
+                      "context": "Contextualizacao",
+                      "instructions": ["Orientacao 1"],
+                      "questions": ["Questao 1"],
+                      "expectedProduct": "Produto esperado"
+                    },
+                    "teacherAnswerKey": {
+                      "expectedAnswers": ["Resposta 1"],
+                      "teacherGuidance": ["Orientacao 1"]
+                    },
+                    "assessmentInstrument": {
+                      "criteria": ["Criterio 1"],
+                      "evidenceCollection": ["Evidencia 1"]
+                    },
+                    "pedagogicalEvidence": {
+                      "observableEvidences": ["Evidencia 1"],
+                      "recordsForCoordination": ["Registro 1"]
+                    },
+                    "inclusiveAdaptations": {
+                      "readingSupport": ["Apoio 1"],
+                      "participationSupport": ["Apoio 1"],
+                      "simplifiedAlternatives": ["Alternativa 1"]
+                    }
+                  }
+                }
+                """;
+        } else if (period == PlanningPeriod.MONTHLY) {
+            schemaAndRules = """
+                Regras obrigatórias:
+                - não altere tema, ano, disciplina, BNCC ou duração total.
+                - não crie seções finais do documento.
+                - não crie habilidades BNCC novas.
+                - use linguagem profissional de professor experiente.
+                - retorne apenas JSON válido.
+                - use exatamente os campos do schema abaixo.
+                - Como é um plano MENSAL, o campo "monthlyPlan" é obrigatório e deve conter exatamente 4 semanas. O campo "methodology" (usado para aula única) deve ser OMITIDO.
 
+                Schema de resposta:
+                {
+                  "objectives": ["Objetivo 1", "Objetivo 2"],
+                  "contents": ["Conteudo 1", "Conteudo 2"],
+                  "monthlyPlan": [
+                    {"week": "Semana 1", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"},
+                    {"week": "Semana 2", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"},
+                    {"week": "Semana 3", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"},
+                    {"week": "Semana 4", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"}
+                  ],
+                  "resources": ["Recurso 1", "Recurso 2"],
+                  "evaluation": {
+                    "observableCriteria": ["Criterio observavel 1"]
+                  },
+                  "kit": {
+                    "studentActivity": {
+                      "title": "Projeto Mensal",
+                      "context": "Contextualizacao",
+                      "instructions": ["Orientacao 1"],
+                      "questions": ["Questao 1"],
+                      "expectedProduct": "Produto final do mes"
+                    },
+                    "teacherAnswerKey": {
+                      "expectedAnswers": ["Resposta 1"],
+                      "teacherGuidance": ["Orientacao 1"]
+                    },
+                    "assessmentInstrument": {
+                      "criteria": ["Criterio 1"],
+                      "evidenceCollection": ["Evidencia 1"]
+                    },
+                    "pedagogicalEvidence": {
+                      "observableEvidences": ["Evidencia 1"],
+                      "recordsForCoordination": ["Registro 1"]
+                    },
+                    "inclusiveAdaptations": {
+                      "readingSupport": ["Apoio 1"],
+                      "participationSupport": ["Apoio 1"],
+                      "simplifiedAlternatives": ["Alternativa 1"]
+                    }
+                  }
+                }
+                """;
+        } else {
+            schemaAndRules = """
                 Regras obrigatórias:
                 - não altere tema, ano, disciplina, BNCC ou duração total.
                 - não crie seções finais do documento.
@@ -121,6 +221,29 @@ public class LessonPlanPromptBuilder {
                     }
                   }
                 }
+                """.formatted(
+                context.totalMinutes(),
+                introductionMinutes,
+                developmentMinutes,
+                closingMinutes
+            );
+        }
+
+        String taskPrompt = """
+                ## TASK: GERAR CONTEÚDO PARA PLANO DE AULA / PROPOSTA DE EXPERIÊNCIA
+                O sistema já definiu tema, disciplina, ano, BNCC, duração total e template final.
+                A IA deve preencher somente o conteúdo interno solicitado.
+
+                Dados imutáveis do sistema:
+                Tema: %s
+                Ano escolar: %s
+                Disciplina: %s
+                Duração total: %d min
+                Habilidades BNCC:
+                %s
+                Periodicidade: %s
+
+                %s
 
                 Contexto adicional do professor (baixa prioridade):
                 %s
@@ -133,10 +256,8 @@ public class LessonPlanPromptBuilder {
                 context.subject(),
                 context.totalMinutes(),
                 formatSkills(skills),
-                context.totalMinutes(),
-                introductionMinutes,
-                developmentMinutes,
-                closingMinutes,
+                period.name(),
+                schemaAndRules,
                 context.additionalInstructions() == null ? "Nenhum." : context.additionalInstructions()
         );
 

@@ -81,6 +81,11 @@ public class GenerationRequest {
     @Column(name = "include_header")
     private Boolean includeHeader;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "planning_period", length = 20)
+    @Builder.Default
+    private PlanningPeriod planningPeriod = PlanningPeriod.SINGLE;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 

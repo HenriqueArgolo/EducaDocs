@@ -2,6 +2,8 @@ export type UserRole = "ADMIN" | "TEACHER";
 
 export type DocumentType = "LESSON_PLAN" | "EXAM" | "RUBRIC" | "REPORT";
 
+export type PlanningPeriod = "SINGLE" | "WEEKLY" | "MONTHLY";
+
 export type TemplateStyle = "INSTITUTIONAL" | "MODERN" | "MINIMALIST";
 
 export interface AuthUser {
@@ -50,6 +52,7 @@ export interface DocumentFormData {
   additionalInstructions: string;
   numberOfQuestions: number;
   includeHeader: boolean;
+  planningPeriod: PlanningPeriod;
 }
 
 export interface GenerateDocumentRequest {
@@ -65,6 +68,7 @@ export interface GenerateDocumentRequest {
   includeHeader?: boolean;
   classroomId?: number;
   timelineItemId?: number;
+  planningPeriod?: PlanningPeriod;
 }
 
 export interface GeneratedDocument {

@@ -12,7 +12,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class LessonPlanAiParser {
 
-    private static final Set<String> ROOT_FIELDS = Set.of("objectives", "contents", "methodology", "resources", "evaluation", "kit");
+    private static final Set<String> ROOT_FIELDS = Set.of("objectives", "contents", "methodology", "weeklyPlan", "monthlyPlan", "resources", "evaluation", "kit");
     private static final Set<String> METHODOLOGY_FIELDS = Set.of("introduction", "development", "closing");
     private static final Set<String> STAGE_FIELDS = Set.of("durationMinutes", "description");
     private static final Set<String> EVALUATION_FIELDS = Set.of("observableCriteria");
@@ -33,12 +33,18 @@ public class LessonPlanAiParser {
             requireStringList(root, "objectives", "objectives");
             requireStringList(root, "contents", "contents");
             requireStringList(root, "resources", "resources");
-            JsonNode methodology = require(root, "methodology");
+            
+            if (root.has("methodology") && !root.path("methodology").isNull()) {
+                JsonNode methodology = root.get("methodology");
+                rejectUnknownFields(methodology, METHODOLOGY_FIELDS, "methodology");
+                requireStage(require(methodology, "introduction"), "methodology.introduction");
+                requireStage(require(methodology, "development"), "methodology.development");
+                requireStage(require(methodology, "closing"), "methodology.closing");
+            } else if (!root.has("weeklyPlan") && !root.has("monthlyPlan")) {
+                throw new LessonPlanValidationException("Missing required field 'methodology' or 'weeklyPlan' or 'monthlyPlan'");
+            }
+            
             JsonNode evaluation = require(root, "evaluation");
-            rejectUnknownFields(methodology, METHODOLOGY_FIELDS, "methodology");
-            requireStage(require(methodology, "introduction"), "methodology.introduction");
-            requireStage(require(methodology, "development"), "methodology.development");
-            requireStage(require(methodology, "closing"), "methodology.closing");
             rejectUnknownFields(evaluation, EVALUATION_FIELDS, "evaluation");
             requireStringList(evaluation, "observableCriteria", "evaluation.observableCriteria");
             JsonNode kit = require(root, "kit");

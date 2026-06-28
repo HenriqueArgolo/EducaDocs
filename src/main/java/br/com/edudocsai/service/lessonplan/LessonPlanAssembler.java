@@ -26,11 +26,19 @@ public class LessonPlanAssembler {
                     .toList());
             root.put("objetivosDeAprendizagem", content.objectives());
             root.put("conteudo", content.contents());
-            root.put("metodologia", methodology(content.methodology()));
+            
+            if (content.methodology() != null) {
+                root.put("metodologia", methodology(content.methodology()));
+                root.put("tempoEstimado", estimatedTime(context, content.methodology()));
+            } else if (content.weeklyPlan() != null) {
+                root.put("planoSemanal", content.weeklyPlan());
+            } else if (content.monthlyPlan() != null) {
+                root.put("planoMensal", content.monthlyPlan());
+            }
+            
             root.put("recursosDidaticos", content.resources());
             root.put("avaliacao", evaluation(content.evaluation()));
             root.put("kitAulaCompleta", kit(content.kit()));
-            root.put("tempoEstimado", estimatedTime(context, content.methodology()));
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
         } catch (Exception exception) {
             throw new LessonPlanValidationException("Nao foi possivel montar plano de aula final", exception);

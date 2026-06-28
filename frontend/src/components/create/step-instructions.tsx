@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Clock, HelpCircle, Layers } from "lucide-react";
+import { Clock, HelpCircle, Layers, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { DocumentType } from "@/lib/types";
+import type { DocumentType, PlanningPeriod } from "@/lib/types";
 
 export function StepInstructions({
   duration,
@@ -16,6 +16,8 @@ export function StepInstructions({
   onNumberOfQuestionsChange,
   includeHeader = true,
   onIncludeHeaderChange,
+  planningPeriod = "SINGLE",
+  onPlanningPeriodChange,
 }: {
   duration: string;
   instructions: string;
@@ -26,6 +28,8 @@ export function StepInstructions({
   onNumberOfQuestionsChange?: (count: number) => void;
   includeHeader?: boolean;
   onIncludeHeaderChange?: (include: boolean) => void;
+  planningPeriod?: PlanningPeriod;
+  onPlanningPeriodChange?: (period: PlanningPeriod) => void;
 }) {
   const presets = [
     { label: "30 min", value: "30 minutos" },
@@ -36,7 +40,27 @@ export function StepInstructions({
     { label: "2 horas", value: "2 horas" },
   ];
 
-  const [showCustom, setShowCustom] = React.useState(!presets.some((p) => p.value === duration) && duration !== "");
+  const planningPeriods: { label: string; value: PlanningPeriod; description: string }[] = [
+    {
+      label: "Aula única",
+      value: "SINGLE",
+      description: "Um plano para uma aula específica",
+    },
+    {
+      label: "Semanal",
+      value: "WEEKLY",
+      description: "Planejamento distribuído em 5 dias letivos",
+    },
+    {
+      label: "Mensal",
+      value: "MONTHLY",
+      description: "Planejamento com sequência de 4 semanas",
+    },
+  ];
+
+  const [showCustom, setShowCustom] = React.useState(
+    !presets.some((p) => p.value === duration) && duration !== ""
+  );
 
   React.useEffect(() => {
     const hasMatch = presets.some((p) => p.value === duration);
@@ -60,16 +84,57 @@ export function StepInstructions({
   return (
     <div className="flex flex-col h-full">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-text-900 mb-2">
-          Ajustes finais
-        </h2>
+        <h2 className="text-2xl font-bold text-text-900 mb-2">Ajustes finais</h2>
         <p className="text-text-500">
           Personalize as configurações de geração e estrutura para o seu documento.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {/* Escolha da Quantidade de Questões (Apenas para PROVA / EXAM) */}
+
+        {/* Periodicidade do Plano de Aula — apenas para LESSON_PLAN */}
+        {documentType === "LESSON_PLAN" && onPlanningPeriodChange && (
+          <div className="p-5 border border-surface-200 rounded-xl bg-surface-50/10">
+            <label className="flex items-center gap-2 text-sm font-semibold text-text-800 mb-4">
+              <CalendarDays className="w-4 h-4 text-primary-500" />
+              Periodicidade do plano
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {planningPeriods.map((option) => {
+                const isSelected = planningPeriod === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onPlanningPeriodChange(option.value)}
+                    className={`flex flex-col items-start gap-1 px-4 py-3 text-left rounded-xl border-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-primary-50 border-primary-500 shadow-sm"
+                        : "bg-surface-0 border-surface-200 hover:border-primary-300 hover:bg-surface-50"
+                    }`}
+                  >
+                    <span
+                      className={`text-sm font-bold ${
+                        isSelected ? "text-primary-700" : "text-text-800"
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                    <span
+                      className={`text-xs leading-relaxed ${
+                        isSelected ? "text-primary-500" : "text-text-400"
+                      }`}
+                    >
+                      {option.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Quantidade de Questões — apenas para EXAM */}
         {documentType === "EXAM" && onNumberOfQuestionsChange && (
           <div className="p-5 border border-surface-200 rounded-xl bg-surface-50/10">
             <label className="flex items-center gap-2 text-sm font-semibold text-text-800 mb-3">
@@ -98,7 +163,7 @@ export function StepInstructions({
           </div>
         )}
 
-        {/* Escolha do Cabeçalho Escolar */}
+        {/* Cabeçalho Escolar */}
         {onIncludeHeaderChange && (
           <div className="p-5 border border-surface-200 rounded-xl bg-surface-50/10 flex items-center justify-between gap-4">
             <div className="flex gap-3">
@@ -114,7 +179,6 @@ export function StepInstructions({
                 </span>
               </div>
             </div>
-            
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-xs font-semibold text-text-500 hidden sm:inline">
                 {includeHeader ? "Ativado" : "Desativado"}
@@ -145,7 +209,6 @@ export function StepInstructions({
             <Clock className="w-4 h-4 text-primary-500" />
             Tempo de aula / duração
           </label>
-          
           <div className="flex flex-wrap gap-2 mb-3">
             {presets.map((preset) => {
               const isSelected = !showCustom && duration === preset.value;
@@ -176,7 +239,6 @@ export function StepInstructions({
               Outro...
             </button>
           </div>
-
           {showCustom && (
             <div className="animate-in fade-in slide-in-from-top-1 duration-200">
               <Input

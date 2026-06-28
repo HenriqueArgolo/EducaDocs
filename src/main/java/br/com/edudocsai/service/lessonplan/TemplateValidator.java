@@ -39,14 +39,18 @@ public class TemplateValidator {
         requireSize(content.evaluation().observableCriteria(), 3, Integer.MAX_VALUE, "criterios avaliativos");
         rejectGenericAssessment(content.evaluation().observableCriteria());
         validateObservableCriteria(content.evaluation().observableCriteria());
-        validateStage(content.methodology().introduction(), 5, 15, "introducao");
-        validateStage(content.methodology().development(), 20, 40, "desenvolvimento");
-        validateStage(content.methodology().closing(), 5, 15, "fechamento");
-        int sum = content.methodology().introduction().durationMinutes()
-                + content.methodology().development().durationMinutes()
-                + content.methodology().closing().durationMinutes();
-        if (sum != totalMinutes) {
-            throw new LessonPlanValidationException("A soma das etapas deve ser igual a duracao informada");
+        if (content.methodology() != null) {
+            validateStage(content.methodology().introduction(), 5, 15, "introducao");
+            validateStage(content.methodology().development(), 20, 40, "desenvolvimento");
+            validateStage(content.methodology().closing(), 5, 15, "fechamento");
+            int sum = content.methodology().introduction().durationMinutes()
+                    + content.methodology().development().durationMinutes()
+                    + content.methodology().closing().durationMinutes();
+            if (sum != totalMinutes) {
+                throw new LessonPlanValidationException("A soma das etapas deve ser igual a duracao informada");
+            }
+        } else if (content.weeklyPlan() == null && content.monthlyPlan() == null) {
+            throw new LessonPlanValidationException("Deve existir metodologia ou plano semanal ou mensal");
         }
         validateKit(content.kit());
     }

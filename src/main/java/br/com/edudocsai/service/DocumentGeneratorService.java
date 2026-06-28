@@ -946,6 +946,15 @@ public class DocumentGeneratorService {
     }
 
     private void addMethodologyStages(XWPFDocument docx, JsonNode root, String color) {
+        if (!root.path("weeklyPlan").isMissingNode() || !root.path("planoSemanal").isMissingNode()) {
+            addWeeklyPlan(docx, root, color);
+            return;
+        }
+        if (!root.path("monthlyPlan").isMissingNode() || !root.path("planoMensal").isMissingNode()) {
+            addMonthlyPlan(docx, root, color);
+            return;
+        }
+        
         JsonNode methodology = root.path("methodology").isMissingNode()
                 ? root.path("metodologia") : root.path("methodology");
 
@@ -971,6 +980,68 @@ public class DocumentGeneratorService {
         }
         if (!added) {
             addSimpleText(docx, "____________________________", "CCCCCC", false);
+        }
+        docx.createParagraph();
+    }
+
+    private void addWeeklyPlan(XWPFDocument docx, JsonNode root, String color) {
+        JsonNode plan = root.path("weeklyPlan").isMissingNode() ? root.path("planoSemanal") : root.path("weeklyPlan");
+        if (plan == null || !plan.isArray() || plan.isEmpty()) return;
+
+        XWPFTable table = docx.createTable(plan.size() + 1, 4);
+        setTableBorderless(table);
+
+        String[] headers = {"Dia", "Foco", "Atividades", "Avaliação"};
+        for (int i = 0; i < headers.length; i++) {
+            XWPFTableCell cell = table.getRow(0).getCell(i);
+            setCellBackground(cell, color);
+            setCellText(table, 0, i, headers[i], true, "FFFFFF", 11);
+        }
+
+        for (int i = 0; i < plan.size(); i++) {
+            JsonNode dayNode = plan.get(i);
+            setCellText(table, i + 1, 0, scalarText(dayNode.path("day")), true, "333333", 10);
+            setCellText(table, i + 1, 1, scalarText(dayNode.path("focus")), false, "333333", 10);
+            setCellText(table, i + 1, 2, scalarText(dayNode.path("activities")), false, "333333", 10);
+            setCellText(table, i + 1, 3, scalarText(dayNode.path("assessment")), false, "333333", 10);
+            
+            // Zebra striping
+            if (i % 2 == 0) {
+                for (int j = 0; j < 4; j++) {
+                    setCellBackground(table.getRow(i + 1).getCell(j), "F9F9F9");
+                }
+            }
+        }
+        docx.createParagraph();
+    }
+
+    private void addMonthlyPlan(XWPFDocument docx, JsonNode root, String color) {
+        JsonNode plan = root.path("monthlyPlan").isMissingNode() ? root.path("planoMensal") : root.path("monthlyPlan");
+        if (plan == null || !plan.isArray() || plan.isEmpty()) return;
+
+        XWPFTable table = docx.createTable(plan.size() + 1, 4);
+        setTableBorderless(table);
+
+        String[] headers = {"Semana", "Tema", "Objetivos", "Metodologia"};
+        for (int i = 0; i < headers.length; i++) {
+            XWPFTableCell cell = table.getRow(0).getCell(i);
+            setCellBackground(cell, color);
+            setCellText(table, 0, i, headers[i], true, "FFFFFF", 11);
+        }
+
+        for (int i = 0; i < plan.size(); i++) {
+            JsonNode weekNode = plan.get(i);
+            setCellText(table, i + 1, 0, scalarText(weekNode.path("week")), true, "333333", 10);
+            setCellText(table, i + 1, 1, scalarText(weekNode.path("theme")), false, "333333", 10);
+            setCellText(table, i + 1, 2, scalarText(weekNode.path("goals")), false, "333333", 10);
+            setCellText(table, i + 1, 3, scalarText(weekNode.path("methodology")), false, "333333", 10);
+            
+            // Zebra striping
+            if (i % 2 == 0) {
+                for (int j = 0; j < 4; j++) {
+                    setCellBackground(table.getRow(i + 1).getCell(j), "F9F9F9");
+                }
+            }
         }
         docx.createParagraph();
     }

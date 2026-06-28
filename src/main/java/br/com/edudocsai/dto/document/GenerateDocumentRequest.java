@@ -1,6 +1,8 @@
 package br.com.edudocsai.dto.document;
 
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.entity.PlanningPeriod;
+import br.com.edudocsai.entity.TemplateStyle;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -13,11 +15,12 @@ import java.util.List;
         {
           "documentType": "LESSON_PLAN",
           "bnccSkillIds": [1],
-          "topic": "Fracoes equivalentes",
-          "grade": "5\u00ba ano",
-          "subject": "Matematica",
+          "topic": "Frações equivalentes",
+          "grade": "5º ano",
+          "subject": "Matemática",
           "duration": "50 minutos",
-          "additionalInstructions": "Inclua atividade em duplas e avaliacao formativa."
+          "planningPeriod": "SINGLE",
+          "additionalInstructions": "Inclua atividade em duplas e avaliação formativa."
         }
         """)
 public record GenerateDocumentRequest(
@@ -28,22 +31,29 @@ public record GenerateDocumentRequest(
         @Size(max = 180) String subject,
         @Size(max = 80) String duration,
         @Size(max = 4000) String additionalInstructions,
-        br.com.edudocsai.entity.TemplateStyle templateStyle,
+        TemplateStyle templateStyle,
         Integer numberOfQuestions,
         Boolean includeHeader,
         Long classroomId,
-        Long timelineItemId
+        Long timelineItemId,
+        PlanningPeriod planningPeriod
 ) {
     public GenerateDocumentRequest(
-            br.com.edudocsai.entity.DocumentType documentType,
+            DocumentType documentType,
             List<Long> bnccSkillIds,
             String topic,
             String grade,
             String subject,
             String duration,
             String additionalInstructions,
-            br.com.edudocsai.entity.TemplateStyle templateStyle
+            TemplateStyle templateStyle
     ) {
-        this(documentType, bnccSkillIds, topic, grade, subject, duration, additionalInstructions, templateStyle, 5, true, null, null);
+        this(documentType, bnccSkillIds, topic, grade, subject, duration,
+                additionalInstructions, templateStyle, 5, true, null, null, PlanningPeriod.SINGLE);
+    }
+
+    /** Retorna a periodicidade, garantindo que nunca seja nula. */
+    public PlanningPeriod effectivePlanningPeriod() {
+        return planningPeriod != null ? planningPeriod : PlanningPeriod.SINGLE;
     }
 }

@@ -121,6 +121,11 @@ public class LessonPlanGenerationService {
                 .duration(context.durationText())
                 .additionalInstructions(context.additionalInstructions())
                 .templateStyle(context.templateStyle())
+                .numberOfQuestions(0)
+                .includeHeader(context.includeHeader())
+                .planningPeriod(context.getPlanningPeriod())
+                .classroomId(context.classroomId())
+                .timelineItemId(context.timelineItemId())
                 .build());
 
         return documentRepository.save(Document.builder()

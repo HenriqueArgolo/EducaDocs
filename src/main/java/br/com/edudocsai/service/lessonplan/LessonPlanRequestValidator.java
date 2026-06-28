@@ -43,7 +43,8 @@ public class LessonPlanRequestValidator {
                 blankToNull(request.additionalInstructions()),
                 request.templateStyle() != null ? request.templateStyle() : br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
                 request.classroomId(),
-                request.timelineItemId()
+                request.timelineItemId(),
+                request.effectivePlanningPeriod()
         );
     }
 

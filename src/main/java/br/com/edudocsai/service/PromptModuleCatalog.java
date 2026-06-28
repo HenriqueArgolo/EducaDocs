@@ -1,5 +1,6 @@
 package br.com.edudocsai.service;
 
+import br.com.edudocsai.entity.PlanningPeriod;
 import br.com.edudocsai.service.PromptBuilderHelper.GradeLevel;
 import org.springframework.stereotype.Component;
 
@@ -355,53 +356,60 @@ public class PromptModuleCatalog {
                 """.formatted(reportGuidance(level));
     }
 
-    public String lessonPlanTaskGuidance(GradeLevel level) {
+    public String lessonPlanTaskGuidance(GradeLevel level, PlanningPeriod period) {
+        String periodGuidance = "";
+        if (period == PlanningPeriod.WEEKLY) {
+            periodGuidance = "\n- **ATENÇÃO: PLANO SEMANAL.** O planejamento deve ser distribuído ao longo de 5 dias letivos (Segunda a Sexta), garantindo progressão e continuidade do tema ao longo da semana.";
+        } else if (period == PlanningPeriod.MONTHLY) {
+            periodGuidance = "\n- **ATENÇÃO: PLANO MENSAL.** O planejamento deve ser distribuído em 4 semanas, com um projeto ou objetivo de longo prazo que conecte as aulas, aprofundando o tema gradualmente.";
+        }
+
         return switch (level) {
             case FUNDAMENTAL_1_ANO -> """
                     ## TASK_PROMPT: Plano de Aula - 1º Ano (Alfabetização Inicial)
-                    **Task:** Elabore uma proposta de aula para crianças do 1º ano em fase de alfabetização.
+                    **Task:** Elabore uma proposta de aula para crianças do 1º ano em fase de alfabetização.%s
                     - A aula deve ser estruturada em momentos curtos (máx. 15 min cada): acolhida lúdica, exploração oral/sensorial, atividade guiada e fechamento com canto ou movimento.
                     - A atividade principal deve envolver consciência fonológica, reconhecimento de letras/sílabas ou escrita espontânea com apoio visual.
                     - Sugira materiais concretos e manipuláveis: letras móveis, fichas de palavras, imagens.
                     - NUNCA inclua textos longos, interpretação textual autônoma ou produção de frases completas.
-                    """;
+                    """.formatted(periodGuidance);
             case INFANTIL -> """
                     ## TASK_PROMPT: Plano de Experiência - Educação Infantil
-                    **Task:** Elabore um plano de experiência alinhado aos Campos de Experiência da BNCC.
+                    **Task:** Elabore um plano de experiência alinhado aos Campos de Experiência da BNCC.%s
                     - Substitua "Introdução/Desenvolvimento" por "Contextos e Interações", "Exploração" e "Partilha".
                     - O foco não é o "conteúdo", mas a experiência da criança (brincar, explorar, expressar-se).
                     - Detalhe a organização do espaço, os materiais de largo alcance e o papel do professor como observador e mediador.
-                    """;
+                    """.formatted(periodGuidance);
             case FUNDAMENTAL_INICIAIS -> """
                     ## TASK_PROMPT: Plano de Aula - Ensino Fundamental - Anos Iniciais
-                    **Task:** Elabore um plano de aula detalhado sobre o tema informado.
+                    **Task:** Elabore um plano de aula detalhado sobre o tema informado.%s
                     - Inclua aquecimento lúdico, desenvolvimento com problematização concreta, atividade prática colaborativa e fechamento com síntese e registro no caderno.
                     - Conecte o conceito ao cotidiano das crianças.
                     - Preveja pontos de dificuldade (Struggle Points) e sugira intervenções pedagógicas imediatas.
-                    """;
+                    """.formatted(periodGuidance);
             case FUNDAMENTAL_FINAIS -> """
                     ## TASK_PROMPT: Plano de Aula - Ensino Fundamental - Anos Finais
-                    **Task:** Elabore um plano de aula focado em metodologias ativas.
+                    **Task:** Elabore um plano de aula focado em metodologias ativas.%s
                     - Estrutura obrigatória: Problematização inicial (Hook), Investigação/Debate guiado, Aplicação prática e Síntese.
                     - Sugira o uso de recursos diversificados (vídeos curtos, notícias, mapas mentais).
                     - O plano deve exigir que o aluno argumente, analise dados e tire conclusões próprias, fugindo da aula puramente expositiva.
-                    """;
+                    """.formatted(periodGuidance);
             case ENSINO_MEDIO -> """
                     ## TASK_PROMPT: Plano de Aula - Ensino Médio
-                    **Task:** Elabore um plano de aula de alto rigor acadêmico, alinhado ao ENEM e ao Projeto de Vida.
+                    **Task:** Elabore um plano de aula de alto rigor acadêmico, alinhado ao ENEM e ao Projeto de Vida.%s
                     - Inicie com uma Situação-Problema complexa ou questão interdisciplinar.
                     - O desenvolvimento deve aprofundar conceitos teóricos, conectando-os a questões sociais, econômicas ou científicas contemporâneas.
                     - Inclua um momento de "Resolução de Problemas Padrão ENEM" (análise de itens).
                     - Finalize com uma reflexão sobre como o tema impacta a cidadania e as escolhas futuras dos alunos.
-                    """;
+                    """.formatted(periodGuidance);
             case EJA -> """
                     ## TASK_PROMPT: Plano de Aula - EJA
-                    **Task:** Elabore um plano de aula andragógico e funcional.
+                    **Task:** Elabore um plano de aula andragógico e funcional.%s
                     - Inicie OBRIGATORIAMENTE com uma roda de conversa resgatando os saberes prévios e experiências de vida dos alunos sobre o tema.
                     - O desenvolvimento deve ser ancorado em situações reais: mundo do trabalho, economia doméstica, saúde, direitos.
                     - A atividade prática deve envolver a leitura/análise de gêneros textuais reais (contas, contratos, notícias) ou a resolução de problemas matemáticos do dia a dia.
                     - O tom do plano deve orientar o professor a agir como um facilitador e parceiro de aprendizagem.
-                    """;
+                    """.formatted(periodGuidance);
         };
     }
 
