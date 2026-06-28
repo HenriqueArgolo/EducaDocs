@@ -13,4 +13,14 @@ public record LessonPlanContent(
         Evaluation evaluation,
         CompleteLessonKit kit
 ) {
+    public LessonPlanContent(
+            List<String> objectives,
+            List<String> contents,
+            Methodology methodology,
+            List<String> resources,
+            Evaluation evaluation,
+            CompleteLessonKit kit
+    ) {
+        this(objectives, contents, methodology, null, null, resources, evaluation, kit);
+    }
 }

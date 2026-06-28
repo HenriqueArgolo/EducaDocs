@@ -5,6 +5,7 @@ import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
 import br.com.edudocsai.entity.GenerationRequest;
+import br.com.edudocsai.entity.PlanningPeriod;
 import br.com.edudocsai.entity.Role;
 import br.com.edudocsai.entity.User;
 import br.com.edudocsai.exception.AiProviderException;
@@ -13,9 +14,11 @@ import br.com.edudocsai.repository.GenerationRequestRepository;
 import br.com.edudocsai.service.AIService;
 import br.com.edudocsai.service.BNCCService;
 import br.com.edudocsai.service.PromptBuilderHelper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -69,7 +72,10 @@ class LessonPlanGenerationServiceTest {
         assertThat(result.getTitle()).isEqualTo("Plano de aula - Fracoes equivalentes");
         assertThat(result.getContent()).contains("\"tema\" : \"Fracoes equivalentes\"");
         verify(aiService, org.mockito.Mockito.times(2)).generateJsonObject(any());
-        verify(generationRequestRepository).save(any(GenerationRequest.class));
+        ArgumentCaptor<GenerationRequest> requestCaptor = ArgumentCaptor.forClass(GenerationRequest.class);
+        verify(generationRequestRepository).save(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getPlanningPeriod()).isEqualTo(PlanningPeriod.SINGLE);
+        assertThat(requestCaptor.getValue().getIncludeHeader()).isFalse();
         verify(documentRepository).save(any(Document.class));
     }
 
@@ -128,6 +134,23 @@ class LessonPlanGenerationServiceTest {
         verify(documentRepository, never()).save(any());
     }
 
+    @Test
+    void generatesWeeklyPlanWithoutRequiringSingleLessonMethodology() {
+        LessonPlanGenerationService service = service();
+        when(bnccService.validateAndLoad(List.of(1L))).thenReturn(List.of(skill()));
+        when(aiService.generateJsonObject(any())).thenReturn(weeklyJson());
+        when(generationRequestRepository.save(any(GenerationRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(documentRepository.save(any(Document.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Document result = service.generate(user(), request(PlanningPeriod.WEEKLY));
+
+        assertThat(result.getContent()).contains("\"planoSemanal\"");
+        ArgumentCaptor<GenerationRequest> requestCaptor = ArgumentCaptor.forClass(GenerationRequest.class);
+        verify(generationRequestRepository).save(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getPlanningPeriod()).isEqualTo(PlanningPeriod.WEEKLY);
+        assertThat(requestCaptor.getValue().getIncludeHeader()).isFalse();
+    }
+
     private LessonPlanGenerationService service() {
         ObjectMapper objectMapper = new ObjectMapper();
         return new LessonPlanGenerationService(
@@ -149,6 +172,10 @@ class LessonPlanGenerationServiceTest {
     }
 
     private GenerateDocumentRequest request() {
+        return request(PlanningPeriod.SINGLE);
+    }
+
+    private GenerateDocumentRequest request(PlanningPeriod planningPeriod) {
         return new GenerateDocumentRequest(
                 DocumentType.LESSON_PLAN,
                 List.of(1L),
@@ -157,7 +184,12 @@ class LessonPlanGenerationServiceTest {
                 "Matematica",
                 "50 minutos",
                 null,
-                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                0,
+                false,
+                null,
+                null,
+                planningPeriod
         );
     }
 
@@ -280,5 +312,24 @@ class LessonPlanGenerationServiceTest {
                   "evaluation": {"observableCriteria": ["Identifica fracoes equivalentes", "Compara representacoes fracionarias", "Registra estrategias de resolucao"]}
                 }
                 """;
+    }
+
+    private String weeklyJson() {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectNode root = (ObjectNode) objectMapper.readTree(validJson());
+            root.remove("methodology");
+            var weeklyPlan = root.putArray("weeklyPlan");
+            for (String day : List.of("Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira")) {
+                weeklyPlan.addObject()
+                        .put("day", day)
+                        .put("focus", "Fracoes equivalentes")
+                        .put("activities", "Resolver e comparar fracoes equivalentes em dupla")
+                        .put("assessment", "Registrar estrategias sobre fracoes equivalentes");
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception exception) {
+            throw new AssertionError("Nao foi possivel montar JSON semanal de teste", exception);
+        }
     }
 }

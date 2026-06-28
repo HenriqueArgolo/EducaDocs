@@ -35,16 +35,26 @@ public class QualityValidator {
     private String activePedagogicalText(LessonPlanContent content) {
         CompleteLessonKit kit = content.kit();
         if (kit == null || kit.studentActivity() == null) {
-            return content.methodology().development().description();
+            return planActivitiesText(content);
         }
         StudentActivity activity = kit.studentActivity();
         return String.join(" ",
-                content.methodology().development().description(),
+                planActivitiesText(content),
                 value(activity.context()),
                 String.join(" ", safe(activity.instructions())),
                 String.join(" ", safe(activity.questions())),
                 value(activity.expectedProduct())
         );
+    }
+
+    private String planActivitiesText(LessonPlanContent content) {
+        if (content.methodology() != null) {
+            return content.methodology().development().description();
+        }
+        if (content.weeklyPlan() != null) {
+            return content.weeklyPlan().toString();
+        }
+        return content.monthlyPlan() == null ? "" : content.monthlyPlan().toString();
     }
 
     private java.util.List<String> safe(java.util.List<String> values) {

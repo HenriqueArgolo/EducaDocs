@@ -58,10 +58,10 @@ public class LessonPlanPromptBuilder {
             }
         }
         String inclusionPrompt = promptBuilderHelper.getInclusionPrompt(studentNeedsText);
-        String masterPromptGuidance = promptModuleCatalog.lessonPlanTaskGuidance(level, context.getPlanningPeriod());
+        String masterPromptGuidance = promptModuleCatalog.lessonPlanTaskGuidance(level, context.planningPeriod());
 
         String schemaAndRules = "";
-        PlanningPeriod period = context.getPlanningPeriod() != null ? context.getPlanningPeriod() : PlanningPeriod.SINGLE;
+        PlanningPeriod period = context.planningPeriod();
         
         if (period == PlanningPeriod.WEEKLY) {
             schemaAndRules = """

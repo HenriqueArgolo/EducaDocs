@@ -35,12 +35,24 @@ public class TopicAlignmentValidator {
         return String.join(" ",
                 String.join(" ", content.objectives()),
                 String.join(" ", content.contents()),
-                content.methodology().introduction().description(),
-                content.methodology().development().description(),
-                content.methodology().closing().description(),
+                planActivitiesText(content),
                 String.join(" ", content.resources()),
                 String.join(" ", content.evaluation().observableCriteria())
         );
+    }
+
+    private String planActivitiesText(LessonPlanContent content) {
+        if (content.methodology() != null) {
+            return String.join(" ",
+                    content.methodology().introduction().description(),
+                    content.methodology().development().description(),
+                    content.methodology().closing().description()
+            );
+        }
+        if (content.weeklyPlan() != null) {
+            return content.weeklyPlan().toString();
+        }
+        return content.monthlyPlan() == null ? "" : content.monthlyPlan().toString();
     }
 
     private String kitText(CompleteLessonKit kit) {

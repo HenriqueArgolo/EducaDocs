@@ -4,6 +4,7 @@ import * as React from "react";
 import { Clock, HelpCircle, Layers, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { shouldShowSchoolHeader } from "@/lib/document-generation";
 import type { DocumentType, PlanningPeriod } from "@/lib/types";
 
 export function StepInstructions({
@@ -164,7 +165,7 @@ export function StepInstructions({
         )}
 
         {/* Cabeçalho Escolar */}
-        {onIncludeHeaderChange && (
+        {onIncludeHeaderChange && shouldShowSchoolHeader(documentType) && (
           <div className="p-5 border border-surface-200 rounded-xl bg-surface-50/10 flex items-center justify-between gap-4">
             <div className="flex gap-3">
               <div className="p-2 bg-primary-50 rounded-lg text-primary-600 self-start shrink-0">

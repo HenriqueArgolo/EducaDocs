@@ -20,6 +20,7 @@ import {
   fetchClassrooms,
 } from "@/lib/api";
 import { wizardStepVariants, wizardTransition } from "@/lib/animations";
+import { includeHeaderForDocument } from "@/lib/document-generation";
 import {
   EDUCATION_STAGE_OPTIONS,
   filterSkillsForSelection,
@@ -398,7 +399,7 @@ function WizardContent() {
         duration: formData.duration.trim(),
         additionalInstructions: formData.additionalInstructions.trim(),
         numberOfQuestions: formData.numberOfQuestions,
-        includeHeader: formData.includeHeader,
+        includeHeader: includeHeaderForDocument(formData.documentType, formData.includeHeader),
         planningPeriod: formData.planningPeriod,
         classroomId: classroomIdParam ? parseInt(classroomIdParam) : undefined,
         timelineItemId: timelineItemIdParam ? parseInt(timelineItemIdParam) : undefined,
