@@ -2,8 +2,30 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, Download, Printer, Sparkles, Layers } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { 
+  AlertCircle, 
+  ArrowLeft, 
+  Download, 
+  Printer, 
+  Sparkles, 
+  Layers,
+  Bug, 
+  Banana, 
+  Circle, 
+  Cake, 
+  Car, 
+  House, 
+  Dices, 
+  Utensils, 
+  Flower2, 
+  Cat, 
+  Moon, 
+  Briefcase, 
+  Bird, 
+  Sun, 
+  Grape,
+  Image
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InclusionModal } from "@/components/dashboard/inclusion-modal";
@@ -26,23 +48,22 @@ import {
 import { formatDate } from "@/lib/utils";
 import { toActivityImageUrl } from "@/lib/activity-images";
 
-const FIGURE_ICON_NAMES: Record<string, string> = {
-  abelha: "Bug",
-  banana: "Banana",
-  bola: "Circle",
-  bolo: "Cake",
-  carro: "Car",
-  casa: "House",
-  dado: "Dices",
-  faca: "Utensils",
-  flor: "Flower2",
-  gato: "Cat",
-  lua: "Moon",
-  mala: "Briefcase",
-  pato: "Bird",
-  sapo: "Frog",
-  sol: "Sun",
-  uva: "Grape",
+const FIGURE_ICONS: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  abelha: Bug,
+  banana: Banana,
+  bola: Circle,
+  bolo: Cake,
+  carro: Car,
+  casa: House,
+  dado: Dices,
+  faca: Utensils,
+  flor: Flower2,
+  gato: Cat,
+  lua: Moon,
+  mala: Briefcase,
+  pato: Bird,
+  sol: Sun,
+  uva: Grape,
 };
 
 function FigureTile({ figure, word, imagemUrl }: { figure: string; word: string; imagemUrl?: string }) {
@@ -73,8 +94,7 @@ function FigureTile({ figure, word, imagemUrl }: { figure: string; word: string;
   }
 
   const key = figure.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const iconName = FIGURE_ICON_NAMES[key] || "Image";
-  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[iconName];
+  const Icon = FIGURE_ICONS[key] || Image;
 
   return (
     <div className="w-24 h-24 border-2 border-text-900 rounded-md bg-white flex flex-col items-center justify-center gap-1 shrink-0 print:border-black">
@@ -99,8 +119,7 @@ function FigureTile({ figure, word, imagemUrl }: { figure: string; word: string;
 
 function FigureIcon({ figure }: { figure: string }) {
   const key = figure.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const iconName = FIGURE_ICON_NAMES[key] || "Image";
-  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[iconName];
+  const Icon = FIGURE_ICONS[key] || Image;
   return Icon ? <Icon className="w-10 h-10 text-text-900 print:text-black" strokeWidth={1.8} /> : <div className="w-10 h-10 border border-text-500 rounded-sm" />;
 }
 
