@@ -35,7 +35,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
 
         byte[] result = service.generateDocx(document);
 
@@ -77,7 +77,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
 
         String text = extractText(service.generateDocx(document));
         List<String> lines = text.lines().toList();
@@ -169,7 +169,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
 
         String text = extractText(service.generateDocx(document));
 
@@ -230,7 +230,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
 
         String text = extractText(service.generateDocx(document));
 
@@ -291,7 +291,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
 
         String text = extractText(service.generateDocx(document));
 
