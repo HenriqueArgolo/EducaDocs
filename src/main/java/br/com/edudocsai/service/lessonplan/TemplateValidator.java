@@ -8,14 +8,6 @@ import java.util.Set;
 @Service
 public class TemplateValidator {
 
-    private static final Set<String> OBSERVABLE_VERBS = Set.of(
-            "identificar", "reconhecer", "comparar", "analisar", "argumentar", "interpretar",
-            "resolver", "relacionar", "descrever", "explicar", "classificar", "avaliar",
-            "representar", "utilizar", "registrar", "ordenar", "organizar", "produzir",
-            "selecionar", "elaborar", "calcular", "estimar", "formular", "construir",
-            "demonstrar", "justificar", "aplicar", "compreender"
-    );
-
     private static final Set<String> CRITERION_ACTION_VERBS = Set.of(
             "identifica", "relaciona", "interpreta", "compara", "registra", "argumenta",
             "resolve", "explica", "analisa", "descreve", "justifica", "aplica",
@@ -28,12 +20,7 @@ public class TemplateValidator {
 
     public void validate(LessonPlanContent content, int totalMinutes) {
         requireSize(content.objectives(), 3, 5, "objetivos");
-        for (String objective : content.objectives()) {
-            String firstWord = firstWord(objective);
-            if (!OBSERVABLE_VERBS.contains(firstWord)) {
-                throw new LessonPlanValidationException("Objetivo deve iniciar com verbo observavel: " + objective);
-            }
-        }
+        requireNonBlank(content.objectives(), "objetivos");
         requireSize(content.contents(), 3, Integer.MAX_VALUE, "conteudos");
         requireSize(content.resources(), 3, Integer.MAX_VALUE, "recursos");
         requireSize(content.evaluation().observableCriteria(), 3, Integer.MAX_VALUE, "criterios avaliativos");
@@ -173,9 +160,4 @@ public class TemplateValidator {
         return false;
     }
 
-    private String firstWord(String value) {
-        String normalized = LessonPlanTextNormalizer.normalize(value);
-        int space = normalized.indexOf(' ');
-        return space < 0 ? normalized : normalized.substring(0, space);
-    }
 }

@@ -106,6 +106,25 @@ class TemplateValidatorTest {
     }
 
     @Test
+    void acceptsValidObjectiveVerbsReturnedByAiProviders() {
+        LessonPlanContent content = new LessonPlanContent(
+                List.of(
+                        "Debater a importancia da criacao da ONU no pos-guerra",
+                        "Promover o pensamento critico sobre os impactos da guerra",
+                        "Discutir a defesa dos direitos humanos"
+                ),
+                validContent().contents(),
+                validContent().methodology(),
+                validContent().resources(),
+                validContent().evaluation(),
+                validContent().kit()
+        );
+
+        assertThatCode(() -> validator.validate(content, 50))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void rejectsStageSumDifferentFromTotalDuration() {
         assertThatThrownBy(() -> validator.validate(validContent(), 60))
                 .isInstanceOf(LessonPlanValidationException.class)
