@@ -104,6 +104,266 @@ function FigureIcon({ figure }: { figure: string }) {
   return Icon ? <Icon className="w-10 h-10 text-text-900 print:text-black" strokeWidth={1.8} /> : <div className="w-10 h-10 border border-text-500 rounded-sm" />;
 }
 
+// ----------------------------------------------------
+// NEW SPECIALIZED LAYOUTS FOR LITERACY ACTIVITIES
+// ----------------------------------------------------
+
+function WordSearchGrid({ wordSearch }: { wordSearch: { grid: string[][]; words: string[] } }) {
+  return (
+    <div className="flex flex-col items-center gap-6 mt-4 w-full">
+      {/* Grid of Letters */}
+      <div className="border-4 border-text-900 rounded-xl p-2 bg-white print:border-black max-w-full overflow-auto">
+        <table className="border-collapse">
+          <tbody>
+            {wordSearch.grid.map((row, rIdx) => (
+              <tr key={rIdx}>
+                {row.map((char, cIdx) => (
+                  <td
+                    key={cIdx}
+                    className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-text-200 text-center text-xl sm:text-2xl font-black uppercase text-text-900 print:border-black select-none font-mono"
+                  >
+                    {char}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Words to Find */}
+      <div className="w-full">
+        <p className="text-sm font-bold text-text-500 uppercase tracking-wider mb-3 print:text-black">
+          Encontre estas palavras:
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {wordSearch.words.map((word) => (
+            <span
+              key={word}
+              className="px-4 py-2 bg-surface-100 border border-surface-200 text-lg font-black tracking-widest uppercase rounded-lg text-text-800 print:border-black print:text-black"
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SimpleCrossword({ clues }: { clues: any[] }) {
+  // Determine dimensions of grid
+  let maxRow = 0;
+  let maxCol = 0;
+  clues.forEach((clue) => {
+    const len = clue.word.length;
+    if (clue.direction === "HORIZONTAL") {
+      maxRow = Math.max(maxRow, clue.row);
+      maxCol = Math.max(maxCol, clue.col + len - 1);
+    } else {
+      maxRow = Math.max(maxRow, clue.row + len - 1);
+      maxCol = Math.max(maxCol, clue.col);
+    }
+  });
+
+  const numRows = Math.max(5, maxRow + 2);
+  const numCols = Math.max(5, maxCol + 2);
+
+  // Initialize empty grid matrix
+  interface Cell {
+    active: boolean;
+    clueNumber?: number;
+    letter?: string;
+  }
+  const gridMatrix: Cell[][] = Array.from({ length: numRows }, () =>
+    Array.from({ length: numCols }, () => ({ active: false }))
+  );
+
+  clues.forEach((clue) => {
+    const word = String(clue.word).toUpperCase();
+    const len = word.length;
+    for (let i = 0; i < len; i++) {
+      const r = clue.direction === "HORIZONTAL" ? clue.row : clue.row + i;
+      const c = clue.direction === "HORIZONTAL" ? clue.col + i : clue.col;
+
+      if (r < numRows && c < numCols) {
+        gridMatrix[r][c].active = true;
+        gridMatrix[r][c].letter = word[i];
+        if (i === 0) {
+          gridMatrix[r][c].clueNumber = clue.number;
+        }
+      }
+    }
+  });
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-8 mt-4 w-full">
+      {/* Grid */}
+      <div className="flex-1 flex justify-center max-w-full overflow-auto p-1">
+        <table className="border-collapse">
+          <tbody>
+            {gridMatrix.map((row, rIdx) => (
+              <tr key={rIdx}>
+                {row.map((cell, cIdx) => (
+                  <td
+                    key={cIdx}
+                    className={`w-9 h-9 sm:w-11 sm:h-11 text-center relative select-none font-mono ${
+                      cell.active
+                        ? "border-2 border-text-900 bg-white print:border-black"
+                        : "border-none bg-transparent"
+                    }`}
+                  >
+                    {cell.active && cell.clueNumber && (
+                      <span className="absolute top-0.5 left-0.5 text-[8px] sm:text-[9px] font-bold text-text-500 leading-none">
+                        {cell.clueNumber}
+                      </span>
+                    )}
+                    {/* Empty cell for students to write in */}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Clues */}
+      <div className="w-full lg:w-72 shrink-0 space-y-4">
+        <h4 className="text-sm font-bold text-text-600 uppercase tracking-wider print:text-black">
+          Dicas da Cruzadinha:
+        </h4>
+        <div className="grid grid-cols-1 gap-3">
+          {clues.map((clue) => (
+            <div
+              key={`${clue.number}-${clue.word}`}
+              className="flex items-center gap-3 border border-surface-150 rounded-xl p-3 bg-surface-50/10 print:border-black"
+            >
+              <span className="w-7 h-7 rounded-full bg-text-900 text-white flex items-center justify-center text-xs font-bold print:bg-transparent print:text-black print:border-2 print:border-black shrink-0">
+                {clue.number}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-400 font-bold uppercase tracking-wider">
+                  {clue.direction === "HORIZONTAL" ? "Horizontal" : "Vertical"}
+                </p>
+                <p className="text-sm text-text-800 font-semibold print:text-black truncate">
+                  Figura: {clue.figure}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg border border-surface-200 overflow-hidden bg-white shrink-0 print:border-black">
+                <FigureTile figure={clue.figure} word="" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SceneActivity({
+  scene,
+  questions,
+  figures,
+}: {
+  scene?: string;
+  questions: any[];
+  figures?: string[];
+}) {
+  // Let's resolve the URL for the scene theme image
+  // The backend produces a generated image for the theme if we request it, or we resolve from early literacy helper
+  const scenePath = scene ? `/images/generated/scene_${scene.toLowerCase().replace(/\s+/g, "_")}` : null;
+  const resolvedUrl = toActivityImageUrl(scenePath, API_BASE_URL);
+
+  return (
+    <div className="flex flex-col items-center gap-6 mt-4 w-full">
+      {/* Scenic/Theme Image to color */}
+      <div className="w-full max-w-2xl border-4 border-text-900 rounded-2xl overflow-hidden bg-white aspect-[2.1] relative flex items-center justify-center print:border-black">
+        {resolvedUrl ? (
+          <img
+            src={resolvedUrl}
+            alt={scene || "Cena para colorir"}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              // Fallback placeholder
+              e.currentTarget.style.display = "none";
+              const fb = document.getElementById("scene-fallback");
+              if (fb) fb.classList.remove("hidden");
+            }}
+          />
+        ) : null}
+
+        <div
+          id="scene-fallback"
+          className={`${
+            resolvedUrl ? "hidden" : ""
+          } absolute inset-0 flex flex-col items-center justify-center bg-surface-50 text-center p-6`}
+        >
+          <svg className="w-16 h-16 text-text-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-sm font-black text-text-700 uppercase tracking-widest">
+            {scene || "Espaço Temático para Colorir"}
+          </span>
+          {figures && (
+            <p className="text-[10px] text-text-400 mt-1 max-w-sm italic">
+              Figuras presentes na cena: {figures.join(", ")}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Questions */}
+      <div className="w-full space-y-4">
+        {questions.map((question, index) => (
+          <div key={index} className="flex flex-col gap-2">
+            <p className="text-lg font-bold text-text-800 print:text-black">
+              {index + 1}. {question.text}
+            </p>
+            <div className="border-b border-dashed border-text-300 h-8 w-full print:border-black" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ColumnMatchActivity({ activity }: { activity: any }) {
+  const columnMatch = activity.columnMatch;
+  if (!columnMatch) return null;
+
+  return (
+    <div className="flex justify-around items-stretch gap-10 mt-6 w-full max-w-2xl mx-auto py-4">
+      {/* Left Column (Figures) */}
+      <div className="flex flex-col gap-6">
+        {columnMatch.leftColumn.map((item: any, idx: number) => (
+          <div key={idx} className="flex items-center gap-4">
+            <div className="w-24 h-24 border-2 border-text-900 rounded-xl overflow-hidden bg-white shrink-0 print:border-black">
+              <FigureTile figure={item.figure} word="" imagemUrl={item.imagemUrl} />
+            </div>
+            <span className="w-6 h-6 rounded-full border-2 border-text-900 bg-white print:border-black shrink-0 flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-text-900" />
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Right Column (Words) */}
+      <div className="flex flex-col gap-6 justify-around">
+        {columnMatch.rightColumn.map((word: string, idx: number) => (
+          <div key={idx} className="flex items-center gap-4">
+            <span className="w-6 h-6 rounded-full border-2 border-text-900 bg-white print:border-black shrink-0 flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-text-900" />
+            </span>
+            <span className="min-w-28 text-2xl font-black tracking-widest text-text-900 uppercase print:text-black">
+              {word}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function isInitialLiteracyDocument(document: GeneratedDocument) {
   if (document.type !== "EXAM") {
     return false;
@@ -281,49 +541,78 @@ function PrintableBlockView({ block }: { block: PrintableBlock }) {
 
   if (block.type === "earlyLiteracyActivities") {
     return (
-      <div className="space-y-8 text-text-900 print:text-black">
-        {block.values.map((activity) => (
-          <div key={activity.number} className="break-inside-avoid">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="w-8 h-8 rounded-full bg-text-900 text-white flex items-center justify-center text-sm font-bold print:bg-transparent print:text-black print:border print:border-black">
-                {activity.number}
-              </span>
-              <h3 className="text-xl font-bold uppercase tracking-normal print:text-black">
-                {activity.command}
-              </h3>
-            </div>
+      <div className="space-y-10 text-text-900 print:text-black">
+        {block.values.map((activity) => {
+          // Dispatch to specialized components based on activity.type
+          const type = String(activity.type).toUpperCase();
 
-            <div className="space-y-4 ml-0 sm:ml-11">
-              {activity.items.map((item, index) => (
-                <div key={`${activity.number}-${item.word}-${index}`} className="flex flex-wrap items-center gap-4 border border-surface-200 rounded-md p-4 print:border-black">
-                  <FigureTile figure={item.figure} word={item.word} imagemUrl={item.imagemUrl} />
-                  {item.word && (
-                    <span className="min-w-28 text-2xl font-extrabold tracking-normal text-text-900 print:text-black">
-                      {item.word}
-                    </span>
-                  )}
-                  {item.boxes > 0 && (
-                    <div className="flex gap-2">
-                      {Array.from({ length: item.boxes }).map((_, boxIndex) => (
-                        <span key={boxIndex} className="w-16 h-11 border-2 border-text-900 rounded-sm bg-white print:border-black" />
-                      ))}
+          return (
+            <div key={activity.number} className="break-inside-avoid border border-surface-150 rounded-xl p-6 bg-white shadow-sm print:border-black print:border-2 print:p-8 print:shadow-none mb-6">
+              {/* Activity Header */}
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-surface-100 print:border-black">
+                <span className="w-9 h-9 rounded-full bg-text-900 text-white flex items-center justify-center text-base font-extrabold print:bg-transparent print:text-black print:border-2 print:border-black shrink-0">
+                  {activity.number}
+                </span>
+                <h3 className="text-xl font-black uppercase tracking-tight text-text-900 print:text-black">
+                  {activity.command}
+                </h3>
+              </div>
+
+              {/* Layout Types */}
+              {type === "CACA_PALAVRAS" && activity.wordSearch ? (
+                <WordSearchGrid wordSearch={activity.wordSearch} />
+              ) : type === "CRUZADINHA" && activity.crosswordClues ? (
+                <SimpleCrossword clues={activity.crosswordClues} />
+              ) : type === "PINTAR_CENA" && activity.sceneQuestions ? (
+                <SceneActivity
+                  scene={activity.scene}
+                  questions={activity.sceneQuestions}
+                  figures={activity.sceneFigures}
+                />
+              ) : type === "LIGAR_COLUNAS" || type === "LIGAR_FIGURA_PALAVRA" ? (
+                <ColumnMatchActivity activity={activity} />
+              ) : (
+                /* Default grid-based layout for SEPARAR_SILABAS, LETRA_INICIAL, COMPLETAR_PALAVRA, etc. */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {activity.items.map((item, index) => (
+                    <div key={`${activity.number}-${item.word}-${index}`} className="flex flex-col items-center sm:items-start sm:flex-row gap-4 border border-surface-100 rounded-xl p-4 bg-surface-50/20 print:border-black print:bg-white print:p-4">
+                      <div className="w-32 h-32 shrink-0 border border-surface-200 rounded-lg overflow-hidden bg-white print:border-black">
+                        <FigureTile figure={item.figure} word={item.word} imagemUrl={item.imagemUrl} />
+                      </div>
+                      
+                      <div className="flex-1 flex flex-col justify-center gap-3 w-full">
+                        {item.word && (
+                          <span className="text-2xl font-black tracking-widest text-text-900 uppercase text-center sm:text-left print:text-black">
+                            {item.word}
+                          </span>
+                        )}
+                        
+                        {item.boxes > 0 && (
+                          <div className="flex gap-2.5 justify-center sm:justify-start">
+                            {Array.from({ length: item.boxes }).map((_, boxIndex) => (
+                              <span key={boxIndex} className="w-14 h-12 border-2 border-text-900 rounded-lg bg-white print:border-black" />
+                            ))}
+                          </div>
+                        )}
+                        
+                        {item.options.length > 0 && (
+                          <div className="flex flex-wrap gap-4 justify-center sm:justify-start mt-1">
+                            {item.options.map((option) => (
+                              <span key={option} className="inline-flex items-center gap-2 text-xl font-extrabold print:text-black">
+                                <span className="w-7 h-7 rounded-full border-2 border-text-900 bg-white print:border-black" />
+                                {option}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {item.options.length > 0 && (
-                    <div className="flex flex-wrap gap-4">
-                      {item.options.map((option) => (
-                        <span key={option} className="inline-flex items-center gap-2 text-xl font-bold">
-                          <span className="w-7 h-7 rounded-full border-2 border-text-900 bg-white print:border-black" />
-                          {option}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

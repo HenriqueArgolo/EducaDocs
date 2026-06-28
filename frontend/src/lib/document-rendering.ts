@@ -342,9 +342,55 @@ function normalizeEarlyLiteracyActivities(value: unknown): PrintableEarlyLiterac
             ...(imgUrl ? { imagemUrl: imgUrl } : {}),
           };
         }),
+        // Word search
+        ...(item.grade && Array.isArray(item.grade) ? {
+          wordSearch: {
+            grid: (item.grade as any[]).map(row => Array.isArray(row) ? row.map(String) : []),
+            words: Array.isArray(item.palavras) ? item.palavras.map(String) : []
+          }
+        } : {}),
+        // Crossword
+        ...(item.dicas && Array.isArray(item.dicas) ? {
+          crosswordClues: (item.dicas as any[]).map(d => {
+            const dobj = objectValue(d);
+            return {
+              number: Number(dobj.numero || 0),
+              direction: String(dobj.direcao || "HORIZONTAL"),
+              figure: String(dobj.figura || ""),
+              word: String(dobj.palavra || ""),
+              row: Number(dobj.linha || 0),
+              col: Number(dobj.coluna || 0)
+            };
+          })
+        } : {}),
+        // Scene
+        ...(item.cena ? {
+          scene: String(item.cena),
+          sceneFigures: Array.isArray(item.figurasCena) ? item.figurasCena.map(String) : [],
+          sceneQuestions: Array.isArray(item.perguntas) ? (item.perguntas as any[]).map(q => {
+            const qobj = objectValue(q);
+            return {
+              text: String(qobj.texto || ""),
+              answer: String(qobj.resposta || "")
+            };
+          }) : []
+        } : {}),
+        // Column match
+        ...(item.colunaEsquerda || item.colunaDireita ? {
+          columnMatch: {
+            leftColumn: Array.isArray(item.colunaEsquerda) ? (item.colunaEsquerda as any[]).map(col => {
+              const colObj = objectValue(col);
+              return {
+                figure: String(colObj.figura || ""),
+                imagemUrl: String(colObj.imagemUrl || colObj.imageUrl || "")
+              };
+            }) : [],
+            rightColumn: Array.isArray(item.colunaDireita) ? item.colunaDireita.map(String) : []
+          }
+        } : {})
       };
     })
-    .filter((activity) => activity.command || activity.items.length > 0);
+    .filter((activity) => activity.command || activity.items.length > 0 || activity.wordSearch || activity.crosswordClues || activity.scene || activity.columnMatch);
 }
 
 function buildEarlyChildhoodObservationDocument(
