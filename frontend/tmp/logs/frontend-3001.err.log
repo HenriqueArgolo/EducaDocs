@@ -1,0 +1,8 @@
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          19820
+- Dir:          C:\Users\joaoh\OneDrive\Área de Trabalho\Documentos\eduDocs-frotend\edudocs-frontend
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 19820 /F to stop it.

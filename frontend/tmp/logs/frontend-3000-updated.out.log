@@ -1,0 +1,21 @@
+
+> edudocs-frontend@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.14:3000
+✓ Ready in 1022ms
+
+ GET /dashboard/library 200 in 2.1s (next.js: 1641ms, application-code: 437ms)
+ GET /dashboard/library/270 200 in 2.6s (next.js: 2.2s, application-code: 392ms)
+ GET /dashboard/library/270 200 in 91ms (next.js: 17ms, application-code: 74ms)
+ GET /dashboard/library/270 200 in 121ms (next.js: 19ms, application-code: 102ms)
+✓ Compiled in 424ms
+ GET /dashboard/library 200 in 140ms (next.js: 67ms, application-code: 73ms)
+ GET /dashboard/library/270 200 in 696ms (next.js: 161ms, application-code: 535ms)
+ GET /dashboard/library 200 in 441ms (next.js: 299ms, application-code: 142ms)
+ GET /dashboard/library/270 200 in 636ms (next.js: 186ms, application-code: 450ms)
+✓ Compiled in 461ms
+ GET /dashboard/library/270 200 in 142ms (next.js: 31ms, application-code: 111ms)
+[?25h

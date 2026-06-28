@@ -1,0 +1,9 @@
+{
+  "name": "EduDocs AI",
+  "short_name": "EduDocs",
+  "description": "Documentos pedagogicos gerados com BNCC validada pela API.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5"
+}

@@ -181,7 +181,7 @@ public class PromptModuleCatalog {
     }
 
     private String initialLiteracyAssessmentPrompt(int numberOfQuestions) {
-        int activityCount = Math.max(3, Math.min(numberOfQuestions, 5));
+        int activityCount = Math.max(4, Math.min(numberOfQuestions, 6));
         return """
                 ## TASK: GERAR ATIVIDADE VISUAL DE ALFABETIZAÇÃO INICIAL
                 Crie uma atividade visual de alfabetização para criança do 1º ano, com %d atividades curtas.
@@ -196,11 +196,17 @@ public class PromptModuleCatalog {
                 - Use somente estes tipos de atividade: %s.
                 - Inclua gabarito apenas no campo interno indicado; o material do aluno será renderizado sem gabarito.
 
+                **REGRA DE VARIEDADE OBRIGATÓRIA:**
+                - Você DEVE usar pelo menos 3 tipos DIFERENTES de atividade na mesma folha.
+                - PROIBIDO repetir o mesmo tipo mais de 2 vezes.
+                - Inclua OBRIGATORIAMENTE pelo menos 1 dos seguintes tipos visuais especiais: CACA_PALAVRAS, CRUZADINHA, PINTAR_CENA ou LIGAR_COLUNAS.
+                - Esses tipos especiais criam layouts visuais ricos e variados que tornam a atividade mais atrativa para a criança.
+
                 Regras Cruciais:
                 - Retorne APENAS um objeto JSON válido, sem qualquer texto ou markdown fora dele.
                 - Respeite rigorosamente a acentuação correta em português.
 
-                Schema JSON de resposta OBRIGATÓRIO:
+                Schema JSON de resposta OBRIGATÓRIO (mostre apenas os tipos que usar, não todos):
                 {
                   "titulo": "Título curto da atividade",
                   "tipoAvaliacao": "ALFABETIZACAO_INICIAL",
@@ -209,27 +215,65 @@ public class PromptModuleCatalog {
                     {
                       "numero": 1,
                       "tipo": "SEPARAR_SILABAS",
-                      "comando": "Separe as sílabas.",
+                      "comando": "SEPARE AS SÍLABAS.",
                       "itens": [
-                        {
-                          "palavra": "BOLO",
-                          "figura": "bolo",
-                          "caixasResposta": 2
-                        }
+                        {"palavra": "BOLO", "figura": "bolo", "caixasResposta": 2}
                       ],
                       "gabarito": "BO-LO"
                     },
                     {
                       "numero": 2,
+                      "tipo": "LIGAR_COLUNAS",
+                      "comando": "LIGUE A FIGURA AO NOME.",
+                      "colunaEsquerda": [
+                        {"figura": "saci"},
+                        {"figura": "cuca"},
+                        {"figura": "iara"}
+                      ],
+                      "colunaDireita": ["IARA", "SACI", "CUCA"],
+                      "gabarito": "saci-SACI, cuca-CUCA, iara-IARA"
+                    },
+                    {
+                      "numero": 3,
+                      "tipo": "CACA_PALAVRAS",
+                      "comando": "ENCONTRE AS PALAVRAS.",
+                      "grade": [
+                        ["S","A","C","I","X","B"],
+                        ["C","U","C","A","Y","O"],
+                        ["M","U","L","A","Z","T"],
+                        ["B","O","T","O","W","O"]
+                      ],
+                      "palavras": ["SACI","CUCA","MULA","BOTO"],
+                      "gabarito": "SACI linha 1, CUCA linha 2, MULA linha 3, BOTO linha 4"
+                    },
+                    {
+                      "numero": 4,
+                      "tipo": "CRUZADINHA",
+                      "comando": "COMPLETE A CRUZADINHA.",
+                      "dicas": [
+                        {"numero": 1, "direcao": "HORIZONTAL", "figura": "saci", "palavra": "SACI", "linha": 0, "coluna": 0},
+                        {"numero": 2, "direcao": "VERTICAL", "figura": "cuca", "palavra": "CUCA", "linha": 0, "coluna": 2}
+                      ],
+                      "gabarito": "1-SACI, 2-CUCA"
+                    },
+                    {
+                      "numero": 5,
+                      "tipo": "PINTAR_CENA",
+                      "comando": "OBSERVE E RESPONDA.",
+                      "cena": "floresta do folclore",
+                      "figurasCena": ["saci", "cuca", "iara", "boto"],
+                      "perguntas": [
+                        {"texto": "PINTE O QUE TEM UMA PERNA SÓ.", "resposta": "SACI"},
+                        {"texto": "CIRCULE O QUE MORA NO RIO.", "resposta": "IARA"}
+                      ],
+                      "gabarito": "SACI, IARA"
+                    },
+                    {
+                      "numero": 6,
                       "tipo": "LETRA_INICIAL",
-                      "comando": "Pinte a letra inicial.",
+                      "comando": "PINTE A LETRA INICIAL.",
                       "itens": [
-                        {
-                          "palavra": "SAPO",
-                          "figura": "sapo",
-                          "opcoes": ["S", "P", "O"],
-                          "resposta": "S"
-                        }
+                        {"palavra": "SAPO", "figura": "sapo", "opcoes": ["S", "P", "O"], "resposta": "S"}
                       ],
                       "gabarito": "S"
                     }
