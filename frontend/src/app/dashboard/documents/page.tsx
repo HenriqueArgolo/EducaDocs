@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AlertCircle, ExternalLink, FileText, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, ExternalLink, FileText, Layers3, RefreshCw, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -194,7 +194,7 @@ export default function DocumentsPage() {
             >
               <Card className="h-full p-6 hover:border-primary-200 hover:shadow-md transition-all">
                 <div className="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center mb-5">
-                  <FileText className="w-6 h-6 text-primary-600" />
+                  {doc.kitId ? <Layers3 className="w-6 h-6 text-primary-600" /> : <FileText className="w-6 h-6 text-primary-600" />}
                 </div>
 
                 <h2 className="text-lg font-bold text-text-900 mb-2 line-clamp-2">
@@ -202,15 +202,15 @@ export default function DocumentsPage() {
                 </h2>
 
                 <div className="flex flex-wrap items-center gap-2 text-sm text-text-500 mb-6">
-                  <span>{DOCUMENT_TYPE_LABELS[doc.type]}</span>
+                  <span>{doc.kitId ? "Kit de Aula" : DOCUMENT_TYPE_LABELS[doc.type]}</span>
                   <span>|</span>
                   <span>{formatDate(doc.createdAt)}</span>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-surface-100">
-                  <Badge variant="success">Gerado</Badge>
+                  <Badge variant="success">{doc.kitId ? `${doc.readyMaterialCount ?? 0} materiais` : "Gerado"}</Badge>
                   <Link
-                    href={`/dashboard/document/${doc.id}`}
+                    href={doc.kitId ? `/dashboard/kit/${doc.kitId}` : `/dashboard/document/${doc.id}`}
                     className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700"
                   >
                     Abrir

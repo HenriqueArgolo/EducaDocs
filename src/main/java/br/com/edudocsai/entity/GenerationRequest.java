@@ -86,6 +86,27 @@ public class GenerationRequest {
     @Builder.Default
     private PlanningPeriod planningPeriod = PlanningPeriod.SINGLE;
 
+    @Column(name = "lessons_per_week")
+    private Integer lessonsPerWeek;
+
+    @Column(name = "activity_count")
+    private Integer activityCount;
+
+    @Column(name = "exercises_per_activity")
+    private Integer exercisesPerActivity;
+
+    @Column(name = "activity_format", length = 30)
+    private String activityFormat;
+
+    @Column(name = "activity_purpose", length = 30)
+    private String activityPurpose;
+
+    @Column(name = "activity_difficulty", length = 30)
+    private String activityDifficulty;
+
+    @Column(name = "activity_modality", length = 30)
+    private String activityModality;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 

@@ -3,17 +3,55 @@ package br.com.edudocsai.service;
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
 import br.com.edudocsai.entity.GenerationRequest;
+import br.com.edudocsai.entity.TemplateStyle;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DocumentGeneratorServiceTest {
+
+    @Test
+    void generateDocxAppliesTheSelectedVisualTemplate() {
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, new PromptBuilderHelper());
+
+        try (XWPFDocument institutional = open(service.generateDocx(documentWithStyle(TemplateStyle.INSTITUTIONAL)));
+             XWPFDocument modern = open(service.generateDocx(documentWithStyle(TemplateStyle.MODERN)));
+             XWPFDocument minimalist = open(service.generateDocx(documentWithStyle(TemplateStyle.MINIMALIST)))) {
+
+            XWPFParagraph institutionalTitle = firstTextParagraph(institutional);
+            XWPFParagraph modernTitle = firstTextParagraph(modern);
+            XWPFParagraph minimalistTitle = firstTextParagraph(minimalist);
+
+            assertThat(institutionalTitle.getAlignment()).isEqualTo(ParagraphAlignment.CENTER);
+            assertThat(institutionalTitle.getRuns().get(0).getColor()).isEqualTo("1A3A6B");
+
+            assertThat(modernTitle.getAlignment()).isEqualTo(ParagraphAlignment.LEFT);
+            assertThat(modernTitle.getRuns().get(0).getColor()).isEqualTo("FFFFFF");
+            assertThat(HexFormat.of().formatHex((byte[]) modernTitle.getCTP().getPPr().getShd().getFill()))
+                    .isEqualToIgnoringCase("7C3AED");
+
+            assertThat(minimalistTitle.getAlignment()).isEqualTo(ParagraphAlignment.LEFT);
+            assertThat(minimalistTitle.getRuns().get(0).getColor()).isEqualTo("111827");
+
+            assertThat(institutional.getParagraphs().stream().map(XWPFParagraph::getText))
+                    .anyMatch(text -> text.startsWith("I. TEMA"));
+            assertThat(modern.getParagraphs().stream().map(XWPFParagraph::getText))
+                    .anyMatch(text -> text.equals("TEMA"));
+            assertThat(minimalist.getParagraphs().stream().map(XWPFParagraph::getText))
+                    .anyMatch(text -> text.equals("TEMA"));
+        } catch (Exception exception) {
+            throw new AssertionError("Nao foi possivel inspecionar os templates DOCX", exception);
+        }
+    }
 
     @Test
     void generateDocxReturnsOfficeOpenXmlBytes() {
@@ -35,7 +73,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, new PromptBuilderHelper());
 
         byte[] result = service.generateDocx(document);
 
@@ -43,10 +81,10 @@ class DocumentGeneratorServiceTest {
         assertThat(new String(result, 0, 2)).isEqualTo("PK");
         assertThat(extractText(result))
                 .contains("PLANO DE AULA")
-                .contains("Escola: __________________________")
-                .contains("Objetivos de Aprendizagem:")
-                .contains("Conteúdo:")
-                .contains("Avaliação:");
+                .contains("I. TEMA")
+                .contains("III. OBJETIVOS DE APRENDIZAGEM")
+                .contains("IV. CONTEÚDOS")
+                .contains("VII. AVALIAÇÃO");
     }
 
     @Test
@@ -77,32 +115,28 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, new PromptBuilderHelper());
 
         String text = extractText(service.generateDocx(document));
         List<String> lines = text.lines().toList();
 
         assertThat(text)
                 .contains("PLANO DE AULA")
-                .contains("Tema:")
+                .contains("I. TEMA")
                 .contains("Fracoes equivalentes")
-                .contains("Objetivos de Aprendizagem:")
-                .contains("Conteúdo:")
-                .contains("Metodologia:")
-                .contains("Recursos Didáticos:")
-                .contains("Avaliação:")
-                .contains("Tempo Estimado:")
-                .contains("Introdução: 10 min - Ativar conhecimentos previos")
-                .contains("Desenvolvimento: 30 min - Resolver atividade em duplas")
-                .contains("Fechamento: 10 min - Sistematizar aprendizagens")
-                .contains("Total: 50 min");
+                .contains("III. OBJETIVOS DE APRENDIZAGEM")
+                .contains("IV. CONTEÚDOS")
+                .contains("V. METODOLOGIA")
+                .contains("VI. RECURSOS DIDÁTICOS")
+                .contains("VII. AVALIAÇÃO")
+                .contains("Ativar conhecimentos previos")
+                .contains("Resolver atividade em duplas")
+                .contains("Sistematizar aprendizagens");
         assertThat(lines)
-                .contains("Introdução: 10 min")
-                .contains("Desenvolvimento: 30 min")
-                .contains("Fechamento: 10 min")
-                .contains("Total: 50 min");
+                .contains("Introdução (10 min):")
+                .contains("Desenvolvimento (30 min):")
+                .contains("Fechamento (10 min):");
         assertThat(text)
-                .doesNotContain("HABILIDADES BNCC")
                 .doesNotContain("ATIVIDADES DETALHADAS")
                 .doesNotContain("OBSERVACOES DO PROFESSOR")
                 .doesNotContain("Matematica")
@@ -169,19 +203,17 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, new PromptBuilderHelper());
 
         String text = extractText(service.generateDocx(document));
 
         assertThat(text)
                 .contains("PLANO DE AULA")
-                .contains("Tema:")
+                .contains("I. TEMA")
                 .contains("KIT AULA COMPLETA")
-                .contains("Título:")
                 .contains("Linha do tempo das fracoes")
                 .contains("GABARITO DO PROFESSOR")
                 .contains("INSTRUMENTO AVALIATIVO")
-                .contains("EVIDÊNCIAS PEDAGÓGICAS")
                 .contains("ADAPTAÇÕES INCLUSIVAS")
                 .doesNotContain("http://")
                 .doesNotContain("https://")
@@ -230,16 +262,16 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, new PromptBuilderHelper());
 
         String text = extractText(service.generateDocx(document));
 
         assertThat(text)
                 .contains("ROTEIRO DE OBSERVAÇÃO E REGISTRO")
-                .contains("Contexto da observação:")
-                .contains("Indicadores observáveis:")
+                .contains("III. CONTEXTO DA OBSERVAÇÃO")
+                .contains("IV. INDICADORES OBSERVÁVEIS")
                 .contains("Exploração de cores")
-                .contains("Registros do professor:")
+                .contains("V. REGISTROS DO PROFESSOR")
                 .contains("sem exigir resposta escrita")
                 .doesNotContain("Questão 1")
                 .doesNotContain("GABARITO DO PROFESSOR")
@@ -291,7 +323,7 @@ class DocumentGeneratorServiceTest {
                         }
                         """)
                 .build();
-        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, null);
+        DocumentGeneratorService service = new DocumentGeneratorService(new ObjectMapper(), null, new PromptBuilderHelper());
 
         String text = extractText(service.generateDocx(document));
 
@@ -319,5 +351,42 @@ class DocumentGeneratorServiceTest {
         } catch (Exception exception) {
             throw new AssertionError("Nao foi possivel ler DOCX gerado", exception);
         }
+    }
+
+    private Document documentWithStyle(TemplateStyle style) {
+        return Document.builder()
+                .id(90L)
+                .type(DocumentType.LESSON_PLAN)
+                .title("Plano de aula - Fracoes")
+                .generationRequest(GenerationRequest.builder()
+                        .templateStyle(style)
+                        .includeHeader(false)
+                        .build())
+                .content("""
+                        {
+                          "tema": "Fracoes equivalentes",
+                          "objetivosDeAprendizagem": ["Compreender fracoes equivalentes"],
+                          "conteudo": ["Equivalencia entre fracoes"],
+                          "metodologia": {
+                            "introducao": {"tempoMinutos": 10, "descricao": "Ativar conhecimentos previos"},
+                            "desenvolvimento": {"tempoMinutos": 30, "descricao": "Resolver problemas"},
+                            "fechamento": {"tempoMinutos": 10, "descricao": "Sistematizar"}
+                          },
+                          "recursosDidaticos": ["Quadro"],
+                          "avaliacao": {"criteriosObservaveis": ["Participacao"]}
+                        }
+                        """)
+                .build();
+    }
+
+    private XWPFDocument open(byte[] bytes) throws Exception {
+        return new XWPFDocument(new ByteArrayInputStream(bytes));
+    }
+
+    private XWPFParagraph firstTextParagraph(XWPFDocument document) {
+        return document.getParagraphs().stream()
+                .filter(paragraph -> !paragraph.getText().isBlank())
+                .findFirst()
+                .orElseThrow();
     }
 }

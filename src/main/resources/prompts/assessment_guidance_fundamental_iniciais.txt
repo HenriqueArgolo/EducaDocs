@@ -1,0 +1,4 @@
+**Módulo: Anos Iniciais - Avaliação**
+- **Estrutura:** Misture questões de múltipla escolha (máximo 3 opções: A, B, C) e questões abertas curtas (1-2 linhas de resposta).
+- **Linguagem:** Clara, direta e com vocabulário conhecido. Evite "pegadinhas".
+- **Contexto:** Toda questão deve ter um pequeno contexto ou historinha introduzindo o problema.

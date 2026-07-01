@@ -1,5 +1,6 @@
 package br.com.edudocsai.service.lessonplan;
 
+import br.com.edudocsai.entity.PlanningPeriod;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -12,6 +13,10 @@ public class TopicAlignmentValidator {
     private static final Set<String> STOP_WORDS = Set.of("de", "da", "do", "das", "dos", "e", "a", "o", "as", "os");
 
     public int score(String topic, LessonPlanContent content) {
+        return score(topic, content, PlanningPeriod.SINGLE);
+    }
+
+    public int score(String topic, LessonPlanContent content, PlanningPeriod period) {
         Set<String> topicTokens = meaningfulTokens(topic);
         if (topicTokens.isEmpty()) {
             return 0;
@@ -21,7 +26,11 @@ public class TopicAlignmentValidator {
             return officialPlanScore;
         }
         int kitScore = scoreAgainst(topicTokens, kitText(content.kit()));
-        return Math.min(officialPlanScore, kitScore);
+        if (period == PlanningPeriod.SINGLE) {
+            return Math.min(officialPlanScore, kitScore);
+        } else {
+            return kitScore < 50 ? Math.min(officialPlanScore, kitScore) : officialPlanScore;
+        }
     }
 
     private int scoreAgainst(Set<String> topicTokens, String generatedText) {

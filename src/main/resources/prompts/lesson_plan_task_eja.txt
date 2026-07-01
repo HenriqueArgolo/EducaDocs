@@ -1,0 +1,6 @@
+## TASK_PROMPT: Plano de Aula - EJA
+**Task:** Elabore um plano de aula andragógico e funcional.%s
+- Inicie OBRIGATORIAMENTE com uma roda de conversa resgatando os saberes prévios e experiências de vida dos alunos sobre o tema.
+- O desenvolvimento deve ser ancorado em situações reais: mundo do trabalho, economia doméstica, saúde, direitos.
+- A atividade prática deve envolver a leitura/análise de gêneros textuais reais (contas, contratos, notícias) ou a resolução de problemas matemáticos do dia a dia.
+- O tom do plano deve orientar o professor a agir como um facilitador e parceiro de aprendizagem.

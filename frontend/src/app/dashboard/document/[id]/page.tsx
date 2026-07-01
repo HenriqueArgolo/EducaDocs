@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   AlertCircle, 
   ArrowLeft, 
@@ -24,7 +24,12 @@ import {
   Bird, 
   Sun, 
   Grape,
-  Image
+  Image,
+  Edit,
+  Plus,
+  Trash2,
+  Save,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +39,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   downloadDocumentDocx,
   fetchDocument,
+  updateDocument,
   API_BASE_URL,
 } from "@/lib/api";
 import {
@@ -47,6 +53,15 @@ import {
 } from "@/lib/document-rendering";
 import { formatDate } from "@/lib/utils";
 import { toActivityImageUrl } from "@/lib/activity-images";
+import {
+  getDocumentTemplate,
+  getTemplateSectionIndex,
+  stripSectionNumber,
+} from "@/lib/document-template";
+import { LessonKitCreationPanel } from "@/components/lesson-kit/LessonKitCreationPanel";
+import { downloadLessonKitMaterial, fetchLessonKit, fetchLessonKitMaterialPdfUrl, updateLessonKitMaterial } from "@/lib/lesson-kit-api";
+import type { LessonKitMaterialType } from "@/lib/lesson-kit";
+import { isLessonKitMaterialType, kitMaterialEditorMeta, toKitMaterialEditorDocument, unwrapLessonKitMaterialContent, wrapLessonKitMaterialContent } from "@/lib/kit-material-editor";
 
 const FIGURE_ICONS: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   abelha: Bug,
@@ -397,7 +412,18 @@ function isInitialLiteracyDocument(document: GeneratedDocument) {
     || Array.isArray(structured.atividadesVisuais);
 }
 
-function printedDocumentKind(document: GeneratedDocument) {
+function printedDocumentKind(document: GeneratedDocument, selectedGroup?: string | null) {
+  if (selectedGroup) {
+    if (selectedGroup === "Plano") return "PLANO DE AULA";
+    if (selectedGroup === "Atividade") {
+      return isInitialLiteracyDocument(document) ? "ATIVIDADE DE ALFABETIZAÇÃO" : "ATIVIDADE PEDAGÓGICA";
+    }
+    if (selectedGroup === "Gabarito") return "GABARITO E DIRETRIZES";
+    if (selectedGroup === "Avaliacao") return "AVALIAÇÃO DE APRENDIZAGEM";
+    if (selectedGroup === "Evidencias") return "REGISTRO DE EVIDÊNCIAS";
+    if (selectedGroup === "Adaptacoes") return "ADAPTAÇÕES INCLUSIVAS";
+  }
+
   if (isInitialLiteracyDocument(document)) {
     return "ATIVIDADE DE ALFABETIZAÇÃO";
   }
@@ -408,9 +434,13 @@ function printedDocumentKind(document: GeneratedDocument) {
 function Section({
   title,
   children,
+  templateStyle,
+  index,
 }: {
   title: string;
   children: React.ReactNode;
+  templateStyle: GeneratedDocument["templateStyle"];
+  index: number;
 }) {
   if (!children) {
     return null;
@@ -419,15 +449,48 @@ function Section({
   return (
     <section className="print-section mb-8 break-inside-avoid">
       <h2 className="print-section-title text-lg font-bold text-primary-800 border-b border-surface-200 pb-2 mb-4">
-        {title}
+        <span className="document-template-section-index" aria-hidden="true">
+          {getTemplateSectionIndex(templateStyle, index)}
+        </span>
+        <span>{stripSectionNumber(title)}</span>
       </h2>
       {children}
     </section>
   );
 }
 
-function DocumentContent({ document }: { document: GeneratedDocument }) {
-  const printable = buildPrintableDocument(document);
+function DocumentContent({
+  document,
+  kitMaterialType,
+  selectedGroupTitle,
+  hasHeader,
+  headerInfo,
+  isEditing,
+  editTitle,
+  setEditTitle,
+  editContent,
+  updateField,
+  styleOverride,
+}: {
+  document: GeneratedDocument;
+  kitMaterialType?: LessonKitMaterialType;
+  selectedGroupTitle?: string | null;
+  hasHeader?: boolean;
+  headerInfo?: {
+    schoolName: string;
+    teacherName: string;
+    classroom: string;
+    date: string;
+  };
+  isEditing?: boolean;
+  editTitle?: string;
+  setEditTitle?: (title: string) => void;
+  editContent?: any;
+  updateField?: (path: string[], value: any) => void;
+  styleOverride?: TemplateStyle;
+}) {
+  const printable = buildPrintableDocument(document, kitMaterialType);
+  const template = getDocumentTemplate(styleOverride || document.templateStyle);
 
   if (!printable) {
     return (
@@ -437,26 +500,220 @@ function DocumentContent({ document }: { document: GeneratedDocument }) {
     );
   }
 
-  return (
-    <article className="print-document-body text-text-800 print:text-black">
-      <h1 className="print-document-title text-3xl font-bold text-center text-text-900 mb-6 pb-4 border-b border-surface-200">
-        {printable.title}
-      </h1>
+  const groupsToRender = selectedGroupTitle
+    ? printable.groups.filter((g) => g.title === selectedGroupTitle)
+    : printable.groups;
 
-      {printable.groups.map((group) => (
-        <div key={group.title} className="print-group mb-10 break-inside-avoid">
-          {group.title !== "Plano" && group.title !== "Documento" && (
-            <h2 className="print-group-title text-2xl font-bold text-text-900 mb-5 border-b border-surface-200 pb-2 print:text-black">
-              {group.title}
-            </h2>
-          )}
-          {group.sections.map((section) => (
-            <Section key={`${group.title}-${section.title}`} title={section.title}>
-              <PrintableBlockView block={section.block} />
-            </Section>
-          ))}
-        </div>
-      ))}
+  return (
+    <article
+      className={`print-document-body document-template ${template.rootClass} text-text-800 print:text-black`}
+      data-template={template.id}
+    >
+      {groupsToRender.map((group, index) => {
+        let groupTitle = printable.title;
+        let kicker = "Documento pedagógico";
+
+        if (group.title === "Plano") {
+          groupTitle = "PLANO DE AULA";
+          kicker = "Planejamento Docente";
+        } else if (group.title === "Atividade") {
+          groupTitle = "ATIVIDADE DO ALUNO";
+          kicker = "Material do Estudante";
+        } else if (group.title === "Gabarito") {
+          groupTitle = "GABARITO E DIRETRIZES DO PROFESSOR";
+          kicker = "Material de Apoio Docente";
+        } else if (group.title === "Avaliacao" || group.title === "Avaliação") {
+          groupTitle = "INSTRUMENTO AVALIATIVO";
+          kicker = "Avaliação de Aprendizagem";
+        } else if (group.title === "Evidencias" || group.title === "Evidências") {
+          groupTitle = "EVIDÊNCIAS PEDAGÓGICAS";
+          kicker = "Acompanhamento e Registro";
+        } else if (group.title === "Adaptacoes" || group.title === "Adaptações") {
+          groupTitle = "ADAPTAÇÕES INCLUSIVAS";
+          kicker = "Atendimento Educacional Especializado (AEE)";
+        } else {
+          groupTitle = group.title.toUpperCase();
+        }
+
+        return (
+          <div
+            key={group.title}
+            className="print-group mb-10 break-inside-avoid print:mb-0 print:break-inside-auto"
+            style={{ pageBreakBefore: index > 0 ? "always" : "auto" }}
+          >
+            {/* Header of this specific document part */}
+            <header className="document-template-heading">
+              <span className="document-template-kicker">{kicker}</span>
+              {isEditing && setEditTitle && (group.title === "Plano" || group.title === "Documento") ? (
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-text-400 uppercase tracking-wider">
+                    Título do Tema
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full text-3xl font-bold text-text-900 border-b border-dashed border-surface-300 focus:border-primary-500 outline-none bg-transparent py-1"
+                  />
+                </div>
+              ) : (
+                <h1 className="print-document-title document-template-title text-3xl font-bold text-text-900">
+                  {groupTitle}
+                </h1>
+              )}
+              {(document.subject || document.grade) && (
+                <p className="document-template-meta mt-1">
+                  {[document.subject, document.grade].filter(Boolean).join(" · ")}
+                </p>
+              )}
+            </header>
+
+            {/* School Header of this specific document part */}
+            {hasHeader && headerInfo && (
+              <div className="border-2 border-text-900 p-4 rounded-lg mb-8 flex flex-col gap-3 text-text-900 font-sans print:border-black print:text-black">
+                {headerInfo.schoolName && (
+                  <div className="text-center font-bold text-sm uppercase text-text-800 border-b border-text-200 pb-2 mb-1 print:border-black print:text-black">
+                    {headerInfo.schoolName}
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center border-b border-text-200 pb-2 print:border-black print:text-black">
+                  <span className="font-extrabold text-sm tracking-tight text-text-800 uppercase print:text-black">
+                    {printedDocumentKind(document, group.title)}
+                  </span>
+                  {document.subject && (
+                    <Badge variant="outline" className="border-text-800 text-text-800 text-[10px] font-bold print:border-black print:text-black">
+                      {document.subject}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-text-700 print:text-black">
+                  {(group.title === "Atividade" || group.title === "Avaliacao" || group.title === "Avaliação") ? (
+                    <div className="flex gap-2">
+                      <span>Aluno(a):</span>
+                      <div className="flex-1 border-b border-dashed border-text-300 h-4 print:border-black" />
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 items-center">
+                      <span>Parte do Kit:</span>
+                      <span className="text-text-900 font-extrabold uppercase print:text-black">{group.title}</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex gap-2">
+                      <span>Data:</span>
+                      <div className="flex-1 border-b border-dashed border-text-300 h-4 px-1 text-text-900 font-bold leading-tight print:border-black print:text-black">
+                        {headerInfo.date}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <span>Turma:</span>
+                      <div className="flex-1 border-b border-dashed border-text-300 h-4 px-1 text-text-900 font-bold leading-tight print:border-black print:text-black">
+                        {headerInfo.classroom}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-text-700 print:text-black">
+                  <div className="flex gap-2">
+                    <span>Série:</span>
+                    <span className="text-text-900 font-bold print:text-black">{document.grade || "Não informada"}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span>Professor(a):</span>
+                    <span className="text-text-900 font-bold print:text-black">
+                      {headerInfo.teacherName || "____________________"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-xs font-semibold text-text-700 flex gap-2 border-t border-surface-100 pt-2 mt-1 print:border-black print:text-black">
+                  <span>Tema:</span>
+                  <span className="text-text-900 font-bold italic print:text-black">
+                    &quot;{document.title}&quot;
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Sections of this group */}
+            {template.id === "TABLE" && group.title === "Plano" ? (
+              <div className="document-table-wrapper border-2 border-text-900 rounded-lg overflow-hidden my-6 print:border-black">
+                <table className="w-full border-collapse text-left text-sm print:text-black">
+                  <thead>
+                    <tr className="bg-text-900 text-white border-b-2 border-text-900 print:bg-gray-100 print:text-black print:border-black">
+                      <th className="py-3 px-4 font-extrabold uppercase tracking-wide border-r border-text-900 w-1/4 print:border-black print:bg-gray-100 text-xs">Campo</th>
+                      <th className="py-3 px-4 font-extrabold uppercase tracking-wide text-xs">Desenvolvimento / Conteúdo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.sections.map((section, sectionIndex) => {
+                      const path = isEditing && updateField ? getPathForSection(group.title, section.title, editContent) : null;
+                      return (
+                        <tr key={section.title} className="border-b border-text-900 last:border-0 print:border-black break-inside-avoid">
+                          <td className="py-3 px-4 font-bold text-text-800 border-r border-text-900 bg-surface-50/50 print:border-black print:text-black print:bg-gray-50/20 text-xs uppercase w-1/4 field-name-cell">
+                            {stripSectionNumber(section.title)}
+                          </td>
+                          <td className="py-3 px-4 text-text-700 print:text-black field-content-cell">
+                            {isEditing && path && updateField ? (
+                              <EditableBlockView
+                                block={section.block}
+                                path={path}
+                                updateField={updateField}
+                                editContent={editContent}
+                              />
+                            ) : (
+                              <PrintableBlockView block={section.block} />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              group.sections.map((section, sectionIndex) => {
+                const path = isEditing && updateField ? getPathForSection(group.title, section.title, editContent) : null;
+                return (
+                  <Section
+                    key={`${group.title}-${section.title}`}
+                    title={section.title}
+                    templateStyle={template.id}
+                    index={sectionIndex + 1}
+                  >
+                    {isEditing && path && updateField ? (
+                      <EditableBlockView
+                        block={section.block}
+                        path={path}
+                        updateField={updateField}
+                        editContent={editContent}
+                      />
+                    ) : (
+                      <PrintableBlockView block={section.block} />
+                    )}
+                  </Section>
+                );
+              })
+            )}
+
+            {/* Signatures for lesson plan part */}
+            {document.type === "LESSON_PLAN" && group.title === "Plano" && (
+              <div className="document-template-signatures mt-8" aria-label="Assinaturas">
+                <span>Assinatura do docente</span>
+                <span>Coordenação pedagógica</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <footer className="document-template-footer">
+        <span>EducaDocs</span>
+        <span>{template.label}</span>
+      </footer>
     </article>
   );
 }
@@ -672,7 +929,22 @@ function PrintableBlockView({ block }: { block: PrintableBlock }) {
 export default function DocumentViewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedMaterial = searchParams.get("material");
+  const requestedKitId = Number(searchParams.get("kit"));
+  const kitMaterialType = isLessonKitMaterialType(requestedMaterial) && requestedMaterial !== "LESSON_PLAN"
+    ? requestedMaterial
+    : undefined;
+  const isKitMaterial = Boolean(kitMaterialType && Number.isInteger(requestedKitId) && requestedKitId > 0);
+  const invalidKitMaterialRequest = (searchParams.has("kit") || searchParams.has("material")) && !isKitMaterial;
   const [document, setDocument] = React.useState<GeneratedDocument | null>(null);
+  const [kitMaterialVersion, setKitMaterialVersion] = React.useState<number | null>(null);
+  const [selectedGroupTitle, setSelectedGroupTitle] = React.useState<string | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [overrideStyle, setOverrideStyle] = React.useState<TemplateStyle | null>(null);
+  const [editTitle, setEditTitle] = React.useState("");
+  const [editContent, setEditContent] = React.useState<any>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isExporting, setIsExporting] = React.useState(false);
   const [isInclusionOpen, setIsInclusionOpen] = React.useState(false);
@@ -685,15 +957,52 @@ export default function DocumentViewPage() {
     date: new Date().toLocaleDateString("pt-BR"),
   });
 
+  const previewDocument = React.useMemo(() => {
+    if (!document) return null;
+    if (!isEditing || !editContent) return document;
+    return {
+      ...document,
+      title: editTitle,
+      content: JSON.stringify(editContent),
+    };
+  }, [document, isEditing, editTitle, editContent]);
+
+  const printable = React.useMemo(() => previewDocument ? buildPrintableDocument(previewDocument, kitMaterialType) : null, [previewDocument, kitMaterialType]);
+  const hasMultipleGroups = false;
+
   React.useEffect(() => {
     async function loadDocument() {
       setIsLoading(true);
       setError(null);
 
       try {
-        const data = await fetchDocument(params.id);
+        if (invalidKitMaterialRequest) {
+          throw new Error("O link deste material do kit é inválido.");
+        }
+        const source = await fetchDocument(params.id);
+        let data = source;
+        if (isKitMaterial && kitMaterialType) {
+          const kit = await fetchLessonKit(requestedKitId);
+          const material = kit.materials.find((item) => item.type === kitMaterialType);
+          if (!material || material.status !== "READY") {
+            throw new Error("Este material do kit ainda não está pronto para edição.");
+          }
+          data = toKitMaterialEditorDocument(source, kit, material);
+          setKitMaterialVersion(material.version);
+        } else {
+          setKitMaterialVersion(null);
+        }
         setDocument(data);
         setHasHeader(data.type === "EXAM");
+
+        setEditTitle(data.title);
+        const parsed = parseDocumentContent(data.content);
+        setEditContent(parsed);
+
+        const pr = buildPrintableDocument(data, kitMaterialType);
+        if (pr && pr.groups.length > 0) {
+          setSelectedGroupTitle(pr.groups[0].title);
+        }
       } catch (err) {
         setError(
           err instanceof Error
@@ -708,7 +1017,58 @@ export default function DocumentViewPage() {
     if (params.id) {
       loadDocument();
     }
-  }, [params.id]);
+  }, [params.id, invalidKitMaterialRequest, isKitMaterial, kitMaterialType, requestedKitId]);
+
+  const updateField = (path: string[], value: any) => {
+    if (!editContent) return;
+    const newContent = JSON.parse(JSON.stringify(editContent));
+
+    let current = newContent;
+    for (let i = 0; i < path.length - 1; i++) {
+      const key = path[i];
+      if (current[key] === undefined) {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+    current[path[path.length - 1]] = value;
+
+    setEditContent(newContent);
+  };
+
+  async function handleSave() {
+    if (!document || !editContent) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      if (isKitMaterial && kitMaterialType && kitMaterialVersion !== null) {
+        const updated = await updateLessonKitMaterial(
+          requestedKitId,
+          kitMaterialType,
+          unwrapLessonKitMaterialContent(kitMaterialType, editContent),
+          kitMaterialVersion,
+        );
+        const wrappedContent = wrapLessonKitMaterialContent(kitMaterialType, updated.content);
+        setDocument((current) => current ? { ...current, content: wrappedContent } : current);
+        setEditContent(parseDocumentContent(wrappedContent));
+        setKitMaterialVersion(updated.version);
+        setIsEditing(false);
+        return;
+      }
+      const updated = await updateDocument(document.id, {
+        title: editTitle,
+        content: JSON.stringify(editContent),
+      });
+      setDocument(updated);
+      setIsEditing(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Nao foi possivel salvar as alteracoes."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   async function handleExport() {
     if (!document) {
@@ -719,13 +1079,39 @@ export default function DocumentViewPage() {
     setError(null);
 
     try {
-      await downloadDocumentDocx(document.id, document.title);
+      if (isKitMaterial && kitMaterialType) {
+        await downloadLessonKitMaterial(requestedKitId, kitMaterialType, document.title);
+      } else {
+        const activeStyle = overrideStyle || document.templateStyle;
+        await downloadDocumentDocx(document.id, document.title, activeStyle);
+      }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Nao foi possivel exportar o DOCX."
       );
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function handlePrint() {
+    if (!isKitMaterial || !kitMaterialType) {
+      window.print();
+      return;
+    }
+    const printTab = window.open("about:blank", "_blank");
+    setIsExporting(true);
+    setError(null);
+    try {
+      const url = await fetchLessonKitMaterialPdfUrl(requestedKitId, kitMaterialType);
+      if (printTab) printTab.location.href = url;
+      else window.open(url, "_blank");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      printTab?.close();
+      setError(err instanceof Error ? err.message : "Não foi possível gerar o PDF para impressão.");
     } finally {
       setIsExporting(false);
     }
@@ -755,7 +1141,7 @@ export default function DocumentViewPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-24 print:max-w-none print:mx-0 print:pb-0">
+    <div className={`${hasMultipleGroups ? "max-w-6xl" : "max-w-4xl"} mx-auto pb-24 print:max-w-none print:mx-0 print:pb-0`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sticky top-0 bg-surface-50 z-10 py-4 -my-4 px-2 -mx-2 print:hidden">
         <Button
           variant="ghost"
@@ -766,36 +1152,95 @@ export default function DocumentViewPage() {
         </Button>
 
         <div className="flex items-center gap-2">
-          <LinkToClassroomModal
-            documentId={document.id}
-            type={document.type === "LESSON_PLAN" ? "PLAN" : document.type === "EXAM" ? "EXAM" : "CUSTOM_EVENT"}
-            title={document.title}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsInclusionOpen(true)}
-            leftIcon={<Sparkles className="w-4 h-4 text-purple-600" />}
-          >
-            Adaptar para Inclusão (PDI)
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            isLoading={isExporting}
-            leftIcon={<Download className="w-4 h-4" />}
-          >
-            Exportar DOCX
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => window.print()}
-            leftIcon={<Printer className="w-4 h-4" />}
-          >
-            Imprimir
-          </Button>
+          {isEditing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditTitle(document.title);
+                  setEditContent(parseDocumentContent(document.content));
+                }}
+                leftIcon={<X className="w-4 h-4" />}
+                disabled={isSaving}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSave}
+                isLoading={isSaving}
+                leftIcon={<Save className="w-4 h-4" />}
+              >
+                Salvar Alterações
+              </Button>
+            </>
+          ) : (
+            <>
+              <LinkToClassroomModal
+                documentId={document.id}
+                type={document.type === "LESSON_PLAN" ? "PLAN" : document.type === "EXAM" ? "EXAM" : "CUSTOM_EVENT"}
+                title={document.title}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsInclusionOpen(true)}
+                leftIcon={<Sparkles className="w-4 h-4 text-purple-600" />}
+              >
+                Adaptar para Inclusão (PDI)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                leftIcon={<Edit className="w-4 h-4 text-primary-600" />}
+              >
+                Editar Conteúdo
+              </Button>
+              <div className="flex items-center gap-1 bg-surface-100 rounded-lg p-1 border border-surface-200 print:hidden text-xs mr-2">
+                <span className="font-semibold text-text-500 px-2 select-none">Design:</span>
+                {(["INSTITUTIONAL", "MODERN", "MINIMALIST", "TABLE"] as const).map((style) => {
+                  const isStyleSelected = (overrideStyle || document.templateStyle) === style;
+                  return (
+                    <button
+                      key={style}
+                      type="button"
+                      onClick={() => setOverrideStyle(style)}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                        isStyleSelected
+                          ? "bg-white text-text-950 shadow-sm border border-surface-200/60"
+                          : "text-text-600 hover:text-text-950 hover:bg-white/40"
+                      }`}
+                    >
+                      {style === "INSTITUTIONAL" ? "Institucional" :
+                       style === "MODERN" ? "Moderno" :
+                       style === "MINIMALIST" ? "Minimalista" : "Tabela"}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                isLoading={isExporting}
+                leftIcon={<Download className="w-4 h-4" />}
+              >
+                Exportar DOCX
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handlePrint}
+                leftIcon={<Printer className="w-4 h-4" />}
+              >
+                Imprimir
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -804,6 +1249,10 @@ export default function DocumentViewPage() {
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
+      )}
+
+      {document.type === "LESSON_PLAN" && !isKitMaterial && !isEditing && (
+        <LessonKitCreationPanel documentId={document.id} />
       )}
 
       {/* PAINEL DE CABEÇALHO PERSONALIZADO (ESCONDIDO NA IMPRESSÃO) */}
@@ -899,80 +1348,110 @@ export default function DocumentViewPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border border-surface-200 overflow-hidden print:shadow-none print:border-none print:rounded-none">
-        <div className="bg-surface-50 border-b border-surface-200 p-4 print:hidden">
-          <h1 className="font-bold text-text-900">{document.title}</h1>
-          <p className="text-xs text-text-500">
-            {DOCUMENT_TYPE_LABELS[document.type]} | Criado em{" "}
-            {formatDate(document.createdAt)}
-          </p>
-        </div>
+      {/* Visualizador na Tela (oculto na impressão) */}
+      <div className="print:hidden w-full">
+        {hasMultipleGroups && printable ? (
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            {/* Menu Lateral de Navegação */}
+            <div className="w-full md:w-64 bg-white border border-surface-200 rounded-xl p-4 shadow-sm shrink-0 md:sticky md:top-24">
+              <h3 className="text-xs font-bold text-text-400 uppercase tracking-wider mb-3 px-2">
+                Seções do documento
+              </h3>
+              <nav className="flex flex-col gap-1">
+                {printable.groups.map((group) => {
+                  const isActive = selectedGroupTitle === group.title;
+                  return (
+                    <button
+                      key={group.title}
+                      type="button"
+                      onClick={() => setSelectedGroupTitle(group.title)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                        isActive
+                          ? "bg-primary-50 text-primary-700 shadow-sm"
+                          : "text-text-600 hover:bg-surface-50 hover:text-text-900"
+                      }`}
+                    >
+                      <span>{group.title}</span>
+                      <span className="text-[10px] bg-surface-100 text-text-500 px-2 py-0.5 rounded-md font-bold">
+                        {group.sections.length} {group.sections.length === 1 ? "seção" : "seções"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
 
-        <div className="print-document p-8 md:p-12 min-h-[800px] print:min-h-0 bg-white">
-          {/* Cabeçalho da Folha (Estilo escolar clássico) */}
-          {hasHeader && (
-            <div className="border-2 border-text-900 p-4 rounded-lg mb-8 flex flex-col gap-3 text-text-900 font-sans print:border-black print:text-black">
-              {headerInfo.schoolName && (
-                <div className="text-center font-bold text-sm uppercase text-text-800 border-b border-text-200 pb-2 mb-1 print:border-black print:text-black">
-                  {headerInfo.schoolName}
-                </div>
-              )}
-
-              <div className="flex justify-between items-center border-b border-text-200 pb-2 print:border-black print:text-black">
-                <span className="font-extrabold text-sm tracking-tight text-text-800 uppercase print:text-black">
-                  {printedDocumentKind(document)}
-                </span>
-                {document.subject && (
-                  <Badge variant="outline" className="border-text-800 text-text-800 text-[10px] font-bold print:border-black print:text-black">
-                    {document.subject}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-text-700 print:text-black">
-                <div className="flex gap-2">
-                  <span>Aluno(a):</span>
-                  <div className="flex-1 border-b border-dashed border-text-300 h-4 print:border-black" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex gap-2">
-                    <span>Data:</span>
-                    <div className="flex-1 border-b border-dashed border-text-300 h-4 px-1 text-text-900 font-bold leading-tight print:border-black print:text-black">
-                      {headerInfo.date}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <span>Turma:</span>
-                    <div className="flex-1 border-b border-dashed border-text-300 h-4 px-1 text-text-900 font-bold leading-tight print:border-black print:text-black">
-                      {headerInfo.classroom}
-                    </div>
-                  </div>
+            {/* Visualizador da Parte Ativa */}
+            <div className="flex-1 bg-white rounded-xl shadow-md border border-surface-200 overflow-hidden w-full">
+              <div className="bg-surface-50 border-b border-surface-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h1 className="font-bold text-text-900 leading-tight">
+                    {isEditing ? editTitle : document.title}
+                  </h1>
+                  <p className="text-xs text-text-500 mt-1">
+                    {kitMaterialType ? kitMaterialEditorMeta[kitMaterialType].label : DOCUMENT_TYPE_LABELS[document.type]} · Parte: <strong>{selectedGroupTitle}</strong>
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-text-700 print:text-black">
-                <div className="flex gap-2">
-                  <span>Série:</span>
-                  <span className="text-text-900 font-bold print:text-black">{document.grade || "Não informada"}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span>Professor(a):</span>
-                  <span className="text-text-900 font-bold print:text-black">
-                    {headerInfo.teacherName || "____________________"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-xs font-semibold text-text-700 flex gap-2 border-t border-surface-100 pt-2 mt-1 print:border-black print:text-black">
-                <span>Tema:</span>
-                <span className="text-text-900 font-bold italic print:text-black">
-                  &quot;{document.title}&quot;
-                </span>
+              <div className="print-document p-8 md:p-12 min-h-[800px] bg-white">
+                <DocumentContent
+                  document={previewDocument!}
+                  kitMaterialType={kitMaterialType}
+                  selectedGroupTitle={selectedGroupTitle}
+                  hasHeader={hasHeader}
+                  headerInfo={headerInfo}
+                  isEditing={isEditing}
+                  editTitle={editTitle}
+                  setEditTitle={setEditTitle}
+                  editContent={editContent}
+                  updateField={updateField}
+                  styleOverride={overrideStyle || undefined}
+                />
               </div>
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md border border-surface-200 overflow-hidden w-full">
+            <div className="bg-surface-50 border-b border-surface-200 p-4">
+              <h1 className="font-bold text-text-900">
+                {isEditing ? editTitle : document.title}
+              </h1>
+              <p className="text-xs text-text-500">
+                {kitMaterialType ? kitMaterialEditorMeta[kitMaterialType].label : DOCUMENT_TYPE_LABELS[document.type]} | Criado em{" "}
+                {formatDate(document.createdAt)}
+              </p>
+            </div>
 
-          <DocumentContent document={document} />
+            <div className="print-document p-8 md:p-12 min-h-[800px] bg-white">
+              <DocumentContent
+                document={previewDocument!}
+                kitMaterialType={kitMaterialType}
+                selectedGroupTitle={kitMaterialType ? kitMaterialEditorMeta[kitMaterialType].group : document.type === "LESSON_PLAN" ? "Plano" : undefined}
+                hasHeader={hasHeader}
+                headerInfo={headerInfo}
+                isEditing={isEditing}
+                editTitle={editTitle}
+                setEditTitle={setEditTitle}
+                editContent={editContent}
+                updateField={updateField}
+                styleOverride={overrideStyle || undefined}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Visualizador de Impressão (exibido apenas na impressão) */}
+      <div className="hidden print:block bg-white w-full print:max-w-none">
+        <div className="print-document print:p-0 bg-white">
+          <DocumentContent
+            document={document}
+            kitMaterialType={kitMaterialType}
+            hasHeader={hasHeader}
+            headerInfo={headerInfo}
+            styleOverride={overrideStyle || undefined}
+          />
         </div>
       </div>
 
@@ -988,4 +1467,443 @@ export default function DocumentViewPage() {
       />
     </div>
   );
+}
+
+function ArrayEditor({
+  title,
+  values,
+  onChange,
+  isTextarea = false,
+}: {
+  title: string;
+  values: string[];
+  onChange: (newValues: string[]) => void;
+  isTextarea?: boolean;
+}) {
+  const arr = Array.isArray(values) ? values : [];
+  return (
+    <div className="space-y-2 border border-surface-100 rounded-lg p-3 bg-surface-50/15">
+      <label className="block text-xs font-bold text-text-600 uppercase tracking-wider">
+        {title}
+      </label>
+      <div className="space-y-2">
+        {arr.map((val, idx) => (
+          <div key={idx} className="flex gap-2 items-start">
+            {isTextarea ? (
+              <textarea
+                value={val}
+                onChange={(e) => {
+                  const next = [...arr];
+                  next[idx] = e.target.value;
+                  onChange(next);
+                }}
+                className="flex-1 min-h-[60px] p-2 text-sm border border-surface-200 rounded-lg focus:outline-none focus:border-primary-500 bg-white"
+              />
+            ) : (
+              <input
+                type="text"
+                value={val}
+                onChange={(e) => {
+                  const next = [...arr];
+                  next[idx] = e.target.value;
+                  onChange(next);
+                }}
+                className="flex-1 h-9 px-3 text-sm border border-surface-200 rounded-lg focus:outline-none focus:border-primary-500 bg-white"
+              />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => onChange(arr.filter((_, i) => i !== idx))}
+              className="h-9 w-9 p-0 shrink-0 text-red-500 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        onClick={() => onChange([...arr, ""])}
+        leftIcon={<Plus className="w-3.5 h-3.5" />}
+        className="mt-2 text-xs h-8"
+      >
+        Adicionar Item
+      </Button>
+    </div>
+  );
+}
+
+function getPathForSection(groupTitle: string, sectionTitle: string, editContent: any): string[] | null {
+  if (!editContent) return null;
+  const g = groupTitle.toLowerCase();
+  const s = sectionTitle.toLowerCase();
+
+  if (g === "plano") {
+    if (s.includes("tema")) return ["tema"];
+    if (s.includes("objetivo")) {
+      return editContent.objectives !== undefined ? ["objectives"] : ["objetivosDeAprendizagem"];
+    }
+    if (s.includes("conteudo") || s.includes("conteúdo")) {
+      return editContent.contents !== undefined ? ["contents"] : ["conteudo"];
+    }
+    if (s.includes("recurso")) {
+      return editContent.resources !== undefined ? ["resources"] : ["recursosDidaticos"];
+    }
+    if (s.includes("metodologia")) return ["metodologia"];
+    if (s.includes("avaliacao") || s.includes("avaliação")) {
+      const isNew = editContent.evaluation?.observableCriteria !== undefined;
+      return isNew ? ["evaluation", "observableCriteria"] : ["avaliacao", "criteriosObservaveis"];
+    }
+  }
+
+  // Kit parts
+  const kitKey = editContent.kit ? "kit" : (editContent.kitAulaCompleta ? "kitAulaCompleta" : null);
+  if (kitKey) {
+    if (g === "atividade") {
+      const actKey = editContent[kitKey].studentActivity ? "studentActivity" : "atividadeAluno";
+      if (s.includes("atividade") || s.includes("titulo") || s.includes("título")) return [kitKey, actKey, "title"];
+      if (s.includes("contexto")) return [kitKey, actKey, "context"];
+      if (s.includes("orientac") || s.includes("orientaç")) {
+        const instKey = editContent[kitKey][actKey].instructions ? "instructions" : "orientacoes";
+        return [kitKey, actKey, instKey];
+      }
+      if (s.includes("quest") || s.includes("questões")) {
+        const qKey = editContent[kitKey][actKey].questions ? "questions" : "questoes";
+        return [kitKey, actKey, qKey];
+      }
+      if (s.includes("produto")) {
+        const prodKey = editContent[kitKey][actKey].expectedProduct ? "expectedProduct" : "produtoEsperado";
+        return [kitKey, actKey, prodKey];
+      }
+    }
+
+    if (g === "gabarito") {
+      const keyKey = editContent[kitKey].teacherAnswerKey ? "teacherAnswerKey" : "gabaritoProfessor";
+      if (s.includes("resposta")) {
+        const ansKey = editContent[kitKey][keyKey].expectedAnswers ? "expectedAnswers" : "respostasEsperadas";
+        return [kitKey, keyKey, ansKey];
+      }
+      if (s.includes("diretriz") || s.includes("orientac") || s.includes("orientaç")) {
+        const guidKey = editContent[kitKey][keyKey].teacherGuidance ? "teacherGuidance" : "orientacoesProfessor";
+        return [kitKey, keyKey, guidKey];
+      }
+    }
+
+    if (g === "avaliacao" || g === "avaliação") {
+      const instKey = editContent[kitKey].assessmentInstrument ? "assessmentInstrument" : "instrumentoAvaliativo";
+      if (s.includes("criterio") || s.includes("critério")) {
+        const critKey = editContent[kitKey][instKey].criteria ? "criteria" : "criterios";
+        return [kitKey, instKey, critKey];
+      }
+      if (s.includes("coleta") || s.includes("evidencia")) {
+        const evKey = editContent[kitKey][instKey].evidenceCollection ? "evidenceCollection" : "coletaEvidencias";
+        return [kitKey, instKey, evKey];
+      }
+    }
+
+    if (g === "evidencias" || g === "evidências") {
+      const evKey = editContent[kitKey].pedagogicalEvidence ? "pedagogicalEvidence" : "evidenciasPedagogicas";
+      if (s.includes("observaveis") || s.includes("observáveis")) {
+        const obsKey = editContent[kitKey][evKey].observableEvidences ? "observableEvidences" : "evidenciasObservaveis";
+        return [kitKey, evKey, obsKey];
+      }
+      if (s.includes("registro")) {
+        const recKey = editContent[kitKey][evKey].recordsForCoordination ? "recordsForCoordination" : "registrosParaCoordenacao";
+        return [kitKey, evKey, recKey];
+      }
+    }
+
+    if (g === "adaptacoes" || g === "adaptações") {
+      const adKey = editContent[kitKey].inclusiveAdaptations ? "inclusiveAdaptations" : "adaptacoesInclusivas";
+      if (s.includes("leitura")) {
+        const readKey = editContent[kitKey][adKey].readingSupport ? "readingSupport" : "apoioLeitura";
+        return [kitKey, adKey, readKey];
+      }
+      if (s.includes("participac") || s.includes("participaç")) {
+        const partKey = editContent[kitKey][adKey].participationSupport ? "participationSupport" : "apoioParticipacao";
+        return [kitKey, adKey, partKey];
+      }
+      if (s.includes("alternativa")) {
+        const simpKey = editContent[kitKey][adKey].simplifiedAlternatives ? "simplifiedAlternatives" : "alternativasSimplificadas";
+        return [kitKey, adKey, simpKey];
+      }
+    }
+  } else {
+    // If not a kit, might be generic or EXAM
+    if (g === "avaliacao" || g === "avaliação" || g === "documento") {
+      if (s.includes("orientac") || s.includes("orientaç")) return ["orientacoesGerais"];
+      if (s.includes("quest")) return ["questoes"];
+      if (s.includes("criterio") || s.includes("critério")) return ["criteriosCorrecao"];
+    }
+  }
+
+  return null;
+}
+
+function EditableBlockView({
+  block,
+  path,
+  updateField,
+  editContent,
+}: {
+  block: PrintableBlock;
+  path: string[];
+  updateField: (path: string[], value: any) => void;
+  editContent: any;
+}) {
+  if (block.type === "text") {
+    return (
+      <textarea
+        value={block.value}
+        onChange={(e) => updateField(path, e.target.value)}
+        className="w-full min-h-[80px] p-2 text-text-700 leading-relaxed border border-surface-200 rounded-lg focus:outline-none focus:border-primary-500 bg-white resize-none"
+      />
+    );
+  }
+
+  if (block.type === "list") {
+    const arr = block.values;
+    return (
+      <div className="space-y-2">
+        {arr.map((val, idx) => (
+          <div key={idx} className="flex gap-2 items-start">
+            <input
+              type="text"
+              value={val}
+              onChange={(e) => {
+                const next = [...arr];
+                next[idx] = e.target.value;
+                updateField(path, next);
+              }}
+              className="flex-1 h-9 px-3 text-sm border border-surface-200 rounded-lg focus:outline-none focus:border-primary-500 bg-white"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                const next = arr.filter((_, i) => i !== idx);
+                updateField(path, next);
+              }}
+              className="h-9 w-9 p-0 shrink-0 text-red-500 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => updateField(path, [...arr, ""])}
+          leftIcon={<Plus className="w-3.5 h-3.5" />}
+          className="text-xs h-8"
+        >
+          Adicionar Item
+        </Button>
+      </div>
+    );
+  }
+
+  if (block.type === "stages") {
+    const stages = block.values;
+    return (
+      <div className="space-y-4">
+        {stages.map((stage, idx) => (
+          <div key={idx} className="border border-surface-150 rounded-lg p-3 bg-surface-50/5 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-text-700 uppercase text-xs">{stage.title}</span>
+              <div className="flex gap-2 items-center">
+                <label className="text-[10px] font-bold text-text-400 uppercase">Tempo (min):</label>
+                <input
+                  type="number"
+                  value={parseInt(stage.duration?.replace(/\D/g, "") || "0") || 0}
+                  onChange={(e) => {
+                    const stepKey = stage.title.toLowerCase().includes("introd")
+                      ? "introduction"
+                      : stage.title.toLowerCase().includes("desenv")
+                      ? "development"
+                      : "closing";
+                    const isOldKey = editContent.methodology?.[stepKey] === undefined;
+                    const finalKey = isOldKey
+                      ? (stage.title.toLowerCase().includes("introd") ? "introducao" : stage.title.toLowerCase().includes("desenv") ? "desenvolvimento" : "fechamento")
+                      : stepKey;
+
+                    const durationKey = isOldKey ? "tempoMinutos" : "durationMinutes";
+                    updateField([...path, finalKey, durationKey], parseInt(e.target.value) || 0);
+                  }}
+                  className="w-16 h-7 px-1.5 border border-surface-200 rounded text-xs"
+                />
+              </div>
+            </div>
+            <div>
+              <textarea
+                value={stage.description || ""}
+                onChange={(e) => {
+                  const stepKey = stage.title.toLowerCase().includes("introd")
+                    ? "introduction"
+                    : stage.title.toLowerCase().includes("desenv")
+                    ? "development"
+                    : "closing";
+                  const isOldKey = editContent.methodology?.[stepKey] === undefined;
+                  const finalKey = isOldKey
+                    ? (stage.title.toLowerCase().includes("introd") ? "introducao" : stage.title.toLowerCase().includes("desenv") ? "desenvolvimento" : "fechamento")
+                    : stepKey;
+                  updateField([...path, finalKey, "description"], e.target.value);
+                }}
+                className="w-full min-h-[60px] p-2 text-xs border border-surface-200 rounded-lg focus:outline-none bg-white resize-none"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (block.type === "questions") {
+    let arrInDb = editContent;
+    for (const key of path) {
+      if (arrInDb) arrInDb = arrInDb[key];
+    }
+    const qList = Array.isArray(arrInDb) ? arrInDb : [];
+    const isQuestionObject = qList.length > 0 ? (typeof qList[0] === "object") : (path.length === 1 && (path[0] === "questoes" || path[0] === "questions"));
+
+    return (
+      <div className="space-y-4">
+        {qList.map((q: any, idx: number) => {
+          const statement = isQuestionObject ? (q?.enunciado || q?.statement || "") : String(q);
+          return (
+            <div key={idx} className="border border-surface-150 rounded-lg p-3 bg-surface-50/5 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-xs text-text-700">Questão {idx + 1}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    const next = qList.filter((_, i) => i !== idx);
+                    updateField(path, next);
+                  }}
+                  className="h-7 w-7 p-0 shrink-0 text-red-500 border-red-200 hover:bg-red-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-text-400 uppercase tracking-wider mb-1">
+                  Enunciado
+                </label>
+                <textarea
+                  value={statement}
+                  onChange={(e) => {
+                    const next = [...qList];
+                    if (isQuestionObject) {
+                      if (next[idx].enunciado !== undefined) {
+                        next[idx] = { ...next[idx], enunciado: e.target.value };
+                      } else {
+                        next[idx] = { ...next[idx], statement: e.target.value };
+                      }
+                    } else {
+                      next[idx] = e.target.value;
+                    }
+                    updateField(path, next);
+                  }}
+                  className="w-full min-h-[60px] p-2 text-xs border border-surface-200 rounded-lg focus:outline-none bg-white resize-none"
+                />
+              </div>
+
+              {/* Alternatives */}
+              {isQuestionObject && q && Array.isArray(q.alternativas || q.alternatives) && (
+                <div className="space-y-2 pl-3 border-l-2 border-surface-150">
+                  <label className="block text-[10px] font-bold text-text-400 uppercase tracking-wider">
+                    Alternativas
+                  </label>
+                  {(q.alternativas || q.alternatives).map((alt: string, aIdx: number) => (
+                    <div key={aIdx} className="flex gap-2 items-center">
+                      <span className="text-xs font-semibold text-text-500 uppercase">{String.fromCharCode(97 + aIdx)})</span>
+                      <input
+                        type="text"
+                        value={alt}
+                        onChange={(e) => {
+                          const next = [...qList];
+                          const altsKey = next[idx].alternativas !== undefined ? "alternativas" : "alternatives";
+                          const nextAlts = [...next[idx][altsKey]];
+                          nextAlts[aIdx] = e.target.value;
+                          next[idx] = { ...next[idx], [altsKey]: nextAlts };
+                          updateField(path, next);
+                        }}
+                        className="flex-1 h-8 px-2 text-xs border border-surface-200 rounded-lg focus:outline-none bg-white"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => {
+                          const next = [...qList];
+                          const altsKey = next[idx].alternativas !== undefined ? "alternativas" : "alternatives";
+                          const nextAlts = next[idx][altsKey].filter((_: any, i: number) => i !== aIdx);
+                          next[idx] = { ...next[idx], [altsKey]: nextAlts };
+                          updateField(path, next);
+                        }}
+                        className="text-red-500 border-red-200 hover:bg-red-50 p-1 h-7 w-7"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      const next = [...qList];
+                      const altsKey = next[idx].alternativas !== undefined ? "alternativas" : "alternatives";
+                      const nextAlts = [...(next[idx][altsKey] || []), ""];
+                      next[idx] = { ...next[idx], [altsKey]: nextAlts };
+                      updateField(path, next);
+                    }}
+                    leftIcon={<Plus className="w-3 h-3" />}
+                    className="text-[10px] h-7"
+                  >
+                    Adicionar Alternativa
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => {
+            if (isQuestionObject) {
+              const hasEnunciado = qList.length > 0 && qList[0].enunciado !== undefined;
+              const newQ = hasEnunciado
+                ? { numero: qList.length + 1, enunciado: "", tipo: "DISCURSIVA", alternativas: [] }
+                : { number: qList.length + 1, statement: "", type: "DISCURSIVA", alternatives: [] };
+              updateField(path, [...qList, newQ]);
+            } else {
+              updateField(path, [...qList, ""]);
+            }
+          }}
+          leftIcon={<Plus className="w-3 h-3" />}
+          className="text-xs h-8 w-full"
+        >
+          Adicionar Nova Questão
+        </Button>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function altList(q: any): boolean {
+  return Array.isArray(q.alternativas || q.alternatives) && (q.alternativas || q.alternatives).length > 0;
 }

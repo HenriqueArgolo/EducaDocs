@@ -1,0 +1,6 @@
+## TASK_PROMPT: Plano de Aula - 1º Ano (Alfabetização Inicial)
+**Task:** Elabore uma proposta de aula para crianças do 1º ano em fase de alfabetização.%s
+- A aula deve ser estruturada em momentos curtos (máx. 15 min cada): acolhida lúdica, exploração oral/sensorial, atividade guiada e fechamento com canto ou movimento.
+- A atividade principal deve envolver consciência fonológica, reconhecimento de letras/sílabas ou escrita espontânea com apoio visual.
+- Sugira materiais concretos e manipuláveis: letras móveis, fichas de palavras, imagens.
+- NUNCA inclua textos longos, interpretação textual autônoma ou produção de frases completas.

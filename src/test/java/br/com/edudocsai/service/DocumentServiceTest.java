@@ -12,6 +12,8 @@ import br.com.edudocsai.exception.RateLimitException;
 import br.com.edudocsai.repository.DocumentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
 import br.com.edudocsai.repository.StudentRepository;
+import br.com.edudocsai.repository.LessonKitRepository;
+import br.com.edudocsai.repository.LessonKitMaterialRepository;
 import br.com.edudocsai.service.lessonplan.LessonPlanGenerationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,6 +60,10 @@ class DocumentServiceTest {
     private StudentRepository studentRepository;
     @Mock
     private ActivityImageEnricher activityImageEnricher;
+    @Mock
+    private LessonKitRepository lessonKitRepository;
+    @Mock
+    private LessonKitMaterialRepository lessonKitMaterialRepository;
 
     @InjectMocks
     private DocumentService documentService;
@@ -101,6 +107,7 @@ class DocumentServiceTest {
 
         assertThat(result.id()).isEqualTo(99L);
         assertThat(result.title()).isEqualTo("Prova");
+        assertThat(result.templateStyle()).isEqualTo(br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL);
         verify(usageLimitService).increment(user);
     }
 
@@ -114,6 +121,9 @@ class DocumentServiceTest {
                 .type(DocumentType.LESSON_PLAN)
                 .title("Plano de aula - Fracoes")
                 .content("{\"tema\":\"Fracoes\"}")
+                .generationRequest(GenerationRequest.builder()
+                        .templateStyle(br.com.edudocsai.entity.TemplateStyle.MODERN)
+                        .build())
                 .createdAt(OffsetDateTime.now())
                 .build();
         when(currentUserService.getCurrentUser()).thenReturn(user);
@@ -122,6 +132,7 @@ class DocumentServiceTest {
         DocumentResponse result = documentService.generate(request);
 
         assertThat(result.title()).isEqualTo("Plano de aula - Fracoes");
+        assertThat(result.templateStyle()).isEqualTo(br.com.edudocsai.entity.TemplateStyle.MODERN);
         verify(lessonPlanGenerationService).generate(user, request);
         verify(promptTemplateService, never()).buildPrompt(any(), anyList(), any(), any(), any(), any(), any(), any(), any(), any());
         verify(usageLimitService).increment(user);
@@ -141,6 +152,29 @@ class DocumentServiceTest {
 
         verify(aiService, never()).generate(any(), any());
         verify(documentRepository, never()).save(any());
+    }
+
+    @Test
+    void updateModifiesFieldsWhenAuthorized() {
+        User user = user();
+        Document document = Document.builder()
+                .id(99L)
+                .user(user)
+                .type(DocumentType.LESSON_PLAN)
+                .title("Original Title")
+                .content("{\"tema\":\"Original Content\"}")
+                .createdAt(OffsetDateTime.now())
+                .build();
+        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(documentRepository.findById(99L)).thenReturn(java.util.Optional.of(document));
+        when(documentRepository.save(any(Document.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        br.com.edudocsai.dto.document.UpdateDocumentRequest request = new br.com.edudocsai.dto.document.UpdateDocumentRequest("Updated Title", "Updated Content");
+        DocumentResponse result = documentService.update(99L, request);
+
+        assertThat(result.title()).isEqualTo("Updated Title");
+        assertThat(result.content()).isEqualTo("Updated Content");
+        verify(documentRepository).save(document);
     }
 
     private GenerateDocumentRequest request() {

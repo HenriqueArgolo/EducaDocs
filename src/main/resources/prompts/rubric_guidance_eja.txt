@@ -1,0 +1,4 @@
+**Módulo masterpromtp: EJA (Educação de Jovens e Adultos): Prompt para Rubrica**
+- **Estrutura:** Defina 3-4 critérios principais (ex: Conexão com a Realidade, Organização das Ideias, Aplicação Prática, Participação). Para cada critério, estabeleça 3-4 níveis de desempenho sempre em relação à experiência do aluno.
+- **Linguagem:** Adapte a linguagem para ser clara, respeitosa e motivadora, evitando infantilização ou academicismo excessivo.
+- **Few-Shot Example:** Valorize conexão com a realidade, situações do dia a dia e mundo do trabalho.

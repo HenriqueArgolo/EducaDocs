@@ -1,0 +1,7 @@
+**Módulo: Ensino Médio - Avaliação (PADRÃO ENEM)**
+- **Estrutura OBRIGATÓRIA:** TODAS as questões de múltipla escolha devem ter o formato ENEM:
+1. Texto-base (trecho de notícia, artigo, poema, gráfico).
+2. Enunciado (comando claro relacionando o texto ao conceito).
+3. 5 Alternativas (A, B, C, D, E).
+- **Distratores:** As alternativas incorretas devem ser plausíveis e baseadas em erros comuns de raciocínio, não absurdas.
+- **Gabarito:** O gabarito deve conter a resolução comentada, explicando por que a alternativa correta está certa e por que os principais distratores estão errados.

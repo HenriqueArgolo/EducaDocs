@@ -1,4 +1,5 @@
 import type { GeneratedDocument } from "./types";
+import type { LessonKitMaterialType } from "./lesson-kit";
 
 export interface PrintableQuestion {
   number: number;
@@ -113,10 +114,23 @@ export function normalizeDocumentJson(content: string) {
     .trim();
 }
 
-export function buildPrintableDocument(document: GeneratedDocument): PrintableDocument | null {
+export function buildPrintableDocument(document: GeneratedDocument, kitMaterialType?: LessonKitMaterialType): PrintableDocument | null {
   const structured = parseDocumentContent(document.content);
   if (!structured) {
     return null;
+  }
+
+  if (kitMaterialType && kitMaterialType !== "LESSON_PLAN") {
+    const sections = buildPrintableKitMaterial(kitMaterialType, document.content);
+    const titles: Record<Exclude<LessonKitMaterialType, "LESSON_PLAN">, string> = {
+      STUDENT_ACTIVITY: "Atividade",
+      TEACHER_ANSWER_KEY: "Gabarito",
+      ASSESSMENT: "Avaliação",
+      PEDAGOGICAL_EVIDENCE: "Evidências",
+      INCLUSIVE_ADAPTATIONS: "Adaptações",
+    };
+    const title = titles[kitMaterialType];
+    return { title, sections, groups: [{ title, sections }] };
   }
 
   if (isInitialLiteracyAssessment(structured)) {
@@ -616,7 +630,7 @@ function studentActivitySections(value: unknown): PrintableSection[] {
     textSection("Atividade do Aluno", activity.titulo),
     textSection("Contexto", activity.contexto),
     listSection("Orientacoes", activity.orientacoes),
-    listSection("Questoes", activity.questoes),
+    activityQuestionsSection("Questões", activity.questoes),
     textSection("Produto Esperado", activity.produtoEsperado),
   ]);
 }
@@ -793,4 +807,60 @@ function objectValue(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as JsonObject
     : {};
+}
+
+function activityQuestionsSection(title: string, value: unknown): PrintableSection | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+
+  const questions: PrintableQuestion[] = value.map((qStr, idx) => ({
+    number: idx + 1,
+    statement: String(qStr),
+    type: "DISCURSIVA",
+    alternatives: [],
+  }));
+
+  return {
+    title,
+    block: {
+      type: "questions",
+      values: questions,
+    },
+  };
+}
+
+export function buildPrintableKitMaterial(
+  type: LessonKitMaterialType,
+  content: string
+): PrintableSection[] {
+  const structured = parseDocumentContent(content);
+  if (!structured) return [];
+  const nestedKit = objectValue(structured.kitAulaCompleta ?? structured.kit);
+  const root = Object.keys(nestedKit).length > 0 ? nestedKit : structured;
+
+  switch (type) {
+    case "STUDENT_ACTIVITY": {
+      const data = root.atividadeAluno || root.studentActivity || root;
+      return studentActivitySections(data);
+    }
+    case "TEACHER_ANSWER_KEY": {
+      const data = root.gabaritoProfessor || root.teacherAnswerKey || root;
+      return teacherAnswerKeySections(data);
+    }
+    case "ASSESSMENT": {
+      const data = root.instrumentoAvaliativo || root.assessmentInstrument || root;
+      return assessmentInstrumentSections(data);
+    }
+    case "PEDAGOGICAL_EVIDENCE": {
+      const data = root.evidenciasPedagogicas || root.pedagogicalEvidence || root;
+      return pedagogicalEvidenceSections(data);
+    }
+    case "INCLUSIVE_ADAPTATIONS": {
+      const data = root.adaptacoesInclusivas || root.inclusiveAdaptations || root;
+      return inclusiveAdaptationSections(data);
+    }
+    default:
+      return [];
+  }
 }

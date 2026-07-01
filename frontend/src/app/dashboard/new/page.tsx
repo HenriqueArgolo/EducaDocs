@@ -117,14 +117,32 @@ function mapClassroomToBncc(classroomGrade: string, classroomSubject: string): {
       subjectValue = "ESPACOS_TEMPOS_QUANTIDADES_RELACOES_TRANSFORMACOES";
     }
   } else if (stage === "ENSINO_MEDIO") {
-    if (s.includes("português") || s.includes("portugues") || s.includes("linguagem")) {
-      subjectValue = "LINGUAGENS";
+    if (s.includes("português") || s.includes("portugues")) {
+      subjectValue = "PORTUGUES_EM";
+    } else if (s.includes("inglês") || s.includes("ingles")) {
+      subjectValue = "INGLES_EM";
+    } else if (s.includes("arte")) {
+      subjectValue = "ARTE_EM";
+    } else if (s.includes("educação física") || s.includes("educacao fisica")) {
+      subjectValue = "EDUCACAO_FISICA_EM";
     } else if (s.includes("matemática") || s.includes("matematica")) {
-      subjectValue = "MATEMATICA_TECNOLOGIAS";
-    } else if (s.includes("natureza") || s.includes("biologia") || s.includes("física") || s.includes("fisica") || s.includes("química") || s.includes("quimica") || s.includes("ciência") || s.includes("ciencia")) {
-      subjectValue = "CIENCIAS_NATUREZA";
+      subjectValue = "MATEMATICA_EM";
+    } else if (s.includes("biologia")) {
+      subjectValue = "BIOLOGIA_EM";
+    } else if (s.includes("física") || s.includes("fisica")) {
+      subjectValue = "FISICA_EM";
+    } else if (s.includes("química") || s.includes("quimica")) {
+      subjectValue = "QUIMICA_EM";
+    } else if (s.includes("história") || s.includes("historia")) {
+      subjectValue = "HISTORIA_EM";
+    } else if (s.includes("geografia")) {
+      subjectValue = "GEOGRAFIA_EM";
+    } else if (s.includes("filosofia")) {
+      subjectValue = "FILOSOFIA_EM";
+    } else if (s.includes("sociologia")) {
+      subjectValue = "SOCIOLOGIA_EM";
     } else {
-      subjectValue = "CIENCIAS_HUMANAS";
+      subjectValue = "PORTUGUES_EM";
     }
   } else { 
     if (s.includes("português") || s.includes("portugues") || s.includes("língua") || s.includes("lingua")) {
@@ -192,6 +210,8 @@ function WizardContent() {
     numberOfQuestions: 5,
     includeHeader: true,
     planningPeriod: "SINGLE" as PlanningPeriod,
+    lessonsPerWeek: undefined,
+    activitySettings: { activityCount: 1, exercisesPerActivity: 5, format: "MISTA", purpose: "PRATICA", difficulty: "REGULAR", modality: "INDIVIDUAL" },
   });
 
   React.useEffect(() => {
@@ -401,6 +421,8 @@ function WizardContent() {
         numberOfQuestions: formData.numberOfQuestions,
         includeHeader: includeHeaderForDocument(formData.documentType, formData.includeHeader),
         planningPeriod: formData.planningPeriod,
+        lessonsPerWeek: formData.lessonsPerWeek,
+        activitySettings: formData.activitySettings,
         classroomId: classroomIdParam ? parseInt(classroomIdParam) : undefined,
         timelineItemId: timelineItemIdParam ? parseInt(timelineItemIdParam) : undefined,
       });
@@ -578,8 +600,21 @@ function WizardContent() {
                   setFormData({ ...formData, includeHeader })
                 }
                 planningPeriod={formData.planningPeriod}
-                onPlanningPeriodChange={(planningPeriod) =>
-                  setFormData({ ...formData, planningPeriod })
+                onPlanningPeriodChange={(planningPeriod) => {
+                  const defaultLessons = planningPeriod === "WEEKLY" ? 5 : planningPeriod === "MONTHLY" ? 3 : undefined;
+                  setFormData((prev) => ({
+                    ...prev,
+                    planningPeriod,
+                    lessonsPerWeek: planningPeriod === "SINGLE" ? undefined : (prev.lessonsPerWeek ?? defaultLessons)
+                  }));
+                }}
+                lessonsPerWeek={formData.lessonsPerWeek}
+                onLessonsPerWeekChange={(lessonsPerWeek) =>
+                  setFormData({ ...formData, lessonsPerWeek })
+                }
+                activitySettings={formData.activitySettings}
+                onActivitySettingsChange={(activitySettings) =>
+                  setFormData({ ...formData, activitySettings })
                 }
               />
             )}

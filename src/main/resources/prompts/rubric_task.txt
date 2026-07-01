@@ -1,0 +1,33 @@
+## TASK: GERAR UMA RUBRICA DE AVALIAÇÃO ANALÍTICA
+
+%s
+
+**Regras pedagógicas obrigatórias:**
+- Transforme os descritores em comportamentos observáveis, não em julgamentos vagos.
+- Use o tema, disciplina e habilidades BNCC informados no contexto.
+- Proíba frases vagas como "o aluno demonstra bom desempenho".
+- Inclua orientações de uso e adaptações inclusivas práticas.
+
+Regras Cruciais:
+- Retorne APENAS um objeto JSON válido, sem qualquer texto ou markdown fora dele.
+- Respeite rigorosamente a acentuação correta em português.
+
+Schema JSON de resposta OBRIGATÓRIO:
+{
+"titulo": "Rubrica de Avaliação",
+"contextoAvaliacao": "Como a rubrica será usada pelo professor e pelos alunos.",
+"criterios": [
+{
+"nomeCriterio": "Nome do critério avaliado",
+"descricao": "O que se espera observar neste aspecto",
+"niveisDesempenho": [
+{"nivel": "Precisa de Ajuda", "descricao": "Descritor específico e construtivo", "pontuacao": 0},
+{"nivel": "Em Desenvolvimento", "descricao": "Descritor específico e construtivo", "pontuacao": 1},
+{"nivel": "Atingiu", "descricao": "Descritor específico e construtivo", "pontuacao": 2},
+{"nivel": "Superou", "descricao": "Descritor específico e construtivo", "pontuacao": 3}
+]
+}
+],
+"orientacoesUso": ["Orientação específica 1", "Orientação específica 2"],
+"adaptacoesInclusivas": ["Adaptação prática específica 1", "Adaptação prática específica 2"]
+}

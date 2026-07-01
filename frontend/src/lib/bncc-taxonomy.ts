@@ -147,23 +147,63 @@ const SUBJECT_OPTIONS_BY_STAGE: Record<EducationStageValue, SubjectOption[]> = {
   ],
   ENSINO_MEDIO: [
     {
-      label: "Linguagens e suas Tecnologias",
-      value: "LINGUAGENS",
+      label: "Língua Portuguesa",
+      value: "PORTUGUES_EM",
       sourceSubjects: ["Linguagens e suas Tecnologias", "Língua Portuguesa"],
     },
     {
-      label: "Matemática e suas Tecnologias",
-      value: "MATEMATICA_TECNOLOGIAS",
+      label: "Língua Inglesa",
+      value: "INGLES_EM",
+      sourceSubjects: ["Linguagens e suas Tecnologias"],
+    },
+    {
+      label: "Arte",
+      value: "ARTE_EM",
+      sourceSubjects: ["Linguagens e suas Tecnologias"],
+    },
+    {
+      label: "Educação Física",
+      value: "EDUCACAO_FISICA_EM",
+      sourceSubjects: ["Linguagens e suas Tecnologias"],
+    },
+    {
+      label: "Matemática",
+      value: "MATEMATICA_EM",
       sourceSubjects: ["Matemática e suas Tecnologias"],
     },
     {
-      label: "Ciências da Natureza e suas Tecnologias",
-      value: "CIENCIAS_NATUREZA",
+      label: "Biologia",
+      value: "BIOLOGIA_EM",
       sourceSubjects: ["Ciências da Natureza e suas Tecnologias"],
     },
     {
-      label: "Ciências Humanas e Sociais Aplicadas",
-      value: "CIENCIAS_HUMANAS",
+      label: "Física",
+      value: "FISICA_EM",
+      sourceSubjects: ["Ciências da Natureza e suas Tecnologias"],
+    },
+    {
+      label: "Química",
+      value: "QUIMICA_EM",
+      sourceSubjects: ["Ciências da Natureza e suas Tecnologias"],
+    },
+    {
+      label: "História",
+      value: "HISTORIA_EM",
+      sourceSubjects: ["Ciências Humanas e Sociais Aplicadas"],
+    },
+    {
+      label: "Geografia",
+      value: "GEOGRAFIA_EM",
+      sourceSubjects: ["Ciências Humanas e Sociais Aplicadas"],
+    },
+    {
+      label: "Filosofia",
+      value: "FILOSOFIA_EM",
+      sourceSubjects: ["Ciências Humanas e Sociais Aplicadas"],
+    },
+    {
+      label: "Sociologia",
+      value: "SOCIOLOGIA_EM",
       sourceSubjects: ["Ciências Humanas e Sociais Aplicadas"],
     },
   ],

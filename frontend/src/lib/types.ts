@@ -4,7 +4,7 @@ export type DocumentType = "LESSON_PLAN" | "EXAM" | "RUBRIC" | "REPORT";
 
 export type PlanningPeriod = "SINGLE" | "WEEKLY" | "MONTHLY";
 
-export type TemplateStyle = "INSTITUTIONAL" | "MODERN" | "MINIMALIST";
+export type TemplateStyle = "INSTITUTIONAL" | "MODERN" | "MINIMALIST" | "TABLE";
 
 export interface AuthUser {
   id: number;
@@ -53,6 +53,17 @@ export interface DocumentFormData {
   numberOfQuestions: number;
   includeHeader: boolean;
   planningPeriod: PlanningPeriod;
+  lessonsPerWeek?: number;
+  activitySettings: ActivityGenerationSettings;
+}
+
+export interface ActivityGenerationSettings {
+  activityCount: number;
+  exercisesPerActivity: number;
+  format: "ESCREVER" | "MARCAR" | "ASSOCIAR" | "COMPLETAR" | "VERDADEIRO_FALSO" | "MISTA";
+  purpose: "PRATICA" | "REVISAO" | "DIAGNOSTICA" | "AVALIATIVA";
+  difficulty: "APOIO" | "REGULAR" | "DESAFIO";
+  modality: "INDIVIDUAL" | "DUPLA" | "GRUPO";
 }
 
 export interface GenerateDocumentRequest {
@@ -69,17 +80,23 @@ export interface GenerateDocumentRequest {
   classroomId?: number;
   timelineItemId?: number;
   planningPeriod?: PlanningPeriod;
+  lessonsPerWeek?: number;
+  activitySettings?: ActivityGenerationSettings;
 }
 
 export interface GeneratedDocument {
   id: number;
   userId: number;
   type: DocumentType;
+  templateStyle: TemplateStyle;
   title: string;
   grade?: string | null;
   subject?: string | null;
   content: string;
   createdAt: string;
+  kitId?: number | null;
+  kitStatus?: "GENERATING" | "PARTIAL" | "READY" | null;
+  readyMaterialCount?: number | null;
 }
 
 export type DocumentHistoryItem = GeneratedDocument;
@@ -270,6 +287,7 @@ export interface ClassroomTimelineItem {
   status: TimelineItemStatus;
   type: TimelineItemType;
   documentId?: number;
+  kitId?: number;
   activityId?: number;
   presentationId?: number;
   createdAt: string;

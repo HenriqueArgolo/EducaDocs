@@ -1,0 +1,4 @@
+**Módulo: 1º Ano (Alfabetização Inicial) - Avaliação**
+- **Estrutura:** Gere uma atividade visual de alfabetização, NÃO uma prova textual. Use somente: separação de sílabas, letra inicial, ligar figura-palavra, completar palavra, circular letra, contar letras.
+- **Linguagem:** Todos os comandos em CAIXA ALTA, máx. 8 palavras por comando.
+- **PROIBIDO:** Textos corridos, interpretação textual, produção de frases, 4+ alternativas, vocabulário abstrato.

@@ -116,6 +116,106 @@ class LessonPlanPromptBuilderTest {
                 .contains("mundo do trabalho, economia doméstica");
     }
 
+    @Test
+    void usesGradeSpecificPersonaAndStrugglePointsGuidanceFromCatalog() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Propriedades do Triangulo",
+                "7º ano",
+                "Matemática",
+                "50 minutos",
+                50,
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
+        );
+
+        String prompt = builder.build(context, List.of(skill()));
+
+        assertThat(prompt)
+                .contains("Diretrizes Específicas do 7º Ano")
+                .contains("transição feudal-capitalista, Renascimento e a colonização")
+                .contains("equações de 1º grau; plano cartesiano e transformações geométricas")
+                .contains("Dificuldades em transpor problemas da linguagem natural para a linguagem algébrica");
+
+        assertThat(prompt)
+                .contains("Dificuldades Antecipadas que os alunos podem enfrentar nesta etapa e a respectiva Intervenção Pedagógica");
+    }
+
+    @Test
+    void uses1oAnoSpecificPersonaAndStrugglePointsGuidanceFromCatalog() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Leitura e escrita de números",
+                "1º ano",
+                "Matemática",
+                "50 minutos",
+                50,
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
+        );
+
+        String prompt = builder.build(context, List.of(skill()));
+
+        assertThat(prompt)
+                .contains("Diretrizes Específicas do 1º Ano")
+                .contains("Alfabetização inicial e letramento; consciência fonológica")
+                .contains("Turmas muito heterogêneas com diferentes hipóteses de escrita")
+                .contains("Agrupamentos produtivos de alunos em diferentes níveis");
+    }
+
+    @Test
+    void buildsWeeklyPromptWithDynamicLessonsPerWeek() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes equivalentes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                50,
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                null,
+                null,
+                br.com.edudocsai.entity.PlanningPeriod.WEEKLY,
+                3
+        );
+
+        String prompt = builder.build(context, List.of(skill()));
+
+        assertThat(prompt).contains("Como é um plano SEMANAL, o campo \"weeklyPlan\" é obrigatório e deve conter exatamente 3 aulas");
+        assertThat(prompt).contains("\"day\": \"Aula 1\"");
+        assertThat(prompt).contains("\"day\": \"Aula 2\"");
+        assertThat(prompt).contains("\"day\": \"Aula 3\"");
+        assertThat(prompt).doesNotContain("\"day\": \"Aula 4\"");
+    }
+
+    @Test
+    void buildsMonthlyPromptWithDynamicLessonsPerWeek() {
+        LessonPlanRequestContext context = new LessonPlanRequestContext(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes equivalentes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                50,
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                null,
+                null,
+                br.com.edudocsai.entity.PlanningPeriod.MONTHLY,
+                2
+        );
+
+        String prompt = builder.build(context, List.of(skill()));
+
+        assertThat(prompt).contains("planejadas para exatamente 2 aulas semanais (de 50 minutos cada)");
+        assertThat(prompt).contains("Estrategias e atividades para as 2 aulas");
+    }
+
     private LessonPlanRequestContext context(int totalMinutes, String additionalInstructions) {
         return new LessonPlanRequestContext(
                 DocumentType.LESSON_PLAN,

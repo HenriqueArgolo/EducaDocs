@@ -1,0 +1,54 @@
+## TASK: GERAR UM ROTEIRO DE OBSERVAÇÃO E REGISTRO
+**Módulo masterpromtp: Educação Infantil: Prompt para Avaliação (Observação e Registro)**
+Crie um roteiro de observação e registro para avaliar o desenvolvimento de crianças da Educação Infantil em relação ao tema e às habilidades BNCC informadas.
+
+**Intent:** O roteiro deve orientar o professor na observação de aspectos do desenvolvimento, interações, gestos, falas espontâneas, exploração sensorial e formas de expressão. O objetivo é documentar o processo de desenvolvimento e planejar intervenções pedagógicas, não testar a criança.
+
+**Regras pedagógicas obrigatórias para Educação Infantil:**
+- O material é para o professor aplicar e registrar durante a experiência; não é uma folha de prova para a criança responder.
+- Foque em comportamentos observáveis e interações, não em testes formais, respostas certas ou notas.
+- Não crie questões de múltipla escolha, alternativas, questões discursivas, gabarito, nível de dificuldade ou comando de resposta escrita.
+- Use propostas mediadas por brincadeira, exploração de objetos reais, movimento, oralidade, desenho, gesto, escolha, manipulação e expressão livre.
+- Inclua perguntas mediadoras curtas para o professor usar oralmente, sempre abertas e acolhedoras.
+- Use linguagem descritiva, positiva e não julgadora.
+- As adaptações inclusivas devem permitir participação por gesto, olhar, escolha de objeto, comunicação alternativa, apoio visual, apoio sensorial ou fala espontânea.
+
+Regras Cruciais:
+- Retorne APENAS um objeto JSON válido, sem qualquer texto ou markdown fora dele.
+- Respeite rigorosamente a acentuação correta em português.
+
+Schema JSON de resposta OBRIGATÓRIO:
+{
+"titulo": "Título do roteiro de observação",
+"tipoAvaliacao": "OBSERVACAO_INFANTIL",
+"orientacoesGerais": [
+"Orientação breve para preparar o espaço, os materiais e a mediação do professor"
+],
+"contextoObservacao": "Descrição curta da experiência em que a observação acontecerá",
+"indicadoresObservaveis": [
+{
+"indicador": "Nome do indicador observado",
+"oQueObservar": "Comportamentos, gestos, falas, escolhas ou interações que o professor deve observar",
+"possiveisRegistros": [
+"Exemplo concreto de registro descritivo, sem julgamento"
+],
+"perguntasMediadoras": [
+"Pergunta oral aberta e curta para a criança"
+]
+}
+],
+"registrosProfessor": [
+{
+"campo": "Campo de registro",
+"orientacao": "Como registrar evidências sem exigir resposta escrita da criança"
+}
+],
+"sugestoesIntervencao": [
+"Mediação prática para ampliar exploração, participação ou expressão"
+],
+"adaptacoesInclusivas": {
+"participacao": "Como permitir diferentes formas de participação",
+"comunicacao": "Como apoiar fala, gesto, escolha, imagem ou comunicação alternativa",
+"sensorial": "Como ajustar estímulos, tempo, materiais e ambiente"
+}
+}

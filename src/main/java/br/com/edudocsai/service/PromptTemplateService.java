@@ -52,7 +52,7 @@ public class PromptTemplateService {
     ) {
         GradeLevel level = promptBuilderHelper.classifyGrade(grade);
         String basePrompt = promptModuleCatalog.basePrompt();
-        String personaPrompt = promptModuleCatalog.personaPrompt(level);
+        String personaPrompt = promptModuleCatalog.personaPrompt(level, grade);
         String inclusionPrompt = promptBuilderHelper.getInclusionPrompt(studentNeeds);
 
         String contextHeader = """

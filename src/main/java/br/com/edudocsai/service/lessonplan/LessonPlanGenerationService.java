@@ -61,7 +61,7 @@ public class LessonPlanGenerationService {
             }
         }
 
-        String prompt = promptBuilder.build(context, skills) + pdiContext;
+        String prompt = promptBuilder.build(context, skills) + pdiContext + activitySettingsPrompt(request.activitySettings());
         RuntimeException lastFailure = null;
         String finalJson = null;
 
@@ -85,7 +85,7 @@ public class LessonPlanGenerationService {
             throw new AiProviderException("Nao foi possivel gerar plano de aula valido apos 3 tentativas", lastFailure);
         }
 
-        Document savedDoc = save(user, context, finalJson);
+        Document savedDoc = save(user, context, finalJson, request.activitySettings());
 
         if (context.timelineItemId() != null) {
             classroomTimelineItemRepository.findById(context.timelineItemId()).ifPresent(item -> {
@@ -110,7 +110,8 @@ public class LessonPlanGenerationService {
         return assembler.assembleJson(context, skills, content);
     }
 
-    private Document save(User user, LessonPlanRequestContext context, String finalJson) {
+    private Document save(User user, LessonPlanRequestContext context, String finalJson,
+                          br.com.edudocsai.dto.lessonkit.RegenerateLessonKitMaterialRequest activitySettings) {
         GenerationRequest generationRequest = generationRequestRepository.save(GenerationRequest.builder()
                 .user(user)
                 .documentType(DocumentType.LESSON_PLAN)
@@ -124,6 +125,13 @@ public class LessonPlanGenerationService {
                 .numberOfQuestions(0)
                 .includeHeader(false)
                 .planningPeriod(context.planningPeriod())
+                .lessonsPerWeek(context.lessonsPerWeek())
+                .activityCount(activitySettings == null ? null : activitySettings.activityCount())
+                .exercisesPerActivity(activitySettings == null ? null : activitySettings.exercisesPerActivity())
+                .activityFormat(activitySettings == null ? null : activitySettings.format())
+                .activityPurpose(activitySettings == null ? null : activitySettings.purpose())
+                .activityDifficulty(activitySettings == null ? null : activitySettings.difficulty())
+                .activityModality(activitySettings == null ? null : activitySettings.modality())
                 .build());
 
         return documentRepository.save(Document.builder()
@@ -133,6 +141,23 @@ public class LessonPlanGenerationService {
                 .title(limitTitle("Plano de aula - " + context.topic()))
                 .content(finalJson)
                 .build());
+    }
+
+    private String activitySettingsPrompt(
+            br.com.edudocsai.dto.lessonkit.RegenerateLessonKitMaterialRequest settings) {
+        if (settings == null) return "";
+        return """
+
+                CONFIGURAÇÃO OBRIGATÓRIA DAS ATIVIDADES DO KIT:
+                - %d folhas de atividade independentes
+                - %d exercícios em cada folha
+                - formato %s
+                - finalidade %s
+                - dificuldade %s
+                - modalidade %s
+                Respeite exatamente essas quantidades em kitAulaCompleta.atividadeAluno.
+                """.formatted(settings.activityCount(), settings.exercisesPerActivity(), settings.format(),
+                settings.purpose(), settings.difficulty(), settings.modality());
     }
 
     private String limitTitle(String title) {

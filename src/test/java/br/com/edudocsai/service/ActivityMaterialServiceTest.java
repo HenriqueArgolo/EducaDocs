@@ -40,6 +40,9 @@ class ActivityMaterialServiceTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
+    @Spy
+    private PromptModuleCatalog promptModuleCatalog = new PromptModuleCatalog();
+
     @InjectMocks
     private ActivityMaterialService activityMaterialService;
 

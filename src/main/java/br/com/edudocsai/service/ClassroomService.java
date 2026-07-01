@@ -21,6 +21,7 @@ import br.com.edudocsai.repository.BNCCSkillRepository;
 import br.com.edudocsai.repository.ClassroomRepository;
 import br.com.edudocsai.repository.ClassroomTimelineItemRepository;
 import br.com.edudocsai.repository.DocumentRepository;
+import br.com.edudocsai.repository.LessonKitRepository;
 import br.com.edudocsai.repository.PresentationRepository;
 import br.com.edudocsai.repository.StudentRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,6 +49,7 @@ public class ClassroomService {
     private final ClassroomRepository classroomRepository;
     private final ClassroomTimelineItemRepository timelineItemRepository;
     private final DocumentRepository documentRepository;
+    private final LessonKitRepository lessonKitRepository;
     private final ActivityMaterialRepository activityMaterialRepository;
     private final PresentationRepository presentationRepository;
     private final BNCCSkillRepository bnccSkillRepository;
@@ -55,6 +57,7 @@ public class ClassroomService {
     private final StudentRepository studentRepository;
     private final AIService aiService;
     private final ObjectMapper objectMapper;
+    private final PromptModuleCatalog promptModuleCatalog;
 
     @Transactional
     public ClassroomDto createClassroom(CreateClassroomRequest request) {
@@ -269,41 +272,15 @@ public class ClassroomService {
         Classroom classroom = classroomRepository.findByIdAndUser(classroomId, user)
             .orElseThrow(() -> new NotFoundException("Turma não encontrada"));
 
-        String prompt = """
-            Você é um especialista em educação brasileira (diretrizes do MEC e BNCC).
-            Gere um cronograma sequencial de aulas (roadmap pedagógico) para a seguinte turma:
-            - Nome da Turma: %s
-            - Ano Escolar: %s
-            - Disciplina: %s
-            - Tema Central: %s
-            - Número de Aulas/Passos solicitados: %d
-            - Instruções Adicionais: %s
-
-            Instruções importantes:
-            - Os títulos das aulas devem ser curtos, diretos e prontos para uso (ex: "Frações Equivalentes com Modelos Visuais").
-            - As descrições devem explicar brevemente o conteúdo e a dinâmica proposta (máximo de 2 frases).
-            - O tipo de recurso sugerido ("tipo") deve ser estritamente uma destas opções: 
-              "PLAN" (para plano de aula), 
-              "SLIDES" (para apresentações visuais), 
-              "ACTIVITY" (para fichas de atividades/exercícios), 
-              "EXAM" (para avaliações formais),
-              "CUSTOM_EVENT" (para aulas de laboratório, saídas pedagógicas, feriados ou revisões).
-            - Distribua os tipos de forma lógica (ex: aulas teóricas com PLAN/SLIDES, seguidas de fixação com ACTIVITY, e finalizando o tema com um EXAM).
-
-            Retorne APENAS um objeto JSON com a chave "aulas" contendo uma lista de objetos. Cada objeto deve possuir exatamente os seguintes campos JSON:
-            - "titulo" (String)
-            - "descricao" (String)
-            - "tipo" (String, deve ser apenas: "PLAN", "SLIDES", "ACTIVITY", "EXAM" ou "CUSTOM_EVENT")
-
-            Não inclua markdown (como ```json ou ```), textos explicativos ou caracteres extras. Retorne apenas o JSON puro.
-            """.formatted(
+        String template = promptModuleCatalog.getPromptByKey("classroom_timeline_roadmap_prompt");
+        String prompt = template.formatted(
                 classroom.getName(),
                 classroom.getGrade(),
                 classroom.getSubject(),
                 request.theme(),
                 request.numberOfLessons(),
                 request.additionalInstructions() != null ? request.additionalInstructions() : "Nenhuma"
-            );
+        );
 
         try {
             String jsonResponse = aiService.generateJsonObject(prompt);
@@ -601,6 +578,8 @@ public class ClassroomService {
             item.getStatus(),
             item.getType(),
             item.getDocument() != null ? item.getDocument().getId() : null,
+            item.getDocument() == null ? null : lessonKitRepository.findBySourceDocumentId(item.getDocument().getId())
+                    .map(kit -> kit.getId()).orElse(null),
             item.getActivity() != null ? item.getActivity().getId() : null,
             item.getPresentation() != null ? item.getPresentation().getId() : null,
             item.getCreatedAt(),

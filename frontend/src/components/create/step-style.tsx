@@ -258,6 +258,87 @@ function PreviewMinimalista() {
   );
 }
 
+function PreviewTabela() {
+  return (
+    <svg
+      viewBox="0 0 220 310"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-full"
+      style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
+    >
+      {/* Fundo branco */}
+      <rect width="220" height="310" fill="#ffffff" />
+
+      {/* Cabeçalho superior simples */}
+      <text x="110" y="24" textAnchor="middle" fontSize="9" fill="#111827" fontWeight="bold" letterSpacing="0.5">PLANO DE AULA</text>
+      <text x="110" y="33" textAnchor="middle" fontSize="6.5" fill="#4b5563">Ensino Fundamental — 6.º Ano</text>
+      <line x1="18" y1="38" x2="202" y2="38" stroke="#111827" strokeWidth="1" />
+
+      {/* Tabela de Cabeçalho */}
+      <rect x="18" y="44" width="184" height="24" fill="none" stroke="#d1d5db" strokeWidth="0.75" />
+      <line x1="110" y1="44" x2="110" y2="68" stroke="#d1d5db" strokeWidth="0.75" />
+      <line x1="18" y1="56" x2="202" y2="56" stroke="#d1d5db" strokeWidth="0.75" />
+      
+      <text x="22" y="52" fontSize="5" fill="#4b5563" fontWeight="bold">Professor: Alves</text>
+      <text x="114" y="52" fontSize="5" fill="#4b5563" fontWeight="bold">Data: ___/___/___</text>
+      <text x="22" y="64" fontSize="5" fill="#4b5563" fontWeight="bold">Disciplina: Ciências</text>
+      <text x="114" y="64" fontSize="5" fill="#4b5563" fontWeight="bold">Duração: 50 min</text>
+
+      {/* Quadro Principal do Plano (Tabela) */}
+      <rect x="18" y="76" width="184" height="206" fill="none" stroke="#111827" strokeWidth="1" />
+      
+      {/* Linha vertical divisória */}
+      <line x1="72" y1="76" x2="72" y2="282" stroke="#111827" strokeWidth="1" />
+
+      {/* Linhas horizontais */}
+      <line x1="18" y1="106" x2="202" y2="106" stroke="#111827" strokeWidth="0.75" />
+      <line x1="18" y1="142" x2="202" y2="142" stroke="#111827" strokeWidth="0.75" />
+      <line x1="18" y1="188" x2="202" y2="188" stroke="#111827" strokeWidth="0.75" />
+      <line x1="18" y1="240" x2="202" y2="240" stroke="#111827" strokeWidth="0.75" />
+
+      {/* Campo 1: Tema */}
+      <rect x="18.5" y="76.5" width="53" height="29" fill="#f9fafb" />
+      <text x="24" y="93" fontSize="5.5" fill="#111827" fontWeight="bold">TEMA</text>
+      <text x="76" y="87" fontSize="5" fill="#374151" fontWeight="bold">Ciclo Hidrológico</text>
+      <text x="76" y="95" fontSize="4.5" fill="#6b7280">Estados físicos e transformações da água.</text>
+
+      {/* Campo 2: Habilidades */}
+      <rect x="18.5" y="106.5" width="53" height="35" fill="#f9fafb" />
+      <text x="24" y="127" fontSize="5.5" fill="#111827" fontWeight="bold">HABILIDADES</text>
+      <rect x="76" y="112" width="28" height="7" fill="#f3f4f6" rx="1.5" />
+      <text x="90" y="117.5" textAnchor="middle" fontSize="4.5" fill="#111827" fontWeight="bold">EF06CI04</text>
+      <text x="76" y="125" fontSize="4.5" fill="#374151">Associar variações de temperatura às</text>
+      <text x="76" y="132" fontSize="4.5" fill="#374151">mudanças do estado físico da água.</text>
+
+      {/* Campo 3: Objetivos */}
+      <rect x="18.5" y="142.5" width="53" height="45" fill="#f9fafb" />
+      <text x="24" y="168" fontSize="5.5" fill="#111827" fontWeight="bold">OBJETIVOS</text>
+      <text x="76" y="153" fontSize="4.5" fill="#374151">• Entender evaporação e condensação.</text>
+      <text x="76" y="161" fontSize="4.5" fill="#374151">• Analisar o ciclo da água na natureza.</text>
+      <text x="76" y="169" fontSize="4.5" fill="#374151">• Compreender a formação de chuvas.</text>
+
+      {/* Campo 4: Metodologia */}
+      <rect x="18.5" y="188.5" width="53" height="51" fill="#f9fafb" />
+      <text x="24" y="217" fontSize="5.5" fill="#111827" fontWeight="bold">METODOLOGIA</text>
+      <text x="76" y="198" fontSize="4.5" fill="#111827" fontWeight="bold">Seq. Didática:</text>
+      <text x="76" y="206" fontSize="4.5" fill="#374151">1. Introdução (Roda de conversa) — 10m</text>
+      <text x="76" y="206" fontSize="4.5" fill="#374151">2. Prática (Béquer e Aquecedor) — 30m</text>
+      <text x="76" y="214" fontSize="4.5" fill="#374151">3. Fechamento (Relatório visual) — 10m</text>
+
+      {/* Campo 5: Avaliação */}
+      <rect x="18.5" y="240.5" width="53" height="41" fill="#f9fafb" />
+      <text x="24" y="263" fontSize="5.5" fill="#111827" fontWeight="bold">AVALIAÇÃO</text>
+      <text x="76" y="252" fontSize="4.5" fill="#374151">• Participação no experimento em grupo.</text>
+      <text x="76" y="260" fontSize="4.5" fill="#374151">• Preenchimento do relatório individual.</text>
+
+      {/* Rodapé da página */}
+      <line x1="18" y1="294" x2="202" y2="294" stroke="#d1d5db" strokeWidth="0.5" />
+      <text x="18" y="303" fontSize="4.5" fill="#9ca3af">EducaDocs • Modelo Tabela</text>
+      <text x="202" y="303" textAnchor="end" fontSize="4.5" fill="#9ca3af">Pág. 1</text>
+    </svg>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // DADOS DOS ESTILOS
 // ─────────────────────────────────────────────────────────────
@@ -303,6 +384,16 @@ const styles: {
     badgeColor: "",
     selectedBorder: "border-gray-800",
     selectedBg: "bg-gray-50/60",
+  },
+  {
+    id: "TABLE",
+    label: "Tabela / Grade",
+    description: "Estrutura o plano de aula em um quadro organizado (tabela de duas colunas), contendo campos bem delimitados como objetivos, conteúdos e metodologia. Muito comum em exigências de secretarias de educação.",
+    preview: <PreviewTabela />,
+    accentColor: "#0f766e",
+    badgeColor: "bg-teal-100 text-teal-800",
+    selectedBorder: "border-teal-600",
+    selectedBg: "bg-teal-50/60",
   },
 ];
 

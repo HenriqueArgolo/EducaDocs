@@ -15,6 +15,8 @@ import br.com.edudocsai.repository.ClassroomTimelineItemRepository;
 import br.com.edudocsai.repository.DocumentRepository;
 import br.com.edudocsai.repository.StudentRepository;
 import br.com.edudocsai.repository.GenerationRequestRepository;
+import br.com.edudocsai.repository.LessonKitRepository;
+import br.com.edudocsai.repository.LessonKitMaterialRepository;
 import br.com.edudocsai.service.lessonplan.LessonPlanGenerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,8 @@ public class DocumentService {
     private final ClassroomTimelineItemRepository classroomTimelineItemRepository;
     private final StudentRepository studentRepository;
     private final ActivityImageEnricher activityImageEnricher;
+    private final LessonKitRepository lessonKitRepository;
+    private final LessonKitMaterialRepository lessonKitMaterialRepository;
 
     @Transactional
     public DocumentResponse generate(GenerateDocumentRequest request) {
@@ -161,10 +165,10 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] exportDocx(Long id) {
+    public byte[] exportDocx(Long id, br.com.edudocsai.entity.TemplateStyle overrideStyle) {
         User currentUser = currentUserService.getCurrentUser();
         Document document = getAuthorizedDocument(id, currentUser);
-        return documentGeneratorService.generateDocx(document);
+        return documentGeneratorService.generateDocx(document, overrideStyle);
     }
 
     private Document getAuthorizedDocument(Long id, User currentUser) {
@@ -176,16 +180,34 @@ public class DocumentService {
         return document;
     }
 
+    @Transactional
+    public DocumentResponse update(Long id, br.com.edudocsai.dto.document.UpdateDocumentRequest request) {
+        User currentUser = currentUserService.getCurrentUser();
+        Document document = getAuthorizedDocument(id, currentUser);
+        document.setTitle(limitTitle(request.title()));
+        document.setContent(request.content());
+        return toResponse(documentRepository.save(document));
+    }
+
     private DocumentResponse toResponse(Document document) {
+        var kit = lessonKitRepository.findBySourceDocumentId(document.getId()).orElse(null);
+        int readyMaterials = kit == null ? 0 : (int) lessonKitMaterialRepository.findByKitIdOrderByType(kit.getId())
+                .stream().filter(material -> material.getStatus() == br.com.edudocsai.entity.LessonKitMaterialStatus.READY).count();
         return new DocumentResponse(
                 document.getId(),
                 document.getUser().getId(),
                 document.getType(),
+                document.getGenerationRequest() == null || document.getGenerationRequest().getTemplateStyle() == null
+                        ? br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL
+                        : document.getGenerationRequest().getTemplateStyle(),
                 document.getTitle(),
                 document.getGenerationRequest() == null ? null : document.getGenerationRequest().getGrade(),
                 document.getGenerationRequest() == null ? null : document.getGenerationRequest().getSubject(),
                 document.getContent(),
-                document.getCreatedAt()
+                document.getCreatedAt(),
+                kit == null ? null : kit.getId(),
+                kit == null ? null : kit.getStatus(),
+                kit == null ? null : readyMaterials
         );
     }
 

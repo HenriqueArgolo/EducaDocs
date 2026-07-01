@@ -1,0 +1,4 @@
+**Módulo masterpromtp: Ensino Fundamental - Anos Finais: Prompt para Rubrica**
+- **Estrutura:** Defina 4-5 critérios principais (ex: Análise Crítica, Argumentação, Uso de Evidências, Organização, Linguagem). Para cada critério, estabeleça 4 níveis de desempenho.
+- **Linguagem:** Use termos acadêmicos precisos, mas evite jargões desnecessários.
+- **Few-Shot Example:** Aplique granularidade e foco em ação e impacto.

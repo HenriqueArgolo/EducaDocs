@@ -42,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, BookOpen, Calendar as CalendarIcon, CheckCircle2, ChevronDown, ChevronUp, Circle, Clock, FileText, Image, PenTool, Plus, Presentation, Target, Pencil, Check, X, Users, Download, Sparkles, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { ClassroomKitDropdown } from "@/components/classroom/ClassroomKitDropdown";
 
 export default function ClassroomRoadmapPage() {
   const { id } = useParams();
@@ -600,7 +601,7 @@ export default function ClassroomRoadmapPage() {
                         {/* Resource Connection Link/Button */}
                         <div className="pt-2 flex flex-wrap gap-2">
                           {(item.type === "PLAN" && item.documentId) ? (
-                            <div className="flex gap-2">
+                            item.kitId ? <ClassroomKitDropdown kitId={item.kitId} documentId={item.documentId} /> : <div className="flex gap-2">
                               <Link href={`/dashboard/document/${item.documentId}`}>
                                 <Button size="sm" variant="outline" className="rounded-lg text-xs">
                                   <FileText className="mr-1.5 h-3.5 w-3.5" /> Ver Plano de Aula

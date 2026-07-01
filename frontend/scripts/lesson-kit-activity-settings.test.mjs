@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const read=(path)=>fs.readFileSync(new URL(`../${path}`,import.meta.url),"utf8");
+const step=read("src/components/create/step-instructions.tsx");
+const page=read("src/app/dashboard/new/page.tsx");
+const types=read("src/lib/types.ts");
+for(const label of ["Atividades do kit","Quantidade de atividades","Exercícios por atividade","Formato","Finalidade","Dificuldade","Modalidade"])assert.match(step,new RegExp(label));
+assert.match(types,/activitySettings/);
+assert.match(page,/activitySettings:\s*formData\.activitySettings/);
+console.log("lesson kit activity settings contract passed");

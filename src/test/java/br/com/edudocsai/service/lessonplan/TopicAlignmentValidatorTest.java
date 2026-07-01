@@ -83,4 +83,38 @@ class TopicAlignmentValidatorTest {
 
         assertThat(score).isLessThan(90);
     }
+
+    @Test
+    void acceptsWeeklyLessonPlanWithPartiallyAlignedKit() {
+        LessonPlanContent content = new LessonPlanContent(
+                List.of("Compreender a Grecia Antiga", "Analisar a Democracia Ateniense", "Comparar com a atualidade"),
+                List.of("Historia da Grecia Antiga", "Funcionamento da Democracia Ateniense", "Cidadania"),
+                new Methodology(
+                        new LessonStage(10, "Discussao sobre Grecia Antiga"),
+                        new LessonStage(30, "Desenvolvimento da Democracia Ateniense"),
+                        new LessonStage(10, "Fechamento")
+                ),
+                List.of("Livro de Historia", "Quadro", "Projetor"),
+                new Evaluation(List.of("Participou da discussao", "Escreveu sobre Atenas", "Compreendeu a democracia")),
+                new CompleteLessonKit(
+                        new StudentActivity(
+                                "Democracia Ateniense",
+                                "Refletir sobre a Democracia Ateniense.",
+                                List.of("Instrucao 1", "Instrucao 2", "Instrucao 3"),
+                                List.of("Questao 1", "Questao 2", "Questao 3"),
+                                "Produto"
+                        ),
+                        null,
+                        null,
+                        null,
+                        null
+                )
+        );
+
+        int singleScore = validator.score("Grecia Antiga e a Democracia Ateniense", content, br.com.edudocsai.entity.PlanningPeriod.SINGLE);
+        int weeklyScore = validator.score("Grecia Antiga e a Democracia Ateniense", content, br.com.edudocsai.entity.PlanningPeriod.WEEKLY);
+
+        assertThat(singleScore).isLessThan(90);
+        assertThat(weeklyScore).isGreaterThanOrEqualTo(90);
+    }
 }

@@ -1,0 +1,4 @@
+**Módulo masterpromtp: Ensino Fundamental - Anos Iniciais: Prompt para Rubrica**
+- **Estrutura:** Defina 3-4 critérios principais (ex: Organização, Conteúdo, Criatividade, Participação). Para cada critério, estabeleça 3-4 níveis de desempenho (ex: Precisa de Ajuda, Em Desenvolvimento, Atingiu, Superou).
+- **Linguagem:** Use linguagem simples, clara e amigável ao aluno.
+- **Few-Shot Example:** Aplique clareza semelhante a: "Atingiu: O texto apresenta início, meio e fim claros."

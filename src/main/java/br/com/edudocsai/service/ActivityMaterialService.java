@@ -30,6 +30,7 @@ public class ActivityMaterialService {
     private final AIService aiService;
     private final ActivityImageEnricher activityImageEnricher;
     private final ObjectMapper objectMapper;
+    private final PromptModuleCatalog promptModuleCatalog;
 
     @Transactional(readOnly = true)
     public Page<ActivityMaterialResponse> getMaterials(
@@ -147,58 +148,12 @@ public class ActivityMaterialService {
         boolean isInitialLiteracyWorksheet = isEarlyGrade && request.type() == ActivityType.WORKSHEET;
 
         if (isEarlyGrade) {
-            formatRule.append("\nATENÇÃO ESPECIAL (Pedagogia para Alfabetização/Educação Infantil):\n" +
-                    "- Como os alunos estão na fase de alfabetização ou pré-escola, evite questões complexas com textos longos ou dependência de leitura fluente.\n" +
-                    "- Para Fichas de Atividades (WORKSHEET), priorize comandos simples, sonoros e motores (ex: 'Cubra o pontilhado', 'Identifique a letra inicial', 'Ligue a figura ao som', 'Pinte o desenho').\n" +
-                    "- Use palavras curtas e simples (ex: animais, objetos do dia a dia) para as atividades.\n");
+            formatRule.append(promptModuleCatalog.getPromptByKey("activity_generation_early_grade_rule"));
         }
 
         if (isInitialLiteracyWorksheet) {
-            formatRule.append("""
-
-                    CONTRATO OBRIGATÓRIO PARA WORKSHEET DE ALFABETIZAÇÃO INICIAL:
-                    - Ignore MARCAR/ESCREVER/MISTA como formato textual tradicional; eles devem virar ações visuais simples.
-                    - Gere uma folha parecida com atividades reais de 1º ano: figuras, palavras em CAIXA ALTA, sílabas, letras, caixas para completar, ligar/circular/pintar.
-                    - Cada comando deve ter no máximo 8 palavras.
-                    - Não use textos longos, interpretação textual, ordem alfabética sem apoio visual, pergunta discursiva, resposta por extenso ou 4 alternativas complexas.
-                    - Use somente estas figuras permitidas: %s.
-                    - Use somente estes tipos: %s.
-                    - Use preferencialmente as palavras do banco temático abaixo. Se o tema for específico, escolha as palavras mais próximas do assunto.
-                    - O gabarito deve existir apenas para o professor; o renderer de aluno não deve depender dele.
-
-                    Banco tematico de palavras:
-                    %s
-
-                    Schema obrigatório para este WORKSHEET:
-                    {
-                      "titulo": "Título curto da ficha",
-                      "layout": "ALFABETIZACAO_VISUAL_V2",
-                      "descricao": "Orientação breve para o professor",
-                      "instrucoes_alunos": "Professor(a), leia os comandos em voz alta.",
-                      "schemaVersion": 2,
-                      "exercicios": [
-                        {
-                          "numero": 1,
-                          "tipo": "SEPARAR_SILABAS",
-                          "comando": "Separe as sílabas.",
-                          "itens": [
-                            {"palavra": "BOLO", "figura": "bolo", "caixasResposta": 2}
-                          ],
-                          "gabarito": "BO-LO"
-                        },
-                        {
-                          "numero": 2,
-                          "tipo": "LETRA_INICIAL",
-                          "comando": "Pinte a letra inicial.",
-                          "itens": [
-                            {"palavra": "SAPO", "figura": "sapo", "opcoes": ["S", "P", "O"], "resposta": "S"}
-                          ],
-                          "gabarito": "S"
-                        }
-                      ]
-                    }
-                    O contrato ALFABETIZACAO_VISUAL_V2 acima prevalece sobre qualquer exemplo genérico de WORKSHEET abaixo.
-                    """.formatted(
+            String template = promptModuleCatalog.getPromptByKey("activity_generation_literacy_worksheet_rule");
+            formatRule.append(template.formatted(
                     EarlyLiteracySupport.allowedFiguresForPrompt(),
                     EarlyLiteracySupport.allowedActivityTypesForPrompt(),
                     EarlyLiteracySupport.wordBankForPrompt(request.topic())
@@ -206,13 +161,13 @@ public class ActivityMaterialService {
         } else if (request.type() == ActivityType.WORKSHEET && request.questionFormat() != null) {
             switch (request.questionFormat().toUpperCase()) {
                 case "MARCAR":
-                    formatRule.append("\nRegra de Formato Obrigatória: Todas as questões geradas na Ficha de exercícios (exercicios) devem ser OBRIGATORIAMENTE de múltipla escolha (\"tipo\": \"multipla_escolha\"), contendo exatamente 4 opções de resposta no array 'opcoes' de cada questão.\n");
+                    formatRule.append(promptModuleCatalog.getPromptByKey("activity_generation_marcar_rule"));
                     break;
                 case "ESCREVER":
-                    formatRule.append("\nRegra de Formato Obrigatória: Todas as questões geradas na Ficha de exercícios (exercicios) devem ser OBRIGATORIAMENTE de resposta escrita (\"tipo\": \"resposta_escrita\") para o aluno responder por extenso. O array 'opcoes' deve ser retornado vazio [].\n");
+                    formatRule.append(promptModuleCatalog.getPromptByKey("activity_generation_escrever_rule"));
                     break;
                 case "MISTA":
-                    formatRule.append("\nRegra de Formato Obrigatória: A Ficha de exercícios (exercicios) deve conter uma mistura equilibrada de questões de múltipla escolha (\"tipo\": \"multipla_escolha\", com 4 opções) e questões de resposta escrita (\"tipo\": \"resposta_escrita\", com opções vazias).\n");
+                    formatRule.append(promptModuleCatalog.getPromptByKey("activity_generation_mista_rule"));
                     break;
             }
         }
@@ -221,75 +176,8 @@ public class ActivityMaterialService {
                 ? "Instrucoes especificas complementares do professor:\n" + request.additionalInstructions()
                 : "";
 
-        return """
-        Você é um especialista em educação infantil, alfabetização e metodologias ativas.
-        Gere um recurso didático estruturado em português para o nível "%s" na disciplina "%s", sobre o tema: "%s".
-        
-        Tipo de recurso a ser gerado: %s.
-        %s
-        %s
-        
-        Seja altamente pedagógico, lúdico, engajador e adequado para a idade indicada.
-        A saída deve ser exclusivamente um objeto JSON estrito com a seguinte estrutura de acordo com o tipo:
-        
-        Caso tipo seja COLORING_BOOK (Livro de colorir infantil):
-        {
-          "titulo": "Título lúdico do Livro de Colorir (Ex: O Grande Safari da Leitura)",
-          "descricao": "Texto curto orientando o professor sobre o foco motor ou cognitivo desta atividade",
-          "instrucoes_alunos": "Instruções divertidas em tom infantil ensinando a criança sobre o tema e o que colorir",
-          "paginas": [
-            {
-              "numero": 1,
-              "titulo_pagina": "Título ou Letra da Página (Ex: A de Abelha)",
-              "descricao_desenho": "Descrição detalhada do desenho para guiar o professor ou geração de imagens posterior (Ex: Um lindo leão amigável sorrindo embaixo de uma árvore de acácia sob o sol)",
-              "palavras_chave_imagem": "2 ou 3 termos descritivos simples em inglês para buscar o desenho no Unsplash (Ex: cute lion outline coloring page)",
-              "texto_apoio": "Palavra ou frase curta em caixa alta para a criança praticar caligrafia ou leitura (Ex: LEÃO, ABELHA, A, B, 1, 2)",
-              "svg_content": "Código SVG completo, válido, limpo e autossuficiente (começando com <svg> e terminando com </svg>). Você DEVE OBRIGATORIAMENTE fornecer um SVG simples contendo apenas o contorno da LETRA INICIAL do texto de apoio em tamanho gigante (Ex: se o texto de apoio for 'LEÃO', use a letra 'L'. Se for 'REI', use 'R'. Se for 'SOL', use 'S'). Use EXATAMENTE a estrutura de texto: <svg viewBox='0 0 100 100'><text x='50%%' y='75%%' font-size='75' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='none' stroke='black' stroke-width='3'>L</text></svg>. Substitua apenas a letra 'L' pela letra correspondente. NÃO tente desenhar objetos complexos."
-            }
-          ]
-        }
-        
-        Caso tipo seja WORKSHEET (Ficha de exercícios escritos), exceto quando houver contrato ALFABETIZACAO_VISUAL acima:
-        {
-          "titulo": "Título da Ficha de Atividades (Ex: Desafio Prático das Frações)",
-          "descricao": "Orientações pedagógicas sobre a competência trabalhada",
-          "instrucoes_alunos": "Instruções claras sobre como responder às questões",
-          "exercicios": [
-            {
-              "numero": 1,
-              "enunciado": "Comando claro da pergunta. Para níveis de Educação Infantil e 1º Ano (Alfabetização), use comandos visuais e práticos, como 'Pinte as letras iniciais', 'Ligue a figura à sua sílaba inicial', 'Escreva a letra A nas pautas', evite comandos que exijam leitura fluente de textos longos",
-              "tipo": "multipla_escolha" | "resposta_escrita" | "desenho" | "associar",
-              "opcoes": ["Opção A", "Opção B", "Opção C", "Opção D"], // preencher apenas se for multipla_escolha, caso contrário deixar array vazio. Para alfabetização, as opções podem ser letras (ex: ['A', 'B', 'C', 'D']) ou sílabas/palavras simples
-              "gabarito": "Resposta curta ou letra/número correto esperado para autocorreção do professor"
-            }
-          ]
-        }
-        
-        Caso tipo seja FLASHCARD (Cartões de memorização rápida):
-        {
-          "titulo": "Título do Conjunto de Cartões",
-          "descricao": "Instruções sobre como usar esses flashcards em dinâmicas de memorização ativa na sala",
-          "instrucoes_alunos": "Como o aluno deve ler e chutar a resposta antes de virar o cartão",
-          "fichas": [
-            {
-              "frente": "Informação ou pergunta impressa na frente (Ex: H2O)",
-              "verso": "Resposta ou explicação detalhada impressa no verso (Ex: Água - Composta por dois átomos de hidrogênio e um de oxigênio)"
-            }
-          ]
-        }
-        
-        Caso tipo seja GAME (Dinâmica de jogo lúdico):
-        {
-          "titulo": "Nome do Jogo ou Brincadeira Pedagógica",
-          "descricao": "Competências socioemocionais ou físicas que o jogo exercita",
-          "instrucoes_alunos": "Introdução empolgante para convidar a turma ao jogo",
-          "regras": ["Regra 1 clara", "Regra 2 clara"],
-          "passo_a_passo": ["Preparação da sala", "Como dar início", "Critério de pontuação ou vitória"],
-          "perguntas_jogo": ["Lista de cartas, termos, palavras ou perguntas a serem recortadas ou sorteadas durante a dinâmica"]
-        }
-        
-        Garanta que o JSON retornado seja válido e bem formatado. Não insira nenhum caractere como ```json ou marcações Markdown no início ou fim. Retorne apenas o objeto JSON delimitado por chaves {}.
-        """.formatted(
+        String baseTemplate = promptModuleCatalog.getPromptByKey("activity_generation_base_prompt");
+        return baseTemplate.formatted(
                 request.grade(),
                 request.subject(),
                 request.topic(),

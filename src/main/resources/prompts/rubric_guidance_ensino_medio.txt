@@ -1,0 +1,4 @@
+**Módulo masterpromtp: Ensino Médio: Prompt para Rubrica**
+- **Estrutura:** Defina 5-6 critérios principais (ex: Clareza da Tese, Desenvolvimento Argumentativo, Uso de Evidências, Análise Crítica, Coerência e Coesão, Normas da ABNT/Formatação). Para cada critério, estabeleça 4-5 níveis de desempenho.
+- **Linguagem:** Use termos acadêmicos precisos e rigorosos.
+- **Struggle Points:** Inclua descrições com foco na autonomia intelectual.

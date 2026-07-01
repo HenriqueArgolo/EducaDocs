@@ -1,0 +1,5 @@
+## TASK_PROMPT: Plano de Aula - Ensino Fundamental - Anos Iniciais
+**Task:** Elabore um plano de aula detalhado sobre o tema informado.%s
+- Inclua aquecimento lúdico, desenvolvimento com problematização concreta, atividade prática colaborativa e fechamento com síntese e registro no caderno.
+- Conecte o conceito ao cotidiano das crianças.
+- Preveja pontos de dificuldade (Struggle Points) e sugira intervenções pedagógicas imediatas.

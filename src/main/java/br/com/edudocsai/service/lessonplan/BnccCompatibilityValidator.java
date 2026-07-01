@@ -18,15 +18,34 @@ public class BnccCompatibilityValidator {
             throw new BadRequestException("Ao menos uma habilidade BNCC deve ser selecionada");
         }
         for (BNCCSkill skill : skills) {
-            if (!sameSubject(selectedSubject, skill.getSubject()) || !compatibleGrade(selectedGrade, skill.getGrade())) {
+            if (!sameSubject(selectedSubject, skill.getSubject(), skill.getCode()) || !compatibleGrade(selectedGrade, skill.getGrade())) {
                 throw new BadRequestException("Habilidade BNCC incompativel com ano ou disciplina selecionados: " + skill.getCode());
             }
         }
     }
 
-    private boolean sameSubject(String selectedSubject, String skillSubject) {
-        return LessonPlanTextNormalizer.normalize(selectedSubject)
-                .equals(LessonPlanTextNormalizer.normalize(skillSubject));
+    private boolean sameSubject(String selectedSubject, String skillSubject, String skillCode) {
+        String selected = LessonPlanTextNormalizer.normalize(selectedSubject);
+        String skill = LessonPlanTextNormalizer.normalize(skillSubject);
+        if (selected.equals(skill)) {
+            return true;
+        }
+        if (skillCode == null || !skillCode.toUpperCase().startsWith("EM")) {
+            return false;
+        }
+        return ensinoMedioArea(selected).equals(skill);
+    }
+
+    private String ensinoMedioArea(String component) {
+        return switch (component) {
+            case "lingua portuguesa", "lingua inglesa", "arte", "educacao fisica" ->
+                    "linguagens e suas tecnologias";
+            case "matematica" -> "matematica e suas tecnologias";
+            case "biologia", "fisica", "quimica" -> "ciencias da natureza e suas tecnologias";
+            case "historia", "geografia", "filosofia", "sociologia" ->
+                    "ciencias humanas e sociais aplicadas";
+            default -> "";
+        };
     }
 
     private boolean compatibleGrade(String selectedGrade, String skillGrade) {

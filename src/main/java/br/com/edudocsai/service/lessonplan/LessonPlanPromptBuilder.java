@@ -42,7 +42,7 @@ public class LessonPlanPromptBuilder {
 
         GradeLevel level = promptBuilderHelper.classifyGrade(context.grade());
         String basePrompt = promptModuleCatalog.basePrompt();
-        String personaPrompt = promptModuleCatalog.personaPrompt(level);
+        String personaPrompt = promptModuleCatalog.personaPrompt(level, context.grade());
 
         String studentNeedsText = "";
         if (context.classroomId() != null) {
@@ -58,12 +58,23 @@ public class LessonPlanPromptBuilder {
             }
         }
         String inclusionPrompt = promptBuilderHelper.getInclusionPrompt(studentNeedsText);
-        String masterPromptGuidance = promptModuleCatalog.lessonPlanTaskGuidance(level, context.planningPeriod());
+        String masterPromptGuidance = promptModuleCatalog.lessonPlanTaskGuidance(level, context.planningPeriod(), context.grade());
 
         String schemaAndRules = "";
         PlanningPeriod period = context.planningPeriod();
         
         if (period == PlanningPeriod.WEEKLY) {
+            int weeklyLessons = context.lessonsPerWeek() != null ? context.lessonsPerWeek() : 5;
+            StringBuilder weeklyPlanJson = new StringBuilder();
+            weeklyPlanJson.append("[\n");
+            for (int i = 1; i <= weeklyLessons; i++) {
+                weeklyPlanJson.append("                    {\"day\": \"Aula %d\", \"focus\": \"Foco da aula\", \"activities\": \"Descricao da atividade\", \"assessment\": \"Como avaliar\"}".formatted(i));
+                if (i < weeklyLessons) {
+                    weeklyPlanJson.append(",\n");
+                }
+            }
+            weeklyPlanJson.append("\n                  ]");
+
             schemaAndRules = """
                 Regras obrigatórias:
                 - não altere tema, ano, disciplina, BNCC ou duração total.
@@ -72,52 +83,48 @@ public class LessonPlanPromptBuilder {
                 - use linguagem profissional de professor experiente.
                 - retorne apenas JSON válido.
                 - use exatamente os campos do schema abaixo.
-                - Como é um plano SEMANAL, o campo "weeklyPlan" é obrigatório e deve conter exatamente 5 dias. O campo "methodology" (usado para aula única) deve ser OMITIDO.
+                - Como é um plano SEMANAL, o campo "weeklyPlan" é obrigatório e deve conter exatamente %d aulas correspondentes às aulas da semana. O campo "methodology" (usado para aula única) deve ser OMITIDO.
+                - Para cada aula, no campo "activities", inclua a descrição das atividades, as Dificuldades Antecipadas identificadas para a aula e as respectivas Intervenções Pedagógicas sugeridas para o professor.
 
                 Schema de resposta:
                 {
-                  "objectives": ["Objetivo 1", "Objetivo 2"],
-                  "contents": ["Conteudo 1", "Conteudo 2"],
-                  "weeklyPlan": [
-                    {"day": "Segunda-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
-                    {"day": "Terça-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
-                    {"day": "Quarta-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
-                    {"day": "Quinta-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"},
-                    {"day": "Sexta-feira", "focus": "Foco do dia", "activities": "Descricao da atividade", "assessment": "Como avaliar"}
-                  ],
-                  "resources": ["Recurso 1", "Recurso 2"],
+                  "objectives": ["Objetivo 1", "Objetivo 2", "Objetivo 3"],
+                  "contents": ["Conteudo 1", "Conteudo 2", "Conteudo 3"],
+                  "weeklyPlan": %s,
+                  "resources": ["Recurso 1", "Recurso 2", "Recurso 3"],
                   "evaluation": {
-                    "observableCriteria": ["Criterio observavel 1"]
+                    "observableCriteria": ["Criterio observavel 1", "Criterio observavel 2", "Criterio observavel 3"]
                   },
                   "kit": {
                     "studentActivity": {
                       "title": "Atividade Semanal Integrada",
                       "context": "Contextualizacao",
-                      "instructions": ["Orientacao 1"],
-                      "questions": ["Questao 1"],
+                      "instructions": ["Orientacao 1", "Orientacao 2", "Orientacao 3"],
+                      "questions": ["Questao 1", "Questao 2", "Questao 3"],
                       "expectedProduct": "Produto esperado"
                     },
                     "teacherAnswerKey": {
-                      "expectedAnswers": ["Resposta 1"],
-                      "teacherGuidance": ["Orientacao 1"]
+                      "expectedAnswers": ["Resposta esperada 1", "Resposta esperada 2", "Resposta esperada 3"],
+                      "teacherGuidance": ["Orientacao 1 ao professor", "Orientacao 2 ao professor"]
                     },
                     "assessmentInstrument": {
-                      "criteria": ["Criterio 1"],
-                      "evidenceCollection": ["Evidencia 1"]
+                      "criteria": ["Criterio avaliativo 1", "Criterio avaliativo 2", "Criterio avaliativo 3"],
+                      "evidenceCollection": ["Evidencia a coletar 1", "Evidencia a coletar 2"]
                     },
                     "pedagogicalEvidence": {
-                      "observableEvidences": ["Evidencia 1"],
-                      "recordsForCoordination": ["Registro 1"]
+                      "observableEvidences": ["Evidencia observavel 1", "Evidencia observavel 2", "Evidencia observavel 3"],
+                      "recordsForCoordination": ["Registro para coordenacao 1", "Registro para coordenacao 2"]
                     },
                     "inclusiveAdaptations": {
-                      "readingSupport": ["Apoio 1"],
-                      "participationSupport": ["Apoio 1"],
-                      "simplifiedAlternatives": ["Alternativa 1"]
+                      "readingSupport": ["Apoio de leitura 1", "Apoio de leitura 2"],
+                      "participationSupport": ["Apoio de participacao 1", "Apoio de participacao 2"],
+                      "simplifiedAlternatives": ["Alternativa simplificada 1", "Alternativa simplificada 2"]
                     }
                   }
                 }
-                """;
+                """.formatted(weeklyLessons, weeklyPlanJson.toString());
         } else if (period == PlanningPeriod.MONTHLY) {
+            int monthlyLessons = context.lessonsPerWeek() != null ? context.lessonsPerWeek() : 3;
             schemaAndRules = """
                 Regras obrigatórias:
                 - não altere tema, ano, disciplina, BNCC ou duração total.
@@ -127,49 +134,57 @@ public class LessonPlanPromptBuilder {
                 - retorne apenas JSON válido.
                 - use exatamente os campos do schema abaixo.
                 - Como é um plano MENSAL, o campo "monthlyPlan" é obrigatório e deve conter exatamente 4 semanas. O campo "methodology" (usado para aula única) deve ser OMITIDO.
+                - Para cada semana, no campo "methodology", detalhe as estratégias pedagógicas e atividades planejadas para exatamente %d aulas semanais (de %d minutos cada), incluindo também as Dificuldades Antecipadas previstas e as respectivas Intervenções Pedagógicas.
 
                 Schema de resposta:
                 {
-                  "objectives": ["Objetivo 1", "Objetivo 2"],
-                  "contents": ["Conteudo 1", "Conteudo 2"],
+                  "objectives": ["Objetivo 1", "Objetivo 2", "Objetivo 3"],
+                  "contents": ["Conteudo 1", "Conteudo 2", "Conteudo 3"],
                   "monthlyPlan": [
-                    {"week": "Semana 1", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"},
-                    {"week": "Semana 2", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"},
-                    {"week": "Semana 3", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"},
-                    {"week": "Semana 4", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades"}
+                    {"week": "Semana 1", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades para as %d aulas"},
+                    {"week": "Semana 2", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades para as %d aulas"},
+                    {"week": "Semana 3", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades para as %d aulas"},
+                    {"week": "Semana 4", "theme": "Subtema da semana", "goals": "Objetivos da semana", "methodology": "Estrategias e atividades para as %d aulas"}
                   ],
-                  "resources": ["Recurso 1", "Recurso 2"],
+                  "resources": ["Recurso 1", "Recurso 2", "Recurso 3"],
                   "evaluation": {
-                    "observableCriteria": ["Criterio observavel 1"]
+                    "observableCriteria": ["Criterio observavel 1", "Criterio observavel 2", "Criterio observavel 3"]
                   },
                   "kit": {
                     "studentActivity": {
                       "title": "Projeto Mensal",
                       "context": "Contextualizacao",
-                      "instructions": ["Orientacao 1"],
-                      "questions": ["Questao 1"],
+                      "instructions": ["Orientacao 1", "Orientacao 2", "Orientacao 3"],
+                      "questions": ["Questao 1", "Questao 2", "Questao 3"],
                       "expectedProduct": "Produto final do mes"
                     },
                     "teacherAnswerKey": {
-                      "expectedAnswers": ["Resposta 1"],
-                      "teacherGuidance": ["Orientacao 1"]
+                      "expectedAnswers": ["Resposta esperada 1", "Resposta esperada 2", "Resposta esperada 3"],
+                      "teacherGuidance": ["Orientacao 1 ao professor", "Orientacao 2 ao professor"]
                     },
                     "assessmentInstrument": {
-                      "criteria": ["Criterio 1"],
-                      "evidenceCollection": ["Evidencia 1"]
+                      "criteria": ["Criterio avaliativo 1", "Criterio avaliativo 2", "Criterio avaliativo 3"],
+                      "evidenceCollection": ["Evidencia a coletar 1", "Evidencia a coletar 2"]
                     },
                     "pedagogicalEvidence": {
-                      "observableEvidences": ["Evidencia 1"],
-                      "recordsForCoordination": ["Registro 1"]
+                      "observableEvidences": ["Evidencia observavel 1", "Evidencia observavel 2", "Evidencia observavel 3"],
+                      "recordsForCoordination": ["Registro para coordenacao 1", "Registro para coordenacao 2"]
                     },
                     "inclusiveAdaptations": {
-                      "readingSupport": ["Apoio 1"],
-                      "participationSupport": ["Apoio 1"],
-                      "simplifiedAlternatives": ["Alternativa 1"]
+                      "readingSupport": ["Apoio de leitura 1", "Apoio de leitura 2"],
+                      "participationSupport": ["Apoio de participacao 1", "Apoio de participacao 2"],
+                      "simplifiedAlternatives": ["Alternativa simplificada 1", "Alternativa simplificada 2"]
                     }
                   }
                 }
-                """;
+                """.formatted(
+                monthlyLessons,
+                context.totalMinutes(),
+                monthlyLessons,
+                monthlyLessons,
+                monthlyLessons,
+                monthlyLessons
+            );
         } else {
             schemaAndRules = """
                 Regras obrigatórias:
@@ -180,6 +195,7 @@ public class LessonPlanPromptBuilder {
                 - retorne apenas JSON válido.
                 - use exatamente os campos do schema abaixo.
                 - as durações de introduction, development e closing devem somar exatamente %d minutos.
+                - no campo "description" de "development", inclua detalhadamente a explicação e a atividade prática. Além disso, descreva obrigatoriamente as Dificuldades Antecipadas que os alunos podem enfrentar nesta etapa e a respectiva Intervenção Pedagógica (exemplo: "Dificuldade antecipada: ... Intervenção: ...").
 
                 Schema de resposta:
                 {

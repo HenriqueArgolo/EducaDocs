@@ -2,6 +2,7 @@ package br.com.edudocsai.service;
 
 import br.com.edudocsai.entity.Classroom;
 import br.com.edudocsai.entity.ClassroomTimelineItem;
+import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.User;
 import br.com.edudocsai.exception.NotFoundException;
 import br.com.edudocsai.repository.*;
@@ -53,8 +54,28 @@ class ClassroomServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private LessonKitRepository lessonKitRepository;
+
     @InjectMocks
     private ClassroomService classroomService;
+
+    @Test
+    void roadmapIdentifiesTheCompleteKitLinkedToItsLessonPlan() {
+        User user = User.builder().id(1L).build();
+        Document plan = Document.builder().id(50L).user(user).build();
+        ClassroomTimelineItem item = ClassroomTimelineItem.builder().id(101L).document(plan).build();
+        Classroom classroom = Classroom.builder().id(10L).user(user)
+                .timelineItems(List.of(item)).build();
+        var kit = br.com.edudocsai.entity.LessonKit.builder().id(90L).sourceDocument(plan).user(user).build();
+        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(classroomRepository.findByIdAndUser(10L, user)).thenReturn(Optional.of(classroom));
+        when(lessonKitRepository.findBySourceDocumentId(50L)).thenReturn(Optional.of(kit));
+
+        var result = classroomService.getClassroomRoadmap(10L);
+
+        assertThat(result.get(0).kitId()).isEqualTo(90L);
+    }
 
     @Test
     void deleteTimelineItemRemovesAndReordersItems() {

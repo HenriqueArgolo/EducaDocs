@@ -19,9 +19,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -65,10 +67,19 @@ public class DocumentController {
         return documentService.getUserDocuments(userId, pageable);
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualiza titulo e conteudo do documento")
+    public DocumentResponse update(@PathVariable Long id, @Valid @RequestBody br.com.edudocsai.dto.document.UpdateDocumentRequest request) {
+        return documentService.update(id, request);
+    }
+
     @GetMapping("/{id}/export.docx")
     @Operation(summary = "Exporta documento em DOCX")
-    public ResponseEntity<byte[]> exportDocx(@PathVariable Long id) {
-        byte[] body = documentService.exportDocx(id);
+    public ResponseEntity<byte[]> exportDocx(
+            @PathVariable Long id,
+            @RequestParam(required = false) br.com.edudocsai.entity.TemplateStyle style
+    ) {
+        byte[] body = documentService.exportDocx(id, style);
         return ResponseEntity.ok()
                 .contentType(DOCX_MEDIA_TYPE)
                 .header(

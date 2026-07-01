@@ -3,6 +3,7 @@ package br.com.edudocsai.dto.document;
 import br.com.edudocsai.entity.DocumentType;
 import br.com.edudocsai.entity.PlanningPeriod;
 import br.com.edudocsai.entity.TemplateStyle;
+import br.com.edudocsai.dto.lessonkit.RegenerateLessonKitMaterialRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -36,7 +37,9 @@ public record GenerateDocumentRequest(
         Boolean includeHeader,
         Long classroomId,
         Long timelineItemId,
-        PlanningPeriod planningPeriod
+        PlanningPeriod planningPeriod,
+        Integer lessonsPerWeek,
+        RegenerateLessonKitMaterialRequest activitySettings
 ) {
     public GenerateDocumentRequest(
             DocumentType documentType,
@@ -49,7 +52,35 @@ public record GenerateDocumentRequest(
             TemplateStyle templateStyle
     ) {
         this(documentType, bnccSkillIds, topic, grade, subject, duration,
-                additionalInstructions, templateStyle, 5, true, null, null, PlanningPeriod.SINGLE);
+                additionalInstructions, templateStyle, 5, true, null, null, PlanningPeriod.SINGLE, null, null);
+    }
+
+    public GenerateDocumentRequest(
+            DocumentType documentType,
+            List<Long> bnccSkillIds,
+            String topic,
+            String grade,
+            String subject,
+            String duration,
+            String additionalInstructions,
+            TemplateStyle templateStyle,
+            Integer numberOfQuestions,
+            Boolean includeHeader,
+            Long classroomId,
+            Long timelineItemId,
+            PlanningPeriod planningPeriod
+    ) {
+        this(documentType, bnccSkillIds, topic, grade, subject, duration,
+                additionalInstructions, templateStyle, numberOfQuestions, includeHeader, classroomId, timelineItemId, planningPeriod, null, null);
+    }
+
+    public GenerateDocumentRequest(DocumentType documentType, List<Long> bnccSkillIds, String topic,
+            String grade, String subject, String duration, String additionalInstructions,
+            TemplateStyle templateStyle, Integer numberOfQuestions, Boolean includeHeader,
+            Long classroomId, Long timelineItemId, PlanningPeriod planningPeriod, Integer lessonsPerWeek) {
+        this(documentType, bnccSkillIds, topic, grade, subject, duration, additionalInstructions,
+                templateStyle, numberOfQuestions, includeHeader, classroomId, timelineItemId,
+                planningPeriod, lessonsPerWeek, null);
     }
 
     /** Retorna a periodicidade, garantindo que nunca seja nula. */

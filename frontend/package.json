@@ -10,7 +10,8 @@
     "test:bncc": "node --experimental-strip-types scripts/bncc-taxonomy.test.mjs",
     "test:early-literacy": "node --experimental-strip-types scripts/early-literacy.test.mjs",
     "test:activity-images": "node --experimental-strip-types scripts/activity-images.test.mjs",
-    "test:document-generation": "node --no-warnings --experimental-strip-types scripts/document-generation.test.mjs"
+    "test:document-generation": "node --no-warnings --experimental-strip-types scripts/document-generation.test.mjs",
+    "test:document-template": "node --no-warnings --experimental-strip-types scripts/document-template.test.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

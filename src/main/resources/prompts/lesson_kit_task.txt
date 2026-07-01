@@ -1,0 +1,104 @@
+## TASK: GERAR O KIT DE AULA COMPLETO (MATERIAIS DIDÁTICOS DERIVADOS)
+
+Com base no Plano de Aula fornecido, gere um conjunto completo de materiais de apoio didático para o professor e atividades para o aluno. O material gerado deve ser extremamente prático, rico em detalhes e diretamente aplicável em sala de aula.
+
+Você deve retornar OBRIGATORIAMENTE apenas um objeto JSON estruturado no formato definido abaixo.
+
+---
+
+### DIRETRIZES DE QUALIDADE PEDAGÓGICA POR COMPONENTE:
+
+#### 1. Atividade do Aluno (`atividadeAluno`):
+* **titulo**: Crie um título engajador, lúdico e adequado à faixa etária dos alunos. Evite nomes formais demais (ex: "Exercício de Fixação 1").
+* **contexto**: Escreva um breve parágrafo de introdução lúdica ao tema da aula. Conecte o conteúdo a uma situação cotidiana real, curiosidade instigante ou analogia simples para motivar o aluno.
+* **orientacoes**: Forneça uma lista de instruções passo a passo, em tom amigável e encorajador, para orientar o aluno na realização da atividade. Se a série for de Alfabetização Inicial (1º ano) ou Educação Infantil, use frases curtíssimas e comandos diretos em CAIXA ALTA.
+* **questoes**: Crie de 3 a 5 perguntas ou desafios práticos formatados como uma lista de strings. Siga o princípio de **Andaimento Cognitivo (Scaffolding)**:
+  * A primeira questão deve ser simples (reconhecimento/identificação).
+  * A segunda e terceira questões devem exigir aplicação prática ou conceitual média.
+  * A última questão deve ser um desafio reflexivo ou criação própria do aluno.
+* **produtoEsperado**: Explique de forma concreta o que o aluno deverá produzir ao final da atividade (ex: "Um cartaz desenhado em duplas", "Uma tabela de classificação de plantas preenchida").
+
+#### 2. Gabarito do Professor (`gabaritoProfessor`):
+* **respostasEsperadas**: Forneça respostas completas e explicativas para cada uma das questões criadas na atividade, detalhando o passo a passo da resolução ou o raciocínio correto.
+* **orientacoesProfessor**: Forneça um guia de mediação prática para o professor durante a correção:
+  * Indique pelo menos 2 **equívocos comuns de raciocínio (Misconceptions)** que os alunos costumam cometer nessa idade para esse tema específico, e como o professor deve intervir corretivamente caso eles ocorram.
+  * Sugira perguntas de sondagem rápida para o professor fazer oralmente à turma.
+
+#### 3. Instrumento Avaliativo (`instrumentoAvaliativo`):
+* **criterios**: Crie uma rubrica avaliativa clara baseada em critérios observáveis ligados aos objetivos do plano e habilidades BNCC (ex: "Consegue identificar a diferença entre...", "Calcula corretamente a equivalência..."). Defina o que se espera para o aluno ser considerado Proficiente.
+* **coletaEvidencias**: Sugira dinâmicas ativas de acompanhamento do professor durante a realização da atividade (ex: observação circulante com anotações rápidas, preenchimento de ficha diagnóstica por pares).
+
+#### 4. Evidências Pedagógicas (`evidenciasPedagogicas`):
+* **evidenciasObservaveis**: Indique produções, gestos ou falas concretas dos alunos que comprovam que a habilidade BNCC foi desenvolvida (ex: *"O aluno aponta corretamente para o planeta rochoso no desenho"*, *"O aluno explica com suas palavras por que usou a divisão"*).
+* **registrosParaCoordenacao**: Sugira formas de o professor documentar e registrar essas evidências para o portfólio oficial da escola (ex: *"Fotografia dos cartazes dos grupos com anotação das defesas orais dos alunos"*, *"Ficha de autoavaliação com desenho do sentimento do aluno"*).
+
+#### 5. Adaptações Inclusivas (`adaptacoesInclusivas`):
+* **apoioLeitura**: Forneça adaptações textuais concretas e prontas para uso para alunos com TDAH ou Dislexia (ex: fracionar enunciados longos em 3 partes curtas numeradas, sugerir negrito para destacar termos chaves).
+* **apoioParticipacao**: Forneça orientações de mediação de engajamento clínico para alunos autistas ou hiperativos (ex: conectar as perguntas com hiperfocos de animais/transportes do aluno autista, criar agrupamentos de duplas pareadas produtivas com papéis claros).
+* **alternativasSimplificadas**: Crie versões alternativas simplificadas dos exercícios da atividade original (ex: pedir para o aluno desenhar a cadeia alimentar em vez de descrevê-la em parágrafo longo, ou oferecer opções de múltipla escolha com suporte visual para as questões discursivas complexas).
+
+---
+
+### SCHEMA JSON DE RESPOSTA OBRIGATÓRIO:
+Você deve responder estritamente no seguinte formato JSON, sem adicionar chaves extras no nível raiz:
+
+{
+  "kitAulaCompleta": {
+    "atividadeAluno": {
+      "titulo": "Título da Atividade",
+      "contexto": "Texto de contextualização lúdica...",
+      "orientacoes": [
+        "Diretriz 1...",
+        "Diretriz 2..."
+      ],
+      "questoes": [
+        "1. [Texto da Questão 1]",
+        "2. [Texto da Questão 2]",
+        "3. [Texto da Questão 3]"
+      ],
+      "produtoEsperado": "Descrição do produto final esperado..."
+    },
+    "gabaritoProfessor": {
+      "respostasEsperadas": [
+        "Resposta 1...",
+        "Resposta 2..."
+      ],
+      "orientacoesProfessor": [
+        "Alerta de Equívoco Comum 1: ...",
+        "Como intervir: ...",
+        "Sugestão de Pergunta Oral: ..."
+      ]
+    },
+    "instrumentoAvaliativo": {
+      "criterios": [
+        "Critério Observável 1...",
+        "Critério Observável 2..."
+      ],
+      "coletaEvidencias": [
+        "Método de Coleta 1...",
+        "Método de Coleta 2..."
+      ]
+    },
+    "evidenciasPedagogicas": {
+      "evidenciasObservaveis": [
+        "Evidência 1...",
+        "Evidência 2..."
+      ],
+      "registrosParaCoordenacao": [
+        "Registro 1...",
+        "Registro 2..."
+      ]
+    },
+    "adaptacoesInclusivas": {
+      "apoioLeitura": [
+        "Instrução adaptada em negrito..."
+      ],
+      "apoioParticipacao": [
+        "Dinâmica de pareamento produtivo..."
+      ],
+      "alternativasSimplificadas": [
+        "Versão simplificada de desenhar..."
+      ]
+    }
+  }
+}

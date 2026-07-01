@@ -3,6 +3,8 @@ package br.com.edudocsai.service.lessonplan;
 import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.exception.BadRequestException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 
@@ -35,6 +37,26 @@ class BnccCompatibilityValidatorTest {
         BNCCSkill skill = skill("EM13CHS103", "Ciencias Humanas e Sociais Aplicadas", "Ensino Medio");
 
         assertThatCode(() -> validator.validate("Ensino Medio", "Ciencias Humanas e Sociais Aplicadas", List.of(skill)))
+                .doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "Física, Ciências da Natureza e suas Tecnologias",
+            "Biologia, Ciências da Natureza e suas Tecnologias",
+            "Química, Ciências da Natureza e suas Tecnologias",
+            "História, Ciências Humanas e Sociais Aplicadas",
+            "Geografia, Ciências Humanas e Sociais Aplicadas",
+            "Filosofia, Ciências Humanas e Sociais Aplicadas",
+            "Sociologia, Ciências Humanas e Sociais Aplicadas",
+            "Língua Inglesa, Linguagens e suas Tecnologias",
+            "Arte, Linguagens e suas Tecnologias",
+            "Educação Física, Linguagens e suas Tecnologias",
+            "Matemática, Matemática e suas Tecnologias"
+    })
+    void acceptsEnsinoMedioComponentMappedToItsBnccArea(String component, String area) {
+        BNCCSkill skill = skill("EM13AREA01", area, "Ensino Médio");
+        assertThatCode(() -> validator.validate("1º ano do Ensino Médio", component, List.of(skill)))
                 .doesNotThrowAnyException();
     }
 

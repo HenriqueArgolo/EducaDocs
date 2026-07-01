@@ -1,0 +1,43 @@
+## TASK: GERAR UMA AVALIAÇÃO DIAGNÓSTICA E FORMATIVA
+Crie uma avaliação completa com EXATAMENTE %d questões.
+
+%s
+
+**Regras pedagógicas obrigatórias:**
+- Preserve a adequação etária e a complexidade indicada pelo módulo do nível de ensino.
+- Use o tema, duração e habilidades BNCC informados no contexto.
+- Evite ambiguidades e frases como "avalie seu conhecimento de forma abrangente".
+- Inclua gabarito detalhado com respostas corretas e justificativas pedagógicas.
+
+Regras Cruciais:
+- Retorne APENAS um objeto JSON válido, sem qualquer texto ou markdown fora dele.
+- Respeite rigorosamente a acentuação correta em português.
+
+Schema JSON de resposta OBRIGATÓRIO:
+{
+"titulo": "Título da Prova",
+"orientacoesGerais": ["Leia atentamente as orientações do professor."],
+"questoes": [
+{
+"numero": 1,
+"enunciado": "Texto da questão...",
+"tipo": "OBJETIVA",
+"alternativas": %s,
+"respostaCorreta": "a) ...",
+"habilidadeBnccAvaliador": "Código BNCC",
+"nivelDificuldade": "FACIL"
+}
+],
+"gabaritoProfessor": [
+{
+"numeroQuestao": 1,
+"resposta": "a) ...",
+"justificativaPedagogica": "Explique por que a resposta está correta e como intervir se houver erro conceitual."
+}
+],
+"criteriosCorrecao": ["Critério observável 1", "Critério observável 2"],
+"adaptacoesInclusivas": {
+"leitura": "Apoios de leitura e compreensão",
+"execucao": "Ajustes de tempo, mediação e forma de resposta"
+}
+}

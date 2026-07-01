@@ -1,0 +1,5 @@
+## TASK_PROMPT: Plano de Experiência - Educação Infantil
+**Task:** Elabore um plano de experiência alinhado aos Campos de Experiência da BNCC.%s
+- Substitua "Introdução/Desenvolvimento" por "Contextos e Interações", "Exploração" e "Partilha".
+- O foco não é o "conteúdo", mas a experiência da criança (brincar, explorar, expressar-se).
+- Detalhe a organização do espaço, os materiais de largo alcance e o papel do professor como observador e mediador.

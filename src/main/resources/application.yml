@@ -1,6 +1,10 @@
 spring:
   config:
     import: optional:file:.env[.properties]
+  http:
+    encoding:
+      charset: UTF-8
+      force: true
   application:
     name: edudocs-ai-api
   datasource:
@@ -23,6 +27,11 @@ spring:
 
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
 
 springdoc:
   api-docs:
@@ -42,7 +51,7 @@ edudocs:
     daily-generation-limit: ${APP_DAILY_GENERATION_LIMIT:20}
   ai:
     image:
-      enabled: ${GEMINI_IMAGE_ENABLED:true}
+      enabled: false
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
       api-key: ${GEMINI_API_KEY:}
       model: ${GEMINI_IMAGE_MODEL:gemini-3.1-flash-image}

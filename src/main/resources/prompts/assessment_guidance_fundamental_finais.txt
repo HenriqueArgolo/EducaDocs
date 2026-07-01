@@ -1,0 +1,4 @@
+**Módulo: Anos Finais - Avaliação**
+- **Estrutura:** Questões de múltipla escolha (4 opções: A, B, C, D) e questões dissertativas que exijam justificativa ("Explique o porquê").
+- **Linguagem:** Acadêmica acessível.
+- **Foco:** Avaliar a capacidade de análise, comparação e interpretação de dados/textos, não apenas a memorização.

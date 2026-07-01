@@ -29,6 +29,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -46,6 +47,19 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    @Bean
+    org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+        configuration.setAllowedOrigins(java.util.List.of("http://localhost:3000"));
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type"));
+        configuration.setExposedHeaders(java.util.List.of("Authorization"));
+        configuration.setAllowCredentials(true);
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean

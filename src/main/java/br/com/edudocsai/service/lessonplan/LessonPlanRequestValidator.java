@@ -2,6 +2,7 @@ package br.com.edudocsai.service.lessonplan;
 
 import br.com.edudocsai.dto.document.GenerateDocumentRequest;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.entity.PlanningPeriod;
 import br.com.edudocsai.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +33,21 @@ public class LessonPlanRequestValidator {
         if (totalMinutes < MIN_TOTAL_MINUTES || totalMinutes > MAX_TOTAL_MINUTES) {
             throw new BadRequestException("Duracao deve permitir introducao, desenvolvimento e fechamento entre 30 e 70 minutos");
         }
+
+        Integer lessonsPerWeek = request.lessonsPerWeek();
+        PlanningPeriod period = request.effectivePlanningPeriod();
+        if (period == PlanningPeriod.WEEKLY || period == PlanningPeriod.MONTHLY) {
+            if (lessonsPerWeek != null) {
+                if (lessonsPerWeek < 1 || lessonsPerWeek > 6) {
+                    throw new BadRequestException("Quantidade de aulas por semana deve ser entre 1 e 6");
+                }
+            } else {
+                lessonsPerWeek = (period == PlanningPeriod.WEEKLY) ? 5 : 3;
+            }
+        } else {
+            lessonsPerWeek = null;
+        }
+
         return new LessonPlanRequestContext(
                 request.documentType(),
                 bnccSkillIds,
@@ -44,7 +60,8 @@ public class LessonPlanRequestValidator {
                 request.templateStyle() != null ? request.templateStyle() : br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
                 request.classroomId(),
                 request.timelineItemId(),
-                request.effectivePlanningPeriod()
+                period,
+                lessonsPerWeek
         );
     }
 

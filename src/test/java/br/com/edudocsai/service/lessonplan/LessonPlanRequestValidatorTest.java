@@ -2,6 +2,7 @@ package br.com.edudocsai.service.lessonplan;
 
 import br.com.edudocsai.dto.document.GenerateDocumentRequest;
 import br.com.edudocsai.entity.DocumentType;
+import br.com.edudocsai.entity.PlanningPeriod;
 import br.com.edudocsai.exception.BadRequestException;
 import org.junit.jupiter.api.Test;
 
@@ -73,5 +74,99 @@ class LessonPlanRequestValidatorTest {
         assertThatThrownBy(() -> validator.validate(request))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Duracao");
+    }
+
+    @Test
+    void validatesWeeklyPlanLessonsPerWeekCorrectly() {
+        GenerateDocumentRequest request = new GenerateDocumentRequest(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                0,
+                false,
+                null,
+                null,
+                PlanningPeriod.WEEKLY,
+                3
+        );
+
+        LessonPlanRequestContext result = validator.validate(request);
+        assertThat(result.lessonsPerWeek()).isEqualTo(3);
+        assertThat(result.planningPeriod()).isEqualTo(PlanningPeriod.WEEKLY);
+    }
+
+    @Test
+    void defaultsWeeklyPlanLessonsPerWeekToFive() {
+        GenerateDocumentRequest request = new GenerateDocumentRequest(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                0,
+                false,
+                null,
+                null,
+                PlanningPeriod.WEEKLY,
+                null
+        );
+
+        LessonPlanRequestContext result = validator.validate(request);
+        assertThat(result.lessonsPerWeek()).isEqualTo(5);
+    }
+
+    @Test
+    void defaultsMonthlyPlanLessonsPerWeekToThree() {
+        GenerateDocumentRequest request = new GenerateDocumentRequest(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                0,
+                false,
+                null,
+                null,
+                PlanningPeriod.MONTHLY,
+                null
+        );
+
+        LessonPlanRequestContext result = validator.validate(request);
+        assertThat(result.lessonsPerWeek()).isEqualTo(3);
+    }
+
+    @Test
+    void rejectsInvalidLessonsPerWeek() {
+        GenerateDocumentRequest request = new GenerateDocumentRequest(
+                DocumentType.LESSON_PLAN,
+                List.of(1L),
+                "Fracoes",
+                "5 ano",
+                "Matematica",
+                "50 minutos",
+                null,
+                br.com.edudocsai.entity.TemplateStyle.INSTITUTIONAL,
+                0,
+                false,
+                null,
+                null,
+                PlanningPeriod.WEEKLY,
+                7
+        );
+
+        assertThatThrownBy(() -> validator.validate(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Quantidade de aulas por semana deve ser entre 1 e 6");
     }
 }

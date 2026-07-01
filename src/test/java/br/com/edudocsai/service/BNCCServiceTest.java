@@ -29,6 +29,9 @@ class BNCCServiceTest {
     @Mock
     private AIService aiService;
 
+    @org.mockito.Spy
+    private PromptModuleCatalog promptModuleCatalog = new PromptModuleCatalog();
+
     @InjectMocks
     private BNCCService service;
 

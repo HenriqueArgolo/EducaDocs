@@ -51,6 +51,9 @@ const skills = [
     grade: "Ensino Médio",
     subject: "Ciências Humanas e Sociais Aplicadas",
   },
+  { id: 7, code: "EM13LGG101", description: "Analisar linguagens.", grade: "Ensino Médio", subject: "Linguagens e suas Tecnologias" },
+  { id: 8, code: "EM13MAT101", description: "Interpretar situações.", grade: "Ensino Médio", subject: "Matemática e suas Tecnologias" },
+  { id: 9, code: "EM13CNT101", description: "Analisar transformações.", grade: "Ensino Médio", subject: "Ciências da Natureza e suas Tecnologias" },
 ];
 
 assert.deepEqual(
@@ -80,12 +83,15 @@ assert.deepEqual(
 
 assert.deepEqual(
   getSubjectOptionsForSelection(skills, "ENSINO_MEDIO", "EM_1").map((option) => option.label),
-  ["Linguagens e suas Tecnologias", "Ciências Humanas e Sociais Aplicadas"]
+  [
+    "Língua Portuguesa", "Língua Inglesa", "Arte", "Educação Física", "Matemática",
+    "Biologia", "Física", "Química", "História", "Geografia", "Filosofia", "Sociologia"
+  ]
 );
 
 assert.deepEqual(
-  filterSkillsForSelection(skills, "ENSINO_MEDIO", "EM_1", "LINGUAGENS").map((skill) => skill.code),
-  ["EM13LP01"]
+  filterSkillsForSelection(skills, "ENSINO_MEDIO", "EM_1", "PORTUGUES_EM").map((skill) => skill.code),
+  ["EM13LP01", "EM13LGG101"]
 );
 
 assert.deepEqual(
@@ -100,7 +106,7 @@ assert.deepEqual(getBnccRecommendationParams("FUNDAMENTAL_I", "1", "PORTUGUES"),
   subject: "Língua Portuguesa",
 });
 
-assert.deepEqual(getBnccRecommendationParams("ENSINO_MEDIO", "EM_1", "LINGUAGENS"), {
+assert.deepEqual(getBnccRecommendationParams("ENSINO_MEDIO", "EM_1", "FISICA_EM"), {
   grade: "Ensino Médio",
-  subject: "Linguagens e suas Tecnologias",
+  subject: "Ciências da Natureza e suas Tecnologias",
 });

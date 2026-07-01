@@ -13,6 +13,7 @@ public record ClassroomTimelineItemDto(
     TimelineItemStatus status,
     TimelineItemType type,
     Long documentId,
+    Long kitId,
     Long activityId,
     Long presentationId,
     ZonedDateTime createdAt,

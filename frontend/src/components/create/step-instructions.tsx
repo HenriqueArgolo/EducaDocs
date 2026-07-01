@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Clock, HelpCircle, Layers, CalendarDays } from "lucide-react";
+import { Clock, HelpCircle, Layers, CalendarDays, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { shouldShowSchoolHeader } from "@/lib/document-generation";
-import type { DocumentType, PlanningPeriod } from "@/lib/types";
+import type { ActivityGenerationSettings, DocumentType, PlanningPeriod } from "@/lib/types";
 
 export function StepInstructions({
   duration,
@@ -19,6 +19,10 @@ export function StepInstructions({
   onIncludeHeaderChange,
   planningPeriod = "SINGLE",
   onPlanningPeriodChange,
+  lessonsPerWeek,
+  onLessonsPerWeekChange,
+  activitySettings,
+  onActivitySettingsChange,
 }: {
   duration: string;
   instructions: string;
@@ -31,6 +35,10 @@ export function StepInstructions({
   onIncludeHeaderChange?: (include: boolean) => void;
   planningPeriod?: PlanningPeriod;
   onPlanningPeriodChange?: (period: PlanningPeriod) => void;
+  lessonsPerWeek?: number;
+  onLessonsPerWeekChange?: (count: number | undefined) => void;
+  activitySettings?: ActivityGenerationSettings;
+  onActivitySettingsChange?: (settings: ActivityGenerationSettings) => void;
 }) {
   const presets = [
     { label: "30 min", value: "30 minutos" },
@@ -80,6 +88,28 @@ export function StepInstructions({
     if (presets.some((p) => p.value === duration)) {
       onDurationChange("");
     }
+  };
+
+  const lessonPresets = [1, 2, 3, 4, 5];
+  const [showCustomLessons, setShowCustomLessons] = React.useState(
+    lessonsPerWeek !== undefined && !lessonPresets.includes(lessonsPerWeek)
+  );
+
+  React.useEffect(() => {
+    if (lessonsPerWeek !== undefined && !lessonPresets.includes(lessonsPerWeek)) {
+      setShowCustomLessons(true);
+    }
+  }, [lessonsPerWeek]);
+
+  const handleLessonPresetSelect = (value: number) => {
+    setShowCustomLessons(false);
+    if (onLessonsPerWeekChange) {
+      onLessonsPerWeekChange(value);
+    }
+  };
+
+  const handleCustomLessonSelect = () => {
+    setShowCustomLessons(true);
   };
 
   return (
@@ -133,6 +163,84 @@ export function StepInstructions({
               })}
             </div>
           </div>
+        )}
+
+        {/* Quantidade de Aulas por Semana — apenas para LESSON_PLAN e quando WEEKLY ou MONTHLY */}
+        {documentType === "LESSON_PLAN" && (planningPeriod === "WEEKLY" || planningPeriod === "MONTHLY") && onLessonsPerWeekChange && (
+          <div className="p-5 border border-surface-200 rounded-xl bg-surface-50/10">
+            <label className="flex items-center gap-2 text-sm font-semibold text-text-800 mb-3">
+              <CalendarDays className="w-4 h-4 text-primary-500" />
+              Aulas por semana
+            </label>
+            <span className="block text-xs text-text-500 mb-4 leading-relaxed">
+              Selecione ou digite a quantidade de aulas que você leciona por semana com esta turma.
+            </span>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {lessonPresets.map((count) => {
+                const defaultCount = planningPeriod === "WEEKLY" ? 5 : 3;
+                const isSelected = !showCustomLessons && (lessonsPerWeek ?? defaultCount) === count;
+                return (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => handleLessonPresetSelect(count)}
+                    className={`px-4 py-2 text-sm font-semibold rounded-full border transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-primary-600 border-primary-600 text-white shadow-sm"
+                        : "bg-surface-0 border-surface-200 text-text-600 hover:bg-surface-100 hover:text-text-900"
+                    }`}
+                  >
+                    {count} {count === 1 ? "aula" : "aulas"}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={handleCustomLessonSelect}
+                className={`px-4 py-2 text-sm font-semibold rounded-full border transition-all cursor-pointer ${
+                  showCustomLessons
+                    ? "bg-primary-600 border-primary-600 text-white shadow-sm"
+                    : "bg-surface-0 border-surface-200 text-text-600 hover:bg-surface-100 hover:text-text-900"
+                }`}
+              >
+                Outro...
+              </button>
+            </div>
+            {showCustomLessons && (
+              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                <Input
+                  type="number"
+                  min={1}
+                  max={6}
+                  value={lessonsPerWeek ?? ""}
+                  onChange={(event) => {
+                    const val = parseInt(event.target.value);
+                    onLessonsPerWeekChange(isNaN(val) ? undefined : val);
+                  }}
+                  placeholder="Digite o número de aulas (Ex: 6)"
+                  className="h-12 w-full max-w-[240px]"
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {documentType === "LESSON_PLAN" && activitySettings && onActivitySettingsChange && (
+          <fieldset className="p-5 border border-primary-200 rounded-xl bg-primary-50/30">
+            <legend className="px-2 flex items-center gap-2 text-sm font-bold text-text-900">
+              <SlidersHorizontal className="w-4 h-4 text-primary-600" /> Atividades do kit
+            </legend>
+            <p className="text-xs text-text-500 mb-5">Defina agora como as atividades complementares deste plano serão geradas.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="space-y-2 text-sm font-semibold text-text-700"><span>Quantidade de atividades</span><Input type="number" min={1} max={10} value={activitySettings.activityCount} onChange={event=>onActivitySettingsChange({...activitySettings,activityCount:Number(event.target.value)})}/><small className="block font-normal text-text-500">Cada atividade corresponde a uma folha.</small></label>
+              <label className="space-y-2 text-sm font-semibold text-text-700"><span>Exercícios por atividade</span><Input type="number" min={1} max={20} value={activitySettings.exercisesPerActivity} onChange={event=>onActivitySettingsChange({...activitySettings,exercisesPerActivity:Number(event.target.value)})}/><small className="block font-normal text-text-500">Ex.: 5 atividades × 5 exercícios = 25 exercícios.</small></label>
+              <ActivitySelect label="Formato" value={activitySettings.format} options={[["MISTA","Misto"],["ESCREVER","Escrever"],["MARCAR","Marcar"],["ASSOCIAR","Associar"],["COMPLETAR","Completar"],["VERDADEIRO_FALSO","Verdadeiro ou falso"]]} onChange={value=>onActivitySettingsChange({...activitySettings,format:value as ActivityGenerationSettings["format"]})}/>
+              <ActivitySelect label="Finalidade" value={activitySettings.purpose} options={[["PRATICA","Prática"],["REVISAO","Revisão"],["DIAGNOSTICA","Diagnóstica"],["AVALIATIVA","Avaliativa"]]} onChange={value=>onActivitySettingsChange({...activitySettings,purpose:value as ActivityGenerationSettings["purpose"]})}/>
+              <ActivitySelect label="Dificuldade" value={activitySettings.difficulty} options={[["APOIO","Apoio"],["REGULAR","Regular"],["DESAFIO","Desafio"]]} onChange={value=>onActivitySettingsChange({...activitySettings,difficulty:value as ActivityGenerationSettings["difficulty"]})}/>
+              <ActivitySelect label="Modalidade" value={activitySettings.modality} options={[["INDIVIDUAL","Individual"],["DUPLA","Dupla"],["GRUPO","Grupo"]]} onChange={value=>onActivitySettingsChange({...activitySettings,modality:value as ActivityGenerationSettings["modality"]})}/>
+            </div>
+          </fieldset>
         )}
 
         {/* Quantidade de Questões — apenas para EXAM */}
@@ -208,7 +316,9 @@ export function StepInstructions({
         <div>
           <label className="flex items-center gap-2 text-sm font-semibold text-text-800 mb-3">
             <Clock className="w-4 h-4 text-primary-500" />
-            Tempo de aula / duração
+            {documentType === "LESSON_PLAN" && (planningPeriod === "WEEKLY" || planningPeriod === "MONTHLY")
+              ? "Duração de cada aula"
+              : "Tempo de aula / duração"}
           </label>
           <div className="flex flex-wrap gap-2 mb-3">
             {presets.map((preset) => {
@@ -270,4 +380,8 @@ export function StepInstructions({
       </div>
     </div>
   );
+}
+
+function ActivitySelect({label,value,options,onChange}:{label:string;value:string;options:Array<[string,string]>;onChange:(value:string)=>void}){
+  return <label className="space-y-2 text-sm font-semibold text-text-700"><span>{label}</span><select className="h-11 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" value={value} onChange={event=>onChange(event.target.value)}>{options.map(([option,labelText])=><option key={option} value={option}>{labelText}</option>)}</select></label>;
 }

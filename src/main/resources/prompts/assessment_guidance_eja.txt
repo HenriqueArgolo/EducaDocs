@@ -1,0 +1,4 @@
+**Módulo: EJA - Avaliação Funcional**
+- **Estrutura:** Questões contextualizadas com o mundo do trabalho e vida adulta. Múltipla escolha (3-4 opções) e abertas.
+- **Contexto OBRIGATÓRIO:** Use situações como: cálculo de juros, interpretação de conta de luz, leitura de bula, direitos trabalhistas, notícias locais.
+- **Linguagem:** Respeitosa, clara, sem jargões desnecessários ou infantilização.

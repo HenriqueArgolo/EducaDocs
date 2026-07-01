@@ -103,7 +103,7 @@ export function RecentDocuments({
                 </h4>
                 <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-text-400">
                   <span className="text-primary-400">
-                    {DOCUMENT_TYPE_LABELS[doc.type]}
+                    {doc.kitId ? "Kit de Aula" : DOCUMENT_TYPE_LABELS[doc.type]}
                   </span>
                   {doc.subject && doc.grade && (
                     <>
@@ -120,7 +120,7 @@ export function RecentDocuments({
             </div>
 
             <div className="flex items-center gap-2">
-              <Link href={`/dashboard/document/${doc.id}`} className="flex-1 sm:flex-none">
+              <Link href={doc.kitId ? `/dashboard/kit/${doc.kitId}` : `/dashboard/document/${doc.id}`} className="flex-1 sm:flex-none">
                 <Button
                   variant="secondary"
                   size="sm"

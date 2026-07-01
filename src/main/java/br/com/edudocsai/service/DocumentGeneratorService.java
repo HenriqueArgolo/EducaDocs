@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+
 import java.util.Optional;
 
 @Slf4j
@@ -53,19 +54,29 @@ public class DocumentGeneratorService {
     // PONTO DE ENTRADA
     // ─────────────────────────────────────────────
     public byte[] generateDocx(Document document) {
+        return generateDocx(document, null);
+    }
+
+    public byte[] generateDocx(Document document, TemplateStyle overrideStyle) {
         try (XWPFDocument docx = new XWPFDocument();
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 
             JsonNode root = objectMapper.readTree(document.getContent());
-            TemplateStyle style = resolveStyle(document);
+            TemplateStyle style = overrideStyle != null ? overrideStyle : resolveStyle(document);
             GradeLevel level = resolveGradeLevel(document);
 
-            switch (document.getType()) {
-                case LESSON_PLAN -> renderLessonPlan(docx, root, style, level, document.getGenerationRequest());
-                case EXAM        -> renderExam(docx, root, style, level, document.getGenerationRequest());
-                case RUBRIC      -> renderRubric(docx, root, style, level, document.getGenerationRequest());
-                case REPORT      -> renderReport(docx, root, style, level, document.getGenerationRequest());
+            if (style == TemplateStyle.TABLE && document.getType() == DocumentType.LESSON_PLAN) {
+                renderLessonPlanAsTable(docx, root, level, document.getGenerationRequest(), docTypeColor(DocumentType.LESSON_PLAN));
+            } else {
+                switch (document.getType()) {
+                    case LESSON_PLAN -> renderLessonPlan(docx, root, style, level, document.getGenerationRequest());
+                    case EXAM        -> renderExam(docx, root, style, level, document.getGenerationRequest());
+                    case RUBRIC      -> renderRubric(docx, root, style, level, document.getGenerationRequest());
+                    case REPORT      -> renderReport(docx, root, style, level, document.getGenerationRequest());
+                }
             }
+
+            applyTemplateStyle(docx, style);
 
             docx.write(output);
             return output.toByteArray();
@@ -89,6 +100,191 @@ public class DocumentGeneratorService {
             return promptBuilderHelper.classifyGrade(document.getGenerationRequest().getGrade());
         }
         return GradeLevel.FUNDAMENTAL_INICIAIS;
+    }
+
+    private void applyTemplateStyle(XWPFDocument docx, TemplateStyle style) {
+        configurePageMargins(docx, style);
+
+        int sectionNumber = 0;
+        int headerTextParagraphs = 0;
+        boolean reachedSections = false;
+
+        for (XWPFParagraph paragraph : docx.getParagraphs()) {
+            String text = paragraph.getText().trim();
+            if (text.isBlank()) {
+                continue;
+            }
+
+            if (!reachedSections && headerTextParagraphs < 2) {
+                styleHeaderParagraph(paragraph, style, headerTextParagraphs++ == 0);
+                continue;
+            }
+
+            if (isVisualSectionTitle(text)) {
+                reachedSections = true;
+                sectionNumber++;
+                styleSectionTitle(paragraph, extractVisualSectionTitle(text), style, sectionNumber);
+                continue;
+            }
+
+            styleBodyRuns(paragraph, style);
+        }
+    }
+
+    private void configurePageMargins(XWPFDocument docx, TemplateStyle style) {
+        CTSectPr section = docx.getDocument().getBody().isSetSectPr()
+                ? docx.getDocument().getBody().getSectPr()
+                : docx.getDocument().getBody().addNewSectPr();
+        CTPageMar margins = section.isSetPgMar() ? section.getPgMar() : section.addNewPgMar();
+        long horizontal = style == TemplateStyle.MODERN ? 1080L : 1224L;
+        long vertical = style == TemplateStyle.MINIMALIST ? 1080L : 1224L;
+        margins.setLeft(BigInteger.valueOf(horizontal));
+        margins.setRight(BigInteger.valueOf(horizontal));
+        margins.setTop(BigInteger.valueOf(vertical));
+        margins.setBottom(BigInteger.valueOf(vertical));
+    }
+
+    private boolean isVisualSectionTitle(String text) {
+        return text.startsWith("\u258c") || text.startsWith("â–Œ");
+    }
+
+    private String extractVisualSectionTitle(String text) {
+        String title = text.trim();
+        if (title.startsWith("\u258c")) {
+            title = title.substring(1);
+        } else if (title.startsWith("â–Œ")) {
+            title = title.substring("â–Œ".length());
+        }
+        return title.trim().toUpperCase();
+    }
+
+    private void styleHeaderParagraph(XWPFParagraph paragraph, TemplateStyle style, boolean primary) {
+        paragraph.setSpacingBefore(primary ? 0 : 40);
+        paragraph.setSpacingAfter(primary ? 80 : 160);
+
+        if (style == TemplateStyle.INSTITUTIONAL) {
+            paragraph.setAlignment(ParagraphAlignment.CENTER);
+            replaceParagraphText(paragraph, paragraph.getText().toUpperCase(), "Georgia",
+                    primary ? 20 : 11, primary, "1A3A6B");
+            if (primary) {
+                setParagraphBorder(paragraph, "top", "1A3A6B", STBorder.THICK, 28);
+            } else {
+                setParagraphBorder(paragraph, "bottom", "1A3A6B", STBorder.DOUBLE, 12);
+            }
+            return;
+        }
+
+        if (style == TemplateStyle.MODERN) {
+            paragraph.setAlignment(ParagraphAlignment.LEFT);
+            paragraph.setIndentationLeft(240);
+            paragraph.setIndentationRight(240);
+            setParagraphShading(paragraph, primary ? "7C3AED" : "DB2777");
+            replaceParagraphText(paragraph, paragraph.getText(), "Aptos Display",
+                    primary ? 22 : 10, primary, "FFFFFF");
+            return;
+        }
+
+        paragraph.setAlignment(ParagraphAlignment.LEFT);
+        replaceParagraphText(paragraph, paragraph.getText(), "Arial",
+                primary ? 18 : 10, primary, primary ? "111827" : "6B7280");
+        if (primary) {
+            setParagraphBorder(paragraph, "top", "111827", STBorder.THICK, 18);
+        } else {
+            setParagraphBorder(paragraph, "bottom", "D1D5DB", STBorder.SINGLE, 4);
+        }
+    }
+
+    private void styleSectionTitle(XWPFParagraph paragraph, String title, TemplateStyle style, int sectionNumber) {
+        paragraph.setSpacingBefore(style == TemplateStyle.MODERN ? 260 : 220);
+        paragraph.setSpacingAfter(100);
+
+        if (style == TemplateStyle.INSTITUTIONAL) {
+            replaceParagraphText(paragraph, toRoman(sectionNumber) + ". " + title,
+                    "Georgia", 12, true, "1A3A6B");
+            setParagraphBorder(paragraph, "bottom", "C0CFE8", STBorder.SINGLE, 4);
+            return;
+        }
+
+        if (style == TemplateStyle.MODERN) {
+            String accent = sectionNumber % 2 == 0 ? "DB2777" : "7C3AED";
+            String background = sectionNumber % 2 == 0 ? "FCE7F3" : "F3E8FF";
+            paragraph.setIndentationLeft(180);
+            paragraph.setIndentationRight(120);
+            replaceParagraphText(paragraph, title, "Aptos", 12, true, accent);
+            setParagraphShading(paragraph, background);
+            setParagraphBorder(paragraph, "left", accent, STBorder.THICK, 20);
+            return;
+        }
+
+        replaceParagraphText(paragraph, title, "Arial", 10, true, "6B7280");
+        setParagraphBorder(paragraph, "bottom", "E5E7EB", STBorder.SINGLE, 3);
+    }
+
+    private void styleBodyRuns(XWPFParagraph paragraph, TemplateStyle style) {
+        String font = style == TemplateStyle.INSTITUTIONAL ? "Georgia"
+                : style == TemplateStyle.MODERN ? "Aptos" : "Arial";
+        String color = style == TemplateStyle.MINIMALIST ? "374151" : "333333";
+        for (XWPFRun run : paragraph.getRuns()) {
+            run.setFontFamily(font);
+            if (run.getColor() == null || !run.isBold()) {
+                run.setColor(color);
+            }
+        }
+    }
+
+    private void replaceParagraphText(XWPFParagraph paragraph, String text, String font,
+                                      int size, boolean bold, String color) {
+        while (!paragraph.getRuns().isEmpty()) {
+            paragraph.removeRun(0);
+        }
+        XWPFRun run = paragraph.createRun();
+        run.setText(text);
+        run.setFontFamily(font);
+        run.setFontSize(size);
+        run.setBold(bold);
+        run.setColor(color);
+    }
+
+    private void setParagraphShading(XWPFParagraph paragraph, String fill) {
+        CTPPr properties = paragraph.getCTP().isSetPPr()
+                ? paragraph.getCTP().getPPr() : paragraph.getCTP().addNewPPr();
+        CTShd shading = properties.isSetShd() ? properties.getShd() : properties.addNewShd();
+        shading.setVal(STShd.CLEAR);
+        shading.setColor("auto");
+        shading.setFill(fill);
+    }
+
+    private void setParagraphBorder(XWPFParagraph paragraph, String side, String color,
+                                    STBorder.Enum borderStyle, long size) {
+        CTPPr properties = paragraph.getCTP().isSetPPr()
+                ? paragraph.getCTP().getPPr() : paragraph.getCTP().addNewPPr();
+        CTPBdr borders = properties.isSetPBdr() ? properties.getPBdr() : properties.addNewPBdr();
+        CTBorder border;
+        if ("top".equals(side)) {
+            border = borders.isSetTop() ? borders.getTop() : borders.addNewTop();
+        } else if ("left".equals(side)) {
+            border = borders.isSetLeft() ? borders.getLeft() : borders.addNewLeft();
+        } else {
+            border = borders.isSetBottom() ? borders.getBottom() : borders.addNewBottom();
+        }
+        border.setVal(borderStyle);
+        border.setColor(color);
+        border.setSz(BigInteger.valueOf(size));
+        border.setSpace(BigInteger.valueOf(2));
+    }
+
+    private String toRoman(int number) {
+        int[] values = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+        String[] symbols = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+        StringBuilder result = new StringBuilder();
+        int remaining = number;
+        for (int i = 0; i < values.length; i++) {
+            while (remaining >= values[i]) {
+                result.append(symbols[i]);
+                remaining -= values[i];
+            }
+        }
+        return result.toString();
     }
 
     private String levelColor(GradeLevel level) {
@@ -1197,5 +1393,150 @@ public class DocumentGeneratorService {
 
     private String valueOrLine(String value) {
         return (value == null || value.isBlank()) ? "____________________________" : value.trim();
+    }
+
+    private void renderLessonPlanAsTable(XWPFDocument docx, JsonNode root, GradeLevel level, GenerationRequest req, String docColor) {
+        addVisualHeader(docx, "Plano de Aula", docColor, level, req);
+
+        XWPFTable table = docx.createTable();
+        table.setWidth("100%");
+
+        addTableRow(table, "TEMA", text(root, "tema", ""));
+
+        // Habilidades or Campos
+        if (level == GradeLevel.INFANTIL) {
+            addTableRow(table, "CAMPOS DE EXPERIÊNCIA", getListAsText(root.path("camposExperiencia")));
+            addTableRow(table, "DIREITOS DE APRENDIZAGEM", getListAsText(root.path("direitosAprendizagem")));
+        } else if (level == GradeLevel.ENSINO_MEDIO) {
+            addTableRow(table, "COMPETÊNCIAS GERAIS", getListAsText(root.path("competenciasGerais")));
+            addTableRow(table, "HABILIDADES BNCC", getListAsText(root.path("habilidadesBncc")));
+        } else {
+            addTableRow(table, "HABILIDADES BNCC", getListAsText(root.path("habilidadesBncc")));
+        }
+
+        // Objetivos
+        addTableRow(table, "OBJETIVOS DE APRENDIZAGEM", getListAsText(root.path("objetivosDeAprendizagem")));
+
+        // Conteúdos
+        if (root.has("conteudo")) {
+            addTableRow(table, "CONTEÚDOS", getListAsText(root.path("conteudo")));
+        }
+
+        // Metodologia / Sequência Didática
+        addTableRow(table, "METODOLOGIA / SEQUÊNCIA DIDÁTICA", getMethodologyAsText(root));
+
+        // Recursos
+        addTableRow(table, "RECURSOS DIDÁTICOS", getListAsText(root.path("recursosDidaticos")));
+
+        // Avaliação
+        addTableRow(table, "AVALIAÇÃO", text(root, "avaliacao", ""));
+
+        // Adaptações
+        addTableRow(table, "ADAPTAÇÕES INCLUSIVAS", getAdaptationsAsText(root.path("adaptacoesInclusivas")));
+    }
+
+    private String getListAsText(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) return "";
+        StringBuilder sb = new StringBuilder();
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                if (sb.length() > 0) sb.append("\n");
+                sb.append("• ").append(item.asText());
+            }
+        } else {
+            sb.append(node.asText());
+        }
+        return sb.toString();
+    }
+
+    private String getMethodologyAsText(JsonNode root) {
+        JsonNode etapas = root.path("metodologia");
+        if (etapas.isMissingNode() || etapas.isNull()) {
+            etapas = root.path("sequenciaDidatica");
+        }
+        if (etapas.isMissingNode() || etapas.isNull()) {
+            etapas = root.path("descricaoExperiencia");
+        }
+        if (etapas.isMissingNode() || etapas.isNull()) return "";
+        
+        StringBuilder sb = new StringBuilder();
+        if (etapas.isArray()) {
+            for (JsonNode etapa : etapas) {
+                if (sb.length() > 0) sb.append("\n\n");
+                String title = etapa.path("titulo").asText();
+                String duracao = etapa.path("duracao").asText();
+                String desc = etapa.path("descricao").asText();
+                sb.append(title.toUpperCase());
+                if (!duracao.isBlank()) {
+                    sb.append(" (").append(duracao).append(")");
+                }
+                sb.append(":\n").append(desc);
+            }
+        } else {
+            sb.append(etapas.asText());
+        }
+        return sb.toString();
+    }
+
+    private String getAdaptationsAsText(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) return "";
+        StringBuilder sb = new StringBuilder();
+        if (node.isObject()) {
+            node.fields().forEachRemaining(field -> {
+                if (sb.length() > 0) sb.append("\n");
+                sb.append(field.getKey().toUpperCase()).append(": ").append(field.getValue().asText());
+            });
+        } else {
+            sb.append(node.asText());
+        }
+        return sb.toString();
+    }
+
+    private void addTableRow(XWPFTable table, String field, String value) {
+        if (value == null || value.isBlank()) return;
+        
+        XWPFTableRow row;
+        if (table.getNumberOfRows() == 1 && table.getRow(0).getTableCells().size() < 2) {
+            row = table.getRow(0);
+            if (row.getCell(0) == null) row.addNewTableCell();
+            if (row.getCell(1) == null) row.addNewTableCell();
+        } else {
+            row = table.createRow();
+        }
+        
+        XWPFTableCell cell1 = row.getCell(0);
+        cell1.setText(field);
+        cell1.getCTTc().addNewTcPr().addNewShd().setFill("F3F4F6");
+        cell1.getCTTc().getTcPr().addNewTcW().setW(BigInteger.valueOf(2500)); // ~25% width
+        if (!cell1.getParagraphs().isEmpty()) {
+            XWPFParagraph p = cell1.getParagraphs().get(0);
+            p.setSpacingBefore(100);
+            p.setSpacingAfter(100);
+            if (!p.getRuns().isEmpty()) {
+                XWPFRun r = p.getRuns().get(0);
+                r.setBold(true);
+                r.setFontFamily("Arial");
+                r.setFontSize(10);
+            } else {
+                XWPFRun r = p.createRun();
+                r.setText(field);
+                r.setBold(true);
+                r.setFontFamily("Arial");
+                r.setFontSize(10);
+            }
+        }
+        
+        XWPFTableCell cell2 = row.getCell(1);
+        cell2.getCTTc().addNewTcPr().addNewTcW().setW(BigInteger.valueOf(6500)); // ~75% width
+        String[] lines = value.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            XWPFParagraph p = i == 0 ? cell2.getParagraphs().get(0) : cell2.addParagraph();
+            p.setSpacingBefore(60);
+            p.setSpacingAfter(60);
+            XWPFRun r = p.createRun();
+            r.setText(lines[i]);
+            r.setFontFamily("Arial");
+            r.setFontSize(10);
+        }
     }
 }

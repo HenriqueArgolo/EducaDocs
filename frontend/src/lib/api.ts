@@ -156,7 +156,7 @@ async function readPayload(response: Response) {
   return response.text();
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers = new Headers(options.headers);
 
@@ -268,6 +268,15 @@ export function fetchDocument(id: string | number) {
   });
 }
 
+export function updateDocument(id: string | number, data: { title: string; content: string }) {
+  invalidateCache();
+  apiCache.delete(`/documents/${id}`);
+  return request<GeneratedDocument>(`/documents/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
 export async function fetchUserDocuments(userId: number) {
   const cacheKey = `/documents/user/${userId}`;
   const cached = getCachedData<DocumentHistoryItem[]>(cacheKey);
@@ -280,14 +289,18 @@ export async function fetchUserDocuments(userId: number) {
   return items;
 }
 
-export async function downloadDocumentDocx(id: string | number, title: string) {
+export async function downloadDocumentDocx(id: string | number, title: string, style?: string) {
   const token = getToken();
   const headers = new Headers();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}/documents/${id}/export.docx`, {
+  const exportUrl = style
+    ? `${API_BASE_URL}/documents/${id}/export.docx?style=${style}`
+    : `${API_BASE_URL}/documents/${id}/export.docx`;
+
+  const response = await fetch(exportUrl, {
     headers,
   });
 

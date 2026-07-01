@@ -1,0 +1,5 @@
+## TASK_PROMPT: Plano de Aula - Ensino Fundamental - Anos Finais
+**Task:** Elabore um plano de aula focado em metodologias ativas.%s
+- Estrutura obrigatória: Problematização inicial (Hook), Investigação/Debate guiado, Aplicação prática e Síntese.
+- Sugira o uso de recursos diversificados (vídeos curtos, notícias, mapas mentais).
+- O plano deve exigir que o aluno argumente, analise dados e tire conclusões próprias, fugindo da aula puramente expositiva.

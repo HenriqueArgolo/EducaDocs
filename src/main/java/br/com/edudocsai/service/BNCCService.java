@@ -26,6 +26,7 @@ public class BNCCService {
 
     private final BNCCSkillRepository bnccSkillRepository;
     private final AIService aiService;
+    private final PromptModuleCatalog promptModuleCatalog;
 
     @Cacheable(cacheNames = "bnccQuery", key = "{#grade, #subject, #code}")
     @Transactional(readOnly = true)
@@ -125,19 +126,8 @@ public class BNCCService {
                     .append("\n");
         }
 
-        String prompt = """
-                Você é um especialista em educação brasileira e estruturação curricular de acordo com a BNCC.
-                Dado o seguinte assunto/tema para uma aula/recurso pedagógico:
-                Assunto: "%s"
-                Matéria/Disciplina: "%s"
-                Série/Nível: "%s"
-                
-                Analise a lista de habilidades BNCC candidatas abaixo e selecione entre 2 a 5 habilidades que sejam diretamente relevantes e adequadas para serem trabalhadas com esse assunto.
-                Retorne a resposta EXCLUSIVAMENTE como um objeto JSON contendo a propriedade "recommendedIds" mapeando para a lista de IDs numéricos recomendados (ex: { "recommendedIds": [12, 15] }).
-                
-                Lista de Habilidades BNCC Candidatas:
-                %s
-                """.formatted(request.topic(), request.subject(), request.grade(), skillsBuilder.toString());
+        String template = promptModuleCatalog.getPromptByKey("bncc_recommendation_prompt");
+        String prompt = template.formatted(request.topic(), request.subject(), request.grade(), skillsBuilder.toString());
 
         try {
             String jsonResult = aiService.generateJsonObject(prompt);

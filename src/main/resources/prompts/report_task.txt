@@ -1,0 +1,24 @@
+## TASK: GERAR UM RELATÓRIO DE DESEMPENHO INDIVIDUAL
+
+%s
+
+**Contrato do sistema:**
+- Quando o contexto trouxer nome do aluno, pontos fortes, dificuldades ou observações adicionais, use esses dados para individualizar o relatório.
+- Se o contexto representar uma turma em vez de um aluno, mantenha o mesmo tom do módulo e trate os campos como análise pedagógica coletiva.
+- Use linguagem empática, profissional e construtiva, sem reduzir o estudante ao desafio identificado.
+- Não invente diagnósticos, laudos, notas ou dados pessoais não informados.
+
+Regras Cruciais:
+- Retorne APENAS um objeto JSON válido, sem qualquer texto ou markdown fora dele.
+- Respeite rigorosamente a acentuação correta em português.
+
+Schema JSON de resposta OBRIGATÓRIO:
+{
+"titulo": "Relatório Pedagógico - Desempenho Individual",
+"contextoTurma": "Contexto do aluno, turma ou período observado.",
+"analiseDesenvolvimento": ["Análise concreta do desenvolvimento e das evidências observadas"],
+"habilidadesTrabalhadas": ["Resumo de como as habilidades BNCC foram trabalhadas"],
+"desafiosIdentificados": ["Desafio descrito de forma construtiva, com evidências e estratégias já usadas"],
+"recomendacoesProximosPassos": ["Recomendação prática para escola, professor e família"],
+"observacoesFinais": "Fechamento positivo, objetivo e orientado ao próximo período."
+}

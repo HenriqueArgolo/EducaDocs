@@ -1,6 +1,7 @@
 package br.com.edudocsai.service.lessonplan;
 
 import br.com.edudocsai.dto.document.GenerateDocumentRequest;
+import br.com.edudocsai.dto.lessonkit.RegenerateLessonKitMaterialRequest;
 import br.com.edudocsai.entity.BNCCSkill;
 import br.com.edudocsai.entity.Document;
 import br.com.edudocsai.entity.DocumentType;
@@ -148,7 +149,33 @@ class LessonPlanGenerationServiceTest {
         ArgumentCaptor<GenerationRequest> requestCaptor = ArgumentCaptor.forClass(GenerationRequest.class);
         verify(generationRequestRepository).save(requestCaptor.capture());
         assertThat(requestCaptor.getValue().getPlanningPeriod()).isEqualTo(PlanningPeriod.WEEKLY);
+        assertThat(requestCaptor.getValue().getLessonsPerWeek()).isEqualTo(5);
         assertThat(requestCaptor.getValue().getIncludeHeader()).isFalse();
+    }
+
+    @Test
+    void persistsActivitySettingsAndIncludesThemInTheLessonKitPrompt() {
+        LessonPlanGenerationService service = service();
+        when(bnccService.validateAndLoad(List.of(1L))).thenReturn(List.of(skill()));
+        when(aiService.generateJsonObject(any())).thenReturn(validJson());
+        when(generationRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(documentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var settings = new RegenerateLessonKitMaterialRequest(5, 8, "ESCREVER", "AVALIATIVA", "DESAFIO", "DUPLA");
+        var base = request();
+        var configured = new GenerateDocumentRequest(base.documentType(), base.bnccSkillIds(), base.topic(),
+                base.grade(), base.subject(), base.duration(), base.additionalInstructions(), base.templateStyle(),
+                base.numberOfQuestions(), base.includeHeader(), base.classroomId(), base.timelineItemId(),
+                base.planningPeriod(), base.lessonsPerWeek(), settings);
+
+        service.generate(user(), configured);
+
+        ArgumentCaptor<String> prompt = ArgumentCaptor.forClass(String.class);
+        verify(aiService).generateJsonObject(prompt.capture());
+        assertThat(prompt.getValue()).contains("5 folhas", "8 exercícios", "ESCREVER", "AVALIATIVA", "DESAFIO", "DUPLA");
+        ArgumentCaptor<GenerationRequest> saved = ArgumentCaptor.forClass(GenerationRequest.class);
+        verify(generationRequestRepository).save(saved.capture());
+        assertThat(saved.getValue().getActivityCount()).isEqualTo(5);
+        assertThat(saved.getValue().getExercisesPerActivity()).isEqualTo(8);
     }
 
     private LessonPlanGenerationService service() {

@@ -1,0 +1,6 @@
+## TASK_PROMPT: Plano de Aula - Ensino Médio
+**Task:** Elabore um plano de aula de alto rigor acadêmico, alinhado ao ENEM e ao Projeto de Vida.%s
+- Inicie com uma Situação-Problema complexa ou questão interdisciplinar.
+- O desenvolvimento deve aprofundar conceitos teóricos, conectando-os a questões sociais, econômicas ou científicas contemporâneas.
+- Inclua um momento de "Resolução de Problemas Padrão ENEM" (análise de itens).
+- Finalize com uma reflexão sobre como o tema impacta a cidadania e as escolhas futuras dos alunos.
