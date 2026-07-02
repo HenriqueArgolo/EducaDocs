@@ -331,28 +331,36 @@ public class PresentationService {
                 ---
                 **Regras de Edição e Formatação:**
                 1. Analise o JSON atual e execute as alterações solicitadas pelo professor.
-                2. Você pode:
-                   - Modificar o conteúdo (titulo, subtitulo, pontos, notas_professor) de um ou mais slides.
-                   - Adicionar novos slides caso a instrução solicite novos tópicos ou slides adicionais. Cada novo slide DEVE escolher de forma variada entre os 12 layouts disponíveis:
-                     * "title_slide" (Capa com imagem split, exclusivo para o slide 1)
-                     * "bullet_points" (Tópicos textuais concisos)
-                     * "text_and_image" (Texto explicativo acompanhado de palavra-chave para imagem)
-                     * "quote" (Frase de impacto ou questionamento)
-                     * "exercise" (Desafio prático / pergunta)
-                     * "summary" (Recapitulando pontos chaves com 4 blocos)
-                     * "comparison" (Dois blocos de comparação lado a lado. Subtítulo DEVE ser "Tema A|Tema B", pontos[0] é a descrição do Tema A, pontos[1] a descrição do Tema B, pontos[2] é a conclusão)
-                     * "numbered_steps" (Passos numerados. Subtítulo é o título do passo 1, pontos[0] desc de 1, pontos[1] título de 2, pontos[2] desc de 2, etc.)
-                     * "timeline" (Linha do tempo. Subtítulo é o título do marco 1, pontos[0] desc de 1, pontos[1] título de 2, pontos[2] desc de 2, etc.)
-                     * "split_columns" (Colunas com fotos. Subtítulo é o título da Coluna A, pontos[0] desc de A, pontos[1] título de B, pontos[2] desc de B)
-                     * "grid_cards" (Grade de cards. Subtítulo é o título do Card 1, pontos[0] desc de 1, pontos[1] título de 2, pontos[2] desc de 2, etc.)
-                     * "highlight_quote" (Imagem e citação de destaque nos pontos[0])
-                   - Deletar um slide caso solicitado de forma explícita.
-                   - Traduzir os textos se solicitado.
-                   - Reordenar a sequência de slides.
-                3. O campo "palavras_chave_imagem" deve conter palavras-chave em inglês curtas e relevantes para que o sistema busque fotos no Unsplash.
-                4. O campo "notas_professor" deve conter um roteiro curto orientando a fala do professor (30-60 palavras).
-                5. Certifique-se de que a quantidade de texto nos slides seja concisa (máx. 3-4 linhas curtas).
-                6. Após qualquer adição, deleção ou reordenação, você DEVE recalcular os números dos slides ("slide_number") para que fiquem sequenciais de 1 até N.
+	                2. Você pode:
+	                   - Modificar o conteúdo (titulo, subtitulo, pontos, notas_professor) de um ou mais slides.
+	                   - Adicionar novos slides caso a instrução solicite novos tópicos ou slides adicionais. Cada novo slide DEVE escolher de forma variada entre os 12 layouts disponíveis:
+	                     * "title_slide" (Capa com imagem split, exclusivo para o slide 1)
+	                     * "bullet_points" (Tópicos textuais concisos - MÁX 4)
+	                     * "text_and_image" (Texto fluido + Imagem)
+	                     * "quote" (Frase de impacto / Reflexão)
+	                     * "exercise" (Desafio prático / Pergunta norteadora)
+	                     * "summary" (Recapitulando pontos chaves)
+	                     * "comparison" (Comparação A vs B. Subtítulo: "A|B")
+	                     * "numbered_steps" (Processo sequencial 1, 2, 3)
+	                     * "timeline" (Evolução cronológica 1, 2, 3, 4)
+	                     * "split_columns" (Destaque visual duplo)
+	                     * "grid_cards" (Três pilares ou recursos)
+	                     * "highlight_quote" (Citação/Dica com imagem de fundo)
+	                   - Deletar um slide caso solicitado de forma explícita.
+	                   - Traduzir os textos se solicitado.
+	                   - Reordenar a sequência de slides.
+
+	                **REGRAS DE OURO (NÍVEL CHALKIE):**
+	                - Mantenha a densidade baixa: Máx 40 palavras por slide.
+	                - Diversifique layouts: Não repita o mesmo layout em sequência.
+	                - Hierarquia Visual: Títulos provocativos e subtítulos complementares.
+	                - Pedagogia: Inclua slides de desafio (exercise) ou reflexão (quote).
+	                - Imagens: Keywords em inglês para contexto profissional.
+
+	                3. O campo "palavras_chave_imagem" deve conter palavras-chave em inglês curtas e relevantes.
+	                4. O campo "notas_professor" deve conter um roteiro curto orientando a fala do professor (30-60 palavras).
+	                5. Certifique-se de que a quantidade de texto nos slides seja concisa (máx. 3-4 linhas curtas).
+	                6. Após qualquer adição, deleção ou reordenação, você DEVE recalcular os números dos slides ("slide_number") para que fiquem sequenciais de 1 até N.
                 7. Retorne OBRIGATORIAMENTE apenas o objeto JSON atualizado contendo as chaves:
                    {
                      "titulo": "Título da apresentação",

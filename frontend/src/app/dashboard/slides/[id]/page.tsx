@@ -648,6 +648,20 @@ export default function SlideWorkspacePage() {
   const themeParam = searchParams.get("theme");
 
   const [presentation, setPresentation] = React.useState<PresentationType | null>(null);
+
+  // Style to hide elements during export
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .export-hidden {
+        transition: opacity 0.2s ease;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   const [slides, setSlides] = React.useState<Slide[]>([]);
   const [activeIndex, setActiveIndex] = React.useState<number>(0);
   const [activeTheme, setActiveTheme] = React.useState<string>(() => themeParam || "LUDICO");
@@ -1329,6 +1343,12 @@ export default function SlideWorkspacePage() {
           cacheBust: true,
           pixelRatio: 2,
           backgroundColor: getPresentationTheme(activeTheme)?.colors.canvas,
+          filter: (node) => {
+            if (node instanceof HTMLElement && node.classList.contains("export-hidden")) {
+              return false;
+            }
+            return true;
+          }
         });
         const outputSlide = exportedDeck.addSlide();
         outputSlide.addImage({ data: imageData, x: 0, y: 0, w: 10, h: 5.625 });
@@ -1651,8 +1671,8 @@ export default function SlideWorkspacePage() {
                 <ThemeBackground theme={activeTheme} />
                 <ThemeAtmosphere theme={customTheme} />
 
-                {/* Header */}
-                <div className="flex justify-between items-start z-10 shrink-0 select-none">
+                {/* Header (Hidden during export) */}
+                <div className="flex justify-between items-start z-10 shrink-0 select-none export-hidden">
                   <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${theme.badgeClass}`}>
                     Slide {currentSlide.slide_number} • {LAYOUT_LABELS[currentSlide.layout]}
                   </span>
@@ -1670,7 +1690,7 @@ export default function SlideWorkspacePage() {
                           value={currentSlide.titulo}
                           onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                           rows={2}
-                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-3xl md:text-4xl font-black leading-tight resize-none ${theme.titleColor}`}
+                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl'}`}
                           placeholder="Título do Slide"
                         />
                         <textarea
@@ -1714,7 +1734,7 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-4 ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-4 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Título do Slide"
                       />
                       <ul className="space-y-3.5 pl-2">
@@ -1762,7 +1782,7 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-3 ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-3 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Título do Desafio"
                       />
                       <div className={`p-5 rounded-xl border ${theme.cardBgClass}`}>
@@ -1800,7 +1820,7 @@ export default function SlideWorkspacePage() {
                           value={currentSlide.titulo}
                           onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                           rows={1}
-                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-2 ${theme.titleColor}`}
+                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-2 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                           placeholder="Título do Slide"
                         />
                         <ul className="space-y-3">
@@ -1850,7 +1870,7 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-3 ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-3 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Recapitulando"
                       />
                       <div className="grid grid-cols-2 gap-4">
@@ -1877,31 +1897,31 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-2 ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-2 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Comparando Visões"
                       />
                       <div className="grid grid-cols-2 gap-4 flex-1">
-                        {/* Coluna 1 (Destaque) */}
-                        <div className="p-4 rounded-xl bg-orange-600 border border-orange-500/20 text-white flex flex-col justify-between">
-                          <input
-                            type="text"
-                            value={currentSlide.subtitulo ? currentSlide.subtitulo.split("|")[0] || "" : ""}
-                            onChange={(e) => {
-                              const parts = (currentSlide.subtitulo || "").split("|");
-                              const p2 = parts[1] || "";
-                              updateActiveSlide({ subtitulo: `${e.target.value}|${p2}` });
-                            }}
-                            className="bg-transparent border-b border-white/20 focus:outline-none focus:ring-0 p-0 text-sm font-bold w-full pb-1 mb-2 placeholder-white/50"
-                            placeholder="Tema A"
-                          />
-                          <textarea
-                            value={getPoint(0)}
-                            onChange={(e) => setPoint(0, e.target.value)}
-                            rows={3}
-                            className="bg-transparent border-0 focus:outline-none focus:ring-0 p-0 text-xs leading-relaxed resize-none text-white/90 placeholder-white/40"
-                            placeholder="Visão detalhada sobre o tema A..."
-                          />
-                        </div>
+	                        {/* Coluna 1 (Suavizada conforme diagnóstico) */}
+	                        <div className={`p-4 rounded-xl border-2 border-primary-500/20 flex flex-col justify-between ${theme.cardBgClass}`}>
+	                          <input
+	                            type="text"
+	                            value={currentSlide.subtitulo ? currentSlide.subtitulo.split("|")[0] || "" : ""}
+	                            onChange={(e) => {
+	                              const parts = (currentSlide.subtitulo || "").split("|");
+	                              const p2 = parts[1] || "";
+	                              updateActiveSlide({ subtitulo: `${e.target.value}|${p2}` });
+	                            }}
+	                            className={`bg-transparent border-b border-current/10 focus:outline-none focus:ring-0 p-0 text-sm font-bold w-full pb-1 mb-2 ${theme.titleColor}`}
+	                            placeholder="Tema A"
+	                          />
+	                          <textarea
+	                            value={getPoint(0)}
+	                            onChange={(e) => setPoint(0, e.target.value)}
+	                            rows={3}
+	                            className={`bg-transparent border-0 focus:outline-none focus:ring-0 p-0 text-xs leading-relaxed resize-none ${theme.textColor}`}
+	                            placeholder="Visão detalhada sobre o tema A..."
+	                          />
+	                        </div>
                         {/* Coluna 2 (Neutro) */}
                         <div className={`p-4 rounded-xl border flex flex-col justify-between ${theme.cardBgClass}`}>
                           <input
@@ -1942,7 +1962,7 @@ export default function SlideWorkspacePage() {
                           value={currentSlide.titulo}
                           onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                           rows={1}
-                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-1 ${theme.titleColor}`}
+                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-1 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                           placeholder="Progressão de Etapas"
                         />
                         <div className="space-y-3 pl-1">
@@ -2041,7 +2061,7 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-1 ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-1 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Roteiro Cronológico"
                       />
                       <div className="relative flex items-start justify-between gap-2 pt-6">
@@ -2131,7 +2151,7 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Colunas de Conteúdo"
                       />
                       <div className="grid grid-cols-2 gap-4 flex-1">
@@ -2147,6 +2167,7 @@ export default function SlideWorkspacePage() {
                             <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                               <button
                                 onClick={() => {
+                                  setActiveImageSearchIndex(0);
                                   setImageSearchQuery(currentSlide.palavras_chave_imagem || currentSlide.titulo || "");
                                   // Open modal and bind selection to image 0 (split)
                                   setIsModalSearchOpen(true);
@@ -2184,6 +2205,7 @@ export default function SlideWorkspacePage() {
                             <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                               <button
                                 onClick={() => {
+                                  setActiveImageSearchIndex(1);
                                   setImageSearchQuery(getPoint(1) || currentSlide.titulo || "");
                                   // Open modal and bind selection to image 1
                                   setIsModalSearchOpen(true);
@@ -2220,7 +2242,7 @@ export default function SlideWorkspacePage() {
                         value={currentSlide.titulo}
                         onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                         rows={1}
-                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none mb-1 ${theme.titleColor}`}
+                        className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none mb-1 ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                         placeholder="Grade de Informações"
                       />
                       <div className="grid grid-cols-3 gap-3">
@@ -2313,7 +2335,7 @@ export default function SlideWorkspacePage() {
                           value={currentSlide.titulo}
                           onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
                           rows={1}
-                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 text-2xl md:text-3xl font-black leading-tight resize-none ${theme.titleColor}`}
+                          className={`w-full bg-transparent border-b border-transparent hover:border-current/10 focus:border-current/30 focus:outline-none focus:ring-0 p-0 font-black leading-tight resize-none ${theme.titleColor} ${currentSlide.titulo.length > 50 ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'}`}
                           placeholder="Fato Relevante"
                         />
                         <textarea
@@ -2338,8 +2360,8 @@ export default function SlideWorkspacePage() {
 
                 </div>
 
-                {/* Footer */}
-                <div className="flex justify-between items-center text-[9px] opacity-60 z-10 shrink-0 border-t border-current/10 pt-3 select-none">
+                {/* Footer (Hidden during export) */}
+                <div className="flex justify-between items-center text-[9px] opacity-60 z-10 shrink-0 border-t border-current/10 pt-3 select-none export-hidden">
                   <span>Tema: {presentation.topic}</span>
                   <span>{activeIndex + 1} / {slides.length}</span>
                 </div>
