@@ -120,7 +120,7 @@ function slugify(value: string) {
 
 export const PRESENTATION_THEME_LIBRARY: PresentationThemeDefinition[] = CATEGORY_SOURCES.flatMap(
   (category) => category.names.map((name, index) => {
-    const composition = COMPOSITION_SYSTEMS[index];
+    const composition = COMPOSITION_SYSTEMS[index % COMPOSITION_SYSTEMS.length];
     return {
       id: `${category.id}-${slugify(name)}`,
       name,
