@@ -428,12 +428,12 @@ function resolveThemeStyle(themeId: string): ThemeStyle {
   return {
     label: definition.name,
     bgClass: "bg-[var(--presentation-canvas)] text-[var(--presentation-ink)]",
-    cardBgClass: "bg-[var(--presentation-surface)]/90 border border-[var(--presentation-accent)]/20 shadow-md",
-    titleColor: "text-[var(--presentation-ink)] font-black",
-    textColor: "text-[var(--presentation-muted)] font-medium",
-    accentColor: "bg-[var(--presentation-accent)] text-[var(--presentation-on-accent)]",
-    badgeClass: "bg-[var(--presentation-surface)]/90 text-[var(--presentation-ink)] border-[var(--presentation-accent)]/30",
-    fontFamily: "",
+    cardBgClass: "bg-[var(--presentation-surface)]/95 border border-[var(--presentation-accent)]/15 shadow-lg rounded-2xl",
+    titleColor: "text-[var(--presentation-ink)] font-bold tracking-tight",
+    textColor: "text-[var(--presentation-muted)] font-medium leading-relaxed",
+    accentColor: "bg-[var(--presentation-accent)] text-[var(--presentation-on-accent)] rounded-full",
+    badgeClass: "bg-[var(--presentation-surface)]/90 text-[var(--presentation-ink)] border-[var(--presentation-accent)]/20 rounded-lg",
+    fontFamily: definition.fontFamily,
     pptxBg: toPptxColor(definition.colors.canvas),
     pptxText: toPptxColor(definition.colors.muted),
     pptxTitle: toPptxColor(definition.colors.ink),
@@ -619,6 +619,10 @@ function ThemeBackground({ theme }: { theme: string }) {
         </div>
       );
     default:
+      const chalkieTheme = getPresentationTheme(theme);
+      if (chalkieTheme?.kind === "chalkie") {
+        return <ThemeAtmosphere theme={chalkieTheme} />;
+      }
       return null;
   }
 }
@@ -1715,12 +1719,12 @@ export default function SlideWorkspacePage() {
                         />
                       </div>
                       {currentSlide.imageUrl && (
-                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-xl'}`}>
+                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[18%_42%_22%_38%]' : 'rounded-2xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
                             alt="Capa"
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${customTheme?.composition === 'organic' ? 'scale-110 -rotate-2' : ''}`}
                           />
                           <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                             <Button
@@ -1851,12 +1855,12 @@ export default function SlideWorkspacePage() {
                         </ul>
                       </div>
                       {currentSlide.imageUrl && (
-                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-xl'}`}>
+                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[42%_18%_38%_22%]' : 'rounded-2xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
                             alt="Preview"
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${customTheme?.composition === 'organic' ? 'scale-110 rotate-2' : ''}`}
                           />
                           <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                             <Button

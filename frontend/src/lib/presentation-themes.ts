@@ -1,4 +1,4 @@
-export type ThemeCategoryKind = "pedagogy" | "inclusion";
+export type ThemeCategoryKind = "pedagogy" | "inclusion" | "chalkie";
 export type ThemeDensity = "airy" | "balanced" | "compact";
 
 export interface ThemeAccessibilityProfile {
@@ -90,6 +90,24 @@ const CATEGORY_SOURCES: CategorySource[] = [
   { id: "autism-predictability", label: "Autismo e previsibilidade", kind: "inclusion", description: "Estrutura consistente e antecipação", direction: "posições fixas, sequência explícita e linguagem literal", fontFamily: "Atkinson Hyperlegible, Arial, sans-serif", palette: ["#F5F8FA", "#FFFFFF", "#182A36", "#5C6D78", "#287C8E", "#FFFFFF"], names: ["Rotina Visual", "Sempre Aqui", "Sequência Segura", "Mapa da Aula", "Agora e Depois", "Estrutura", "Passos Fixos", "Previsível", "Agenda Visual", "Caminho Claro"], accessibilityRules: ["elementos recorrentes mantêm posição", "agenda visual presente", "linguagem literal", "mudanças são antecipadas"], minContrast: 4.5 },
   { id: "easy-reading", label: "Leitura fácil", kind: "inclusion", description: "Compreensão com baixa densidade", direction: "frases simples, imagem concreta e uma ação por vez", fontFamily: "Atkinson Hyperlegible, Arial, sans-serif", palette: ["#FFFDF7", "#FFFFFF", "#202A35", "#626E79", "#2E7D5B", "#FFFFFF"], names: ["Leitura Fácil", "Ideia Única", "Imagem e Palavra", "Passo Simples", "Compreender", "Exemplo Concreto", "Frase Direta", "Aprender Juntos", "Resumo Visual", "Ação Clara"], accessibilityRules: ["uma ideia por slide", "frases em ordem direta", "imagem concreta apoia o texto", "sem linguagem figurada ambígua"], minContrast: 4.5 },
   { id: "hearing-multimodal", label: "Deficiência auditiva", kind: "inclusion", description: "Conteúdo visual independente de áudio", direction: "legendas, transcrição e sinais visuais equivalentes ao som", fontFamily: "Atkinson Hyperlegible, Arial, sans-serif", palette: ["#F5F8FF", "#FFFFFF", "#17213A", "#606B82", "#5546C7", "#FFFFFF"], names: ["Legenda Viva", "Visual Completo", "Sem Perder Nada", "Transcrição", "Sinal Visual", "Fala Escrita", "Ritmo Legendado", "Conteúdo Equivalente", "Voz Visível", "Multimodal"], accessibilityRules: ["áudio sempre tem transcrição", "legendas reservam zona estável", "alertas sonoros têm equivalente visual", "vídeo não inicia automaticamente"], minContrast: 4.5 },
+  { 
+    id: "chalkie-exclusive", 
+    label: "Chalkie AI", 
+    kind: "chalkie", 
+    description: "Estilos premium inspirados no Chalkie AI para apresentações modernas", 
+    direction: "design limpo, cantos arredondados e paletas educativas", 
+    fontFamily: "Lexend, Quicksand, sans-serif", 
+    palette: ["#FFF8F8", "#FFFFFF", "#1A1A1A", "#666666", "#339999", "#FFFFFF"], 
+    names: [
+      "Chalkie Light", "Chalkie Science", "Chalkie Maths", "Chalkie Simple", "Chalkie Classic", 
+      "Chalkie Bright", "Chalkie Mint", "Chalkie Blueprint", "Chalkie Pop", "Chalkie Orbit", 
+      "Chalkie Bookworm", "Chalkie Fuji", "Chalkie Launch", "Chalkie Mono", "Chalkie Gradient", 
+      "Chalkie Coastal", "Chalkie Deep", "Chalkie Dark", "Chalkie Rust", "Chalkie Forest", 
+      "Chalkie Storm", "Chalkie Clean", "Chalkie Modern", "Chalkie Minimal", "Chalkie Playful", 
+      "Chalkie Whimsical", "Chalkie Friendly", "Chalkie Professional", "Chalkie Corporate", 
+      "Chalkie Elegant", "Chalkie Fun", "Chalkie Creative", "Chalkie Dynamic", "Chalkie Plains"
+    ] 
+  },
 ];
 
 export const PRESENTATION_THEME_CATEGORIES: ThemeCategory[] = CATEGORY_SOURCES.map(

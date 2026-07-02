@@ -15,14 +15,14 @@ interface ThemeGalleryProps {
 }
 
 export function ThemeGallery({ value, onChange }: ThemeGalleryProps) {
-  const [group, setGroup] = React.useState<"pedagogy" | "inclusion">("pedagogy");
+  const [group, setGroup] = React.useState<"pedagogy" | "inclusion" | "chalkie">("pedagogy");
   const categories = PRESENTATION_THEME_CATEGORIES.filter((category) => category.kind === group);
   const [categoryId, setCategoryId] = React.useState("early-years");
   const [query, setQuery] = React.useState("");
   const activeCategory = categories.some((category) => category.id === categoryId) ? categoryId : categories[0]?.id;
   const themes = query ? searchPresentationThemes(query, activeCategory) : filterThemesByCategory(activeCategory);
 
-  function changeGroup(nextGroup: "pedagogy" | "inclusion") {
+  function changeGroup(nextGroup: "pedagogy" | "inclusion" | "chalkie") {
     setGroup(nextGroup);
     const firstCategory = PRESENTATION_THEME_CATEGORIES.find((category) => category.kind === nextGroup);
     if (firstCategory) setCategoryId(firstCategory.id);
@@ -31,12 +31,15 @@ export function ThemeGallery({ value, onChange }: ThemeGalleryProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-100 p-1">
+      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-surface-100 p-1">
         <button type="button" onClick={() => changeGroup("pedagogy")} aria-pressed={group === "pedagogy"} className={`min-h-11 rounded-xl text-xs font-extrabold ${group === "pedagogy" ? "bg-white text-primary-800 shadow-sm" : "text-text-500"}`}>
-          Temas pedagógicos · 100
+          Pedagógicos
         </button>
         <button type="button" onClick={() => changeGroup("inclusion")} aria-pressed={group === "inclusion"} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl text-xs font-extrabold ${group === "inclusion" ? "bg-white text-primary-800 shadow-sm" : "text-text-500"}`}>
-          <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Inclusivos · 80
+          Inclusivos
+        </button>
+        <button type="button" onClick={() => changeGroup("chalkie")} aria-pressed={group === "chalkie"} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl text-xs font-extrabold ${group === "chalkie" ? "bg-white text-primary-800 shadow-sm" : "text-text-500"}`}>
+          <Sparkles className="h-4 w-4 text-accent-500" aria-hidden="true" /> Chalkie AI
         </button>
       </div>
 
