@@ -240,6 +240,23 @@ export interface CreatePresentationRequest {
   slidesJson: string;
 }
 
+export interface RefinePresentationRequest {
+  instruction: string;
+  slideIndex?: number;
+}
+
+export interface GenerateOutlineRequest {
+  topic: string;
+  grade: string;
+  subject: string;
+  numberOfSlides: number;
+  additionalInstructions?: string;
+}
+
+export interface OutlineResponse {
+  outline: string[];
+}
+
 export interface CreateDocumentRequest {
   title: string;
   type: DocumentType;

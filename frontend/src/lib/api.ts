@@ -13,6 +13,9 @@ import type {
   Presentation,
   GeneratePresentationRequest,
   CreatePresentationRequest,
+  RefinePresentationRequest,
+  GenerateOutlineRequest,
+  OutlineResponse,
   AdaptRequest,
   AdaptResponse,
   CreateDocumentRequest,
@@ -446,9 +449,24 @@ export function generatePresentation(data: GeneratePresentationRequest) {
   });
 }
 
-export function savePresentation(data: CreatePresentationRequest) {
+export function savePresentation(id: number | string, data: CreatePresentationRequest) {
   invalidateCache();
-  return request<Presentation>("/presentations", {
+  return request<Presentation>(`/presentations/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function refinePresentation(id: number | string, data: RefinePresentationRequest) {
+  invalidateCache();
+  return request<Presentation>(`/presentations/${id}/refine`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function generateOutline(data: GenerateOutlineRequest) {
+  return request<OutlineResponse>("/presentations/outline", {
     method: "POST",
     body: JSON.stringify(data),
   });

@@ -4,7 +4,7 @@
 
 **Goal:** Deliver 180 compositional presentation themes across ten pedagogical and eight inclusive categories.
 
-**Architecture:** A typed library generates themes from category-owned art directions and ten composition blueprints. The creation gallery renders structural previews from those definitions. The editor resolves selected IDs dynamically and adds theme atmosphere while retaining legacy theme compatibility.
+**Architecture:** A typed library generates themes from category-owned art directions and ten composition blueprints. The creation gallery renders structural previews from those definitions. The editor resolves selected IDs dynamically and adds theme atmosphere while retaining legacy theme compatibility. The React/CSS canvas is the single visual source; html-to-image captures it and PptxGenJS packages the rendered pages.
 
 **Tech Stack:** TypeScript, React 19, Next.js, Tailwind CSS, Framer Motion, Lucide React, Node contract tests.
 
@@ -57,3 +57,15 @@
 - [ ] Request the local creator route and confirm HTTP 200.
 - [ ] Record unrelated global build failures separately.
 
+### Task 5: HTML-first PowerPoint export
+
+**Files:**
+- Modify: `frontend/src/app/dashboard/slides/[id]/page.tsx`
+- Modify: `frontend/package.json`
+- Modify: `frontend/package-lock.json`
+- Modify: `frontend/scripts/presentation-theme-library.test.mjs`
+
+- [ ] Add failing assertions for `html-to-image`, a stable canvas ref and `toPng` capture.
+- [ ] Capture each React/CSS slide at 2× resolution and place it full-bleed in a 16:9 PptxGenJS slide.
+- [ ] Preserve professor notes and restore the active editor slide after export.
+- [ ] Run focused tests and TypeScript.

@@ -3,6 +3,9 @@ package br.com.edudocsai.controller;
 import br.com.edudocsai.dto.presentation.CreatePresentationRequest;
 import br.com.edudocsai.dto.presentation.GeneratePresentationRequest;
 import br.com.edudocsai.dto.presentation.PresentationResponse;
+import br.com.edudocsai.dto.presentation.RefinePresentationRequest;
+import br.com.edudocsai.dto.presentation.GenerateOutlineRequest;
+import br.com.edudocsai.dto.presentation.OutlineResponse;
 import br.com.edudocsai.service.PresentationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -57,6 +61,24 @@ public class PresentationController {
     @Operation(summary = "Gera uma apresentação de slides por IA")
     public PresentationResponse generate(@Valid @RequestBody GeneratePresentationRequest request) {
         return presentationService.generate(request);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualiza uma apresentação de slides existente")
+    public PresentationResponse update(@PathVariable Long id, @Valid @RequestBody CreatePresentationRequest request) {
+        return presentationService.update(id, request);
+    }
+
+    @PostMapping("/{id}/refine")
+    @Operation(summary = "Refina a apresentação de slides por IA com base em instruções do professor")
+    public PresentationResponse refine(@PathVariable Long id, @Valid @RequestBody RefinePresentationRequest request) {
+        return presentationService.refine(id, request);
+    }
+
+    @PostMapping("/outline")
+    @Operation(summary = "Gera um roteiro/esboço sugerido de slides com base no assunto")
+    public OutlineResponse generateOutline(@Valid @RequestBody GenerateOutlineRequest request) {
+        return presentationService.generateOutline(request);
     }
 
     @DeleteMapping("/{id}")

@@ -22,7 +22,9 @@ O seletor organiza temas por grupo e categoria, oferece pesquisa e mostra dez re
 
 ## Renderização
 
-O ID selecionado chega intacto ao editor. O editor resolve tokens e atmosfera visual dinamicamente e mantém compatibilidade com os temas legados. A atmosfera inclui camadas decorativas, tratamento de borda e imagem e variação de silhueta. Os layouts pedagógicos existentes continuam responsáveis pela função do slide; o tema altera sua expressão visual sem destruir o conteúdo editável.
+O HTML/CSS do editor é a fonte visual única. O ID selecionado chega intacto ao editor, que resolve tokens e atmosfera visual dinamicamente e mantém compatibilidade com os temas legados. A atmosfera inclui camadas decorativas, tratamento de borda e imagem e variação de silhueta. Os layouts pedagógicos existentes continuam responsáveis pela função do slide.
+
+Na exportação, cada slide é renderizado pelo mesmo canvas React/CSS em alta resolução. O PptxGenJS apenas empacota essas páginas no arquivo PowerPoint e preserva as notas do professor. Não existe uma segunda reconstrução visual baseada em shapes, evitando divergência entre prévia e download.
 
 ## Inclusão
 
@@ -36,5 +38,5 @@ Temas inclusivos têm regras verificáveis. TDAH reduz competição visual e exp
 - Todo tema inclusivo possui regras específicas, não somente tags.
 - Miniaturas usam ao menos três regiões visuais e variam por composição.
 - O tema selecionado chega ao editor sem conversão para `LUDICO`.
+- A exportação captura o canvas HTML/CSS e não redesenha o slide separadamente.
 - Catálogo, filtros, TypeScript e lint possuem verificações automatizadas.
-

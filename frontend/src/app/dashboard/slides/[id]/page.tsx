@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -30,8 +30,9 @@ import {
   PlusCircle
 } from "lucide-react";
 import pptxgen from "pptxgenjs";
+import { toPng } from "html-to-image";
 
-import { fetchPresentation, savePresentation, API_BASE_URL, getToken } from "@/lib/api";
+import { fetchPresentation, savePresentation, refinePresentation, API_BASE_URL, getToken } from "@/lib/api";
 import type { Presentation as PresentationType, Slide, SlideLayout } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,6 +40,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LinkToClassroomModal } from "@/components/classroom/LinkToClassroomModal";
+import { ThemeAtmosphere } from "@/components/presentation-theme/ThemeAtmosphere";
+import { PRESENTATION_THEME_LIBRARY, getPresentationTheme } from "@/lib/presentation-themes";
 
 // Curated educational stock photos from Unsplash for robust fallback
 const FALLBACK_STOCK_PHOTOS: Record<string, string> = {
@@ -64,7 +67,7 @@ function getSlideImages(slide: Slide): { img1: string; img2: string } {
   return { img1: url, img2: url };
 }
 
-type ThemeType =
+type LegacyThemeType =
   | "LUDICO"
   | "MODERNO_ESCURO"
   | "CLASSICO"
@@ -103,7 +106,7 @@ interface ThemeStyle {
   pptxFont: string;
 }
 
-const THEME_STYLES: Record<ThemeType, ThemeStyle> = {
+const THEME_STYLES: Record<LegacyThemeType, ThemeStyle> = {
   LUDICO: {
     label: "Lúdico Pastel",
     bgClass: "bg-gradient-to-tr from-purple-100 via-pink-50 to-indigo-100 text-purple-950",
@@ -414,7 +417,31 @@ const THEME_STYLES: Record<ThemeType, ThemeStyle> = {
   },
 };
 
-function ThemeBackground({ theme }: { theme: ThemeType }) {
+function toPptxColor(hex: string) {
+  return hex.replace("#", "").toUpperCase();
+}
+
+function resolveThemeStyle(themeId: string): ThemeStyle {
+  if (themeId in THEME_STYLES) return THEME_STYLES[themeId as LegacyThemeType];
+  const definition = getPresentationTheme(themeId);
+  if (!definition) return THEME_STYLES.LUDICO;
+  return {
+    label: definition.name,
+    bgClass: "bg-[var(--presentation-canvas)] text-[var(--presentation-ink)]",
+    cardBgClass: "bg-[var(--presentation-surface)]/90 border border-[var(--presentation-accent)]/20 shadow-md",
+    titleColor: "text-[var(--presentation-ink)] font-black",
+    textColor: "text-[var(--presentation-muted)] font-medium",
+    accentColor: "bg-[var(--presentation-accent)] text-[var(--presentation-on-accent)]",
+    badgeClass: "bg-[var(--presentation-surface)]/90 text-[var(--presentation-ink)] border-[var(--presentation-accent)]/30",
+    fontFamily: "",
+    pptxBg: toPptxColor(definition.colors.canvas),
+    pptxText: toPptxColor(definition.colors.muted),
+    pptxTitle: toPptxColor(definition.colors.ink),
+    pptxFont: definition.fontFamily.split(",")[0].trim(),
+  };
+}
+
+function ThemeBackground({ theme }: { theme: string }) {
   switch (theme) {
     case "LUDICO":
       return (
@@ -614,15 +641,26 @@ const LAYOUT_LABELS: Record<SlideLayout, string> = {
 export default function SlideWorkspacePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const slideCanvasRef = React.useRef<HTMLDivElement>(null);
+
+  const themeParam = searchParams.get("theme");
 
   const [presentation, setPresentation] = React.useState<PresentationType | null>(null);
   const [slides, setSlides] = React.useState<Slide[]>([]);
   const [activeIndex, setActiveIndex] = React.useState<number>(0);
-  const [activeTheme, setActiveTheme] = React.useState<ThemeType>("LUDICO");
+  const [activeTheme, setActiveTheme] = React.useState<string>(() => themeParam || "LUDICO");
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+
+  // AI Refinement states
+  const [isRefining, setIsRefining] = React.useState(false);
+  const [refineMessage, setRefineMessage] = React.useState("");
+  const [aiInstruction, setAiInstruction] = React.useState("");
+  const [rightTab, setRightTab] = React.useState<"edit" | "ai">("edit");
   
   // Presenter Mode state
   const [isPresenterMode, setIsPresenterMode] = React.useState(false);
@@ -834,7 +872,7 @@ export default function SlideWorkspacePage() {
     setIsSaving(true);
     try {
       const updatedJson = JSON.stringify({ slides });
-      await savePresentation({
+      await savePresentation(presentation.id, {
         title: presentation.title,
         topic: presentation.topic,
         grade: presentation.grade,
@@ -848,6 +886,41 @@ export default function SlideWorkspacePage() {
       alert("Erro ao salvar alterações.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  // AI Refine conversational edits
+  async function handleAIRefine(instructionText: string) {
+    if (!presentation || !instructionText.trim()) return;
+    setIsRefining(true);
+    setRefineMessage("A IA está analisando e refinando seu slide...");
+    try {
+      const updated = await refinePresentation(presentation.id, {
+        instruction: instructionText,
+        slideIndex: activeIndex
+      });
+      setPresentation(updated);
+      
+      const parsed = JSON.parse(updated.slidesJson);
+      const slidesList: Slide[] = parsed.slides || [];
+      
+      const subjectKey = (updated.subject || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const defaultPhoto = FALLBACK_STOCK_PHOTOS[subjectKey] || FALLBACK_STOCK_PHOTOS.default;
+
+      const initializedSlides = slidesList.map((slide, idx) => {
+        return {
+          ...slide,
+          imageUrl: slide.imageUrl || defaultPhoto
+        };
+      });
+
+      setSlides(initializedSlides);
+      setAiInstruction("");
+      setActiveIndex(prev => Math.min(prev, initializedSlides.length - 1));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao refinar com IA.");
+    } finally {
+      setIsRefining(false);
     }
   }
 
@@ -890,12 +963,12 @@ export default function SlideWorkspacePage() {
   }
 
   // PPTX Export Logic (pptxgenjs)
-  async function handleExportPPTX() {
+  async function handleExportPPTXLegacy() {
     if (!presentation) return;
     const pres = new pptxgen();
     pres.layout = "LAYOUT_16x9";
     
-    const theme = THEME_STYLES[activeTheme];
+    const theme = resolveThemeStyle(activeTheme);
 
     // Define colors for pptx
     const pptxBg = theme.pptxBg;
@@ -1235,6 +1308,40 @@ export default function SlideWorkspacePage() {
     pres.writeFile({ fileName: `${presentation.title.replace(/[^\w\s-]/g, "")}.pptx` });
   }
 
+  async function handleExportPPTX() {
+    if (!presentation || !slideCanvasRef.current || isExporting) return;
+    const previousIndex = activeIndex;
+    const exportedDeck = new pptxgen();
+    exportedDeck.layout = "LAYOUT_16x9";
+    exportedDeck.author = "EduDocs.ai";
+    exportedDeck.subject = presentation.subject;
+    exportedDeck.title = presentation.title;
+    setIsExporting(true);
+
+    try {
+      for (let index = 0; index < slides.length; index += 1) {
+        setActiveIndex(index);
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        if (document.fonts?.ready) await document.fonts.ready;
+        const canvas = slideCanvasRef.current;
+        if (!canvas) throw new Error("Canvas do slide indisponível para exportação.");
+        const imageData = await toPng(canvas, {
+          cacheBust: true,
+          pixelRatio: 2,
+          backgroundColor: getPresentationTheme(activeTheme)?.colors.canvas,
+        });
+        const outputSlide = exportedDeck.addSlide();
+        outputSlide.addImage({ data: imageData, x: 0, y: 0, w: 10, h: 5.625 });
+        outputSlide.addNotes(slides[index]?.notas_professor || "");
+      }
+      const safeTitle = presentation.title.replace(/[^\p{L}\p{N}\s-]/gu, "").trim() || "apresentacao";
+      await exportedDeck.writeFile({ fileName: `${safeTitle}.pptx` });
+    } finally {
+      setActiveIndex(previousIndex);
+      setIsExporting(false);
+    }
+  }
+
   // Update slide fields helper
   function updateActiveSlide(fields: Partial<Slide>) {
     setSlides(prev => {
@@ -1270,10 +1377,20 @@ export default function SlideWorkspacePage() {
     );
   }
 
-  const theme = THEME_STYLES[activeTheme];
+  const theme = resolveThemeStyle(activeTheme);
+  const customTheme = getPresentationTheme(activeTheme);
+  const themeVariables = customTheme ? ({
+    "--presentation-canvas": customTheme.colors.canvas,
+    "--presentation-surface": customTheme.colors.surface,
+    "--presentation-ink": customTheme.colors.ink,
+    "--presentation-muted": customTheme.colors.muted,
+    "--presentation-accent": customTheme.colors.accent,
+    "--presentation-on-accent": customTheme.colors.onAccent,
+    fontFamily: customTheme.fontFamily,
+  } as React.CSSProperties) : undefined;
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col -m-6 relative">
+    <div className="h-[calc(100vh-100px)] flex flex-col -m-6 relative" style={themeVariables}>
       {/* 1. TOP BAR DE CONTROLES */}
       <div className="bg-white border-b border-surface-200 px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
         <div className="flex items-center gap-3">
@@ -1297,15 +1414,18 @@ export default function SlideWorkspacePage() {
         <div className="flex items-center gap-2">
           {/* Theme Selector */}
           <div className="w-48 mr-2">
-            <Select value={activeTheme} onValueChange={(val) => setActiveTheme(val as ThemeType)}>
+            <Select value={activeTheme} onValueChange={setActiveTheme}>
               <SelectTrigger className="h-9 text-xs rounded-xl border-surface-200 bg-white hover:bg-surface-50 cursor-pointer">
                 <SelectValue placeholder="Selecione o estilo" />
               </SelectTrigger>
               <SelectContent className="max-h-60 overflow-y-auto w-48">
-                {(Object.keys(THEME_STYLES) as ThemeType[]).map((t) => (
+                {(Object.keys(THEME_STYLES) as LegacyThemeType[]).map((t) => (
                   <SelectItem key={t} value={t}>
                     {THEME_STYLES[t].label}
                   </SelectItem>
+                ))}
+                {PRESENTATION_THEME_LIBRARY.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1342,6 +1462,7 @@ export default function SlideWorkspacePage() {
             variant="primary"
             size="sm"
             onClick={handleExportPPTX}
+            isLoading={isExporting}
             leftIcon={<Download className="w-4 h-4" />}
             className="text-xs shadow-sm"
           >
@@ -1354,31 +1475,140 @@ export default function SlideWorkspacePage() {
       <div className="flex-1 flex overflow-hidden bg-surface-50">
         
         {/* LADO A: MINIATURAS (ESQUERDO) */}
-        <div className="w-48 border-r border-surface-200 bg-white overflow-y-auto p-4 flex flex-col gap-3 shrink-0 select-none">
+        <div className="w-52 border-r border-surface-200 bg-white overflow-y-auto p-4 flex flex-col gap-4 shrink-0 select-none">
           <span className="text-[9px] font-bold uppercase tracking-wider text-text-400 block mb-1">
             Slides ({slides.length})
           </span>
-          {slides.map((slide, idx) => (
-            <button
-              key={slide.slide_number}
-              onClick={() => setActiveIndex(idx)}
-              className={`w-full text-left rounded-xl border p-3 transition-all relative overflow-hidden group cursor-pointer ${
-                activeIndex === idx
-                  ? "border-primary-500 bg-primary-50/30 ring-1 ring-primary-500/20 shadow-sm"
-                  : "border-surface-200 hover:border-surface-300 bg-white"
-              }`}
-            >
-              <div className="text-[10px] font-extrabold text-text-400 mb-1">
-                Slide {slide.slide_number}
-              </div>
-              <div className="text-[11px] font-bold text-text-800 line-clamp-1">
-                {slide.titulo || "(Sem Título)"}
-              </div>
-              <div className="text-[9px] text-text-400 mt-1 capitalize font-medium">
-                {LAYOUT_LABELS[slide.layout]}
-              </div>
-            </button>
-          ))}
+          {slides.map((slide, idx) => {
+            const slideTheme = resolveThemeStyle(activeTheme);
+            const isSelected = activeIndex === idx;
+
+            return (
+              <button
+                key={slide.slide_number}
+                onClick={() => setActiveIndex(idx)}
+                className={`w-full text-left rounded-2xl border p-2.5 transition-all relative overflow-hidden group cursor-pointer ${
+                  isSelected
+                    ? "border-primary-500 bg-primary-50/20 ring-1 ring-primary-500/10 shadow-sm"
+                    : "border-surface-200 hover:border-surface-300 bg-white"
+                }`}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-[9px] font-extrabold text-text-400">
+                    <span>Slide {slide.slide_number}</span>
+                    <span className="capitalize font-semibold text-[8px] max-w-[80px] truncate">
+                      {LAYOUT_LABELS[slide.layout]}
+                    </span>
+                  </div>
+
+                  {/* Miniature Slide Canvas preview */}
+                  <div
+                    className={`w-full aspect-[16/9] rounded-lg border shadow-sm relative overflow-hidden p-1.5 flex flex-col justify-between select-none ${slideTheme.bgClass} ${slideTheme.fontFamily}`}
+                  >
+                    <ThemeAtmosphere theme={customTheme} />
+                    {/* Miniature header decorative */}
+                    <div className="h-0.5 w-1/3 bg-current/15 rounded-full" />
+                    
+                    {/* Miniature Layout Representation */}
+                    <div className="flex-1 flex items-center justify-center p-0.5 overflow-hidden">
+                      {slide.layout === "title_slide" && (
+                        <div className="w-full flex gap-1 h-full items-center">
+                          <div className="flex-1 space-y-0.5">
+                            <div className="h-1 bg-current/40 rounded w-4/5" />
+                            <div className="h-0.5 bg-current/20 rounded w-3/5" />
+                          </div>
+                          <div className="w-1/3 h-full bg-current/10 rounded" />
+                        </div>
+                      )}
+                      {slide.layout === "bullet_points" && (
+                        <div className="w-full space-y-0.5 py-0.5">
+                          <div className="h-1 bg-current/45 rounded w-3/4 mb-1" />
+                          <div className="h-0.5 bg-current/20 rounded w-4/5" />
+                          <div className="h-0.5 bg-current/20 rounded w-2/3" />
+                        </div>
+                      )}
+                      {slide.layout === "quote" && (
+                        <div className="w-full text-center space-y-0.5">
+                          <span className="text-[6px] font-serif leading-none opacity-40 block">“</span>
+                          <div className="h-0.5 bg-current/30 rounded w-3/4 mx-auto" />
+                        </div>
+                      )}
+                      {slide.layout === "exercise" && (
+                        <div className="w-full h-full bg-current/5 border border-current/15 rounded p-0.5 space-y-0.5">
+                          <div className="h-0.5 bg-current/40 rounded w-1/3" />
+                          <div className="h-0.5 bg-current/20 rounded w-4/5" />
+                        </div>
+                      )}
+                      {slide.layout === "text_and_image" && (
+                        <div className="w-full flex gap-1 h-full items-center">
+                          <div className="flex-1 space-y-0.5">
+                            <div className="h-1 bg-current/45 rounded w-4/5" />
+                            <div className="h-0.5 bg-current/20 rounded w-2/3" />
+                          </div>
+                          <div className="w-1/3 h-full bg-current/15 rounded" />
+                        </div>
+                      )}
+                      {slide.layout === "summary" && (
+                        <div className="w-full grid grid-cols-2 gap-0.5">
+                          <div className="h-2 bg-current/5 rounded border border-current/10" />
+                          <div className="h-2 bg-current/5 rounded border border-current/10" />
+                        </div>
+                      )}
+                      {slide.layout === "comparison" && (
+                        <div className="w-full grid grid-cols-2 gap-0.5 h-full py-0.5">
+                          <div className="bg-orange-600/70 rounded h-full" />
+                          <div className="bg-current/10 rounded h-full" />
+                        </div>
+                      )}
+                      {slide.layout === "numbered_steps" && (
+                        <div className="w-full space-y-0.5">
+                          <div className="flex gap-1 items-center">
+                            <div className="w-1 h-1 bg-primary-600 rounded-sm" />
+                            <div className="h-0.5 bg-current/20 rounded w-2/3" />
+                          </div>
+                          <div className="flex gap-1 items-center">
+                            <div className="w-1 h-1 bg-primary-600 rounded-sm" />
+                            <div className="h-0.5 bg-current/20 rounded w-4/5" />
+                          </div>
+                        </div>
+                      )}
+                      {slide.layout === "timeline" && (
+                        <div className="w-full flex items-center justify-between gap-0.5 py-2">
+                          <div className="w-1 h-1 rounded-full bg-primary-600" />
+                          <div className="flex-1 h-[1px] bg-current/20 border-t border-dashed" />
+                          <div className="w-1 h-1 rounded-full bg-primary-600" />
+                        </div>
+                      )}
+                      {slide.layout === "split_columns" && (
+                        <div className="w-full grid grid-cols-2 gap-1 h-full items-center">
+                          <div className="h-2 bg-current/15 rounded" />
+                          <div className="h-2 bg-current/15 rounded" />
+                        </div>
+                      )}
+                      {slide.layout === "grid_cards" && (
+                        <div className="w-full grid grid-cols-3 gap-0.5">
+                          <div className="h-4 bg-current/5 border border-current/10 rounded" />
+                          <div className="h-4 bg-current/5 border border-current/10 rounded" />
+                        </div>
+                      )}
+                      {slide.layout === "highlight_quote" && (
+                        <div className="w-full flex gap-1 h-full items-center">
+                          <div className="w-1/3 h-full bg-current/15 rounded" />
+                          <div className="flex-1 space-y-0.5">
+                            <div className="h-0.5 bg-current/30 rounded w-full" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-[7px] font-bold text-current/60 text-center line-clamp-1">
+                      {slide.titulo || "(Sem Título)"}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* LADO B: CANVAS DO SLIDE (CENTRAL PREVIEW) */}
@@ -1387,10 +1617,39 @@ export default function SlideWorkspacePage() {
             <>
               {/* CANVAS CARD */}
               <div
+                ref={slideCanvasRef}
                 className={`w-full max-w-4xl aspect-[16/9] rounded-2xl shadow-2xl overflow-hidden flex flex-col justify-between p-10 relative transition-all duration-300 shrink-0 ${theme.bgClass} ${theme.fontFamily}`}
               >
+                {/* AI Refinement Loading Overlay */}
+                <AnimatePresence>
+                  {isRefining && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-white/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4"
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-primary-500/25 rounded-full blur-xl animate-pulse" />
+                        <div className="w-14 h-14 rounded-2xl bg-white border border-primary-100 flex items-center justify-center text-primary-600 shadow-xl relative animate-spin">
+                          <Sparkles className="w-7 h-7" />
+                        </div>
+                      </div>
+                      <div className="text-center space-y-1">
+                        <span className="text-xs font-black text-text-900 block animate-pulse">
+                          {refineMessage}
+                        </span>
+                        <span className="text-[9px] text-text-450 block">
+                          A IA está desenhando a aula ideal para você...
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Background theme decorative elements */}
                 <ThemeBackground theme={activeTheme} />
+                <ThemeAtmosphere theme={customTheme} />
 
                 {/* Header */}
                 <div className="flex justify-between items-start z-10 shrink-0 select-none">
@@ -2156,163 +2415,260 @@ export default function SlideWorkspacePage() {
 
         {/* LADO C: EDITOR E AJUSTES DE SLIDE (DIREITO) */}
         {currentSlide && (
-          <div className="w-80 border-l border-surface-200 bg-white overflow-y-auto p-5 flex flex-col gap-6 shrink-0">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block mb-2">
-                Layout do Slide
-              </span>
-              <select
-                value={currentSlide.layout}
-                onChange={(e) => updateActiveSlide({ layout: e.target.value as SlideLayout })}
-                className="w-full h-10 px-3 bg-surface-0 border border-surface-200 rounded-lg text-xs text-text-800 focus:outline-none focus:ring-1 focus:ring-primary-500 font-semibold"
+          <div className="w-80 border-l border-surface-200 bg-white flex flex-col shrink-0">
+            {/* Tabs Header */}
+            <div className="flex border-b border-surface-200 select-none shrink-0">
+              <button
+                onClick={() => setRightTab("edit")}
+                className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 cursor-pointer ${
+                  rightTab === "edit"
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-text-500 hover:text-text-800"
+                }`}
               >
-                {(Object.keys(LAYOUT_LABELS) as SlideLayout[]).map((lay) => (
-                  <option key={lay} value={lay}>{LAYOUT_LABELS[lay]}</option>
-                ))}
-              </select>
+                Editar Conteúdo
+              </button>
+              <button
+                onClick={() => setRightTab("ai")}
+                className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 cursor-pointer ${
+                  rightTab === "ai"
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-text-500 hover:text-text-800"
+                }`}
+              >
+                Assistente IA ✨
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block">
-                Conteúdo do Slide
-              </span>
-              
-              <div>
-                <label className="block text-[10px] font-bold text-text-500 uppercase mb-1">Título</label>
-                <Input
-                  value={currentSlide.titulo}
-                  onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
-                  className="h-10 text-xs bg-white"
-                />
-              </div>
-
-              {(currentSlide.layout === "title_slide" || currentSlide.layout === "quote") && (
-                <div>
-                  <label className="block text-[10px] font-bold text-text-500 uppercase mb-1">Subtítulo / Autor</label>
-                  <Input
-                    value={currentSlide.subtitulo || ""}
-                    onChange={(e) => updateActiveSlide({ subtitulo: e.target.value })}
-                    className="h-10 text-xs bg-white"
-                  />
-                </div>
-              )}
-
-              {currentSlide.layout !== "title_slide" && currentSlide.layout !== "quote" && (
-                <div>
-                  <label className="block text-[10px] font-bold text-text-500 uppercase mb-1 flex items-center justify-between">
-                    <span>Pontos / Parágrafos</span>
-                    <button
-                      onClick={() => {
-                        const newPoints = [...currentSlide.pontos, "Novo marcador"];
-                        updateActiveSlide({ pontos: newPoints });
-                      }}
-                      className="p-1 hover:bg-surface-100 rounded text-primary-600 transition-colors"
-                      title="Adicionar ponto"
+            {/* Tab Contents */}
+            <div className="flex-1 p-5 flex flex-col gap-5 overflow-y-auto">
+              {rightTab === "edit" ? (
+                <>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block mb-2">
+                      Layout do Slide
+                    </span>
+                    <select
+                      value={currentSlide.layout}
+                      onChange={(e) => updateActiveSlide({ layout: e.target.value as SlideLayout })}
+                      className="w-full h-10 px-3 bg-surface-0 border border-surface-200 rounded-lg text-xs text-text-800 focus:outline-none focus:ring-1 focus:ring-primary-500 font-semibold"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </label>
-                  
-                  <div className="space-y-2 mt-1">
-                    {currentSlide.pontos.map((pt, index) => (
-                      <div key={index} className="flex items-center gap-1">
+                      {(Object.keys(LAYOUT_LABELS) as SlideLayout[]).map((lay) => (
+                        <option key={lay} value={lay}>{LAYOUT_LABELS[lay]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block">
+                      Conteúdo do Slide
+                    </span>
+                    
+                    <div>
+                      <label className="block text-[10px] font-bold text-text-500 uppercase mb-1">Título</label>
+                      <Input
+                        value={currentSlide.titulo}
+                        onChange={(e) => updateActiveSlide({ titulo: e.target.value })}
+                        className="h-10 text-xs bg-white"
+                      />
+                    </div>
+
+                    {(currentSlide.layout === "title_slide" || currentSlide.layout === "quote") && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-text-500 uppercase mb-1">Subtítulo / Autor</label>
                         <Input
-                          value={pt}
-                          onChange={(e) => {
-                            const copy = [...currentSlide.pontos];
-                            copy[index] = e.target.value;
-                            updateActiveSlide({ pontos: copy });
-                          }}
-                          className="h-9 text-xs bg-white"
+                          value={currentSlide.subtitulo || ""}
+                          onChange={(e) => updateActiveSlide({ subtitulo: e.target.value })}
+                          className="h-10 text-xs bg-white"
                         />
-                        <button
-                          onClick={() => {
-                            const copy = currentSlide.pontos.filter((_, i) => i !== index);
-                            updateActiveSlide({ pontos: copy });
-                          }}
-                          className="p-1 text-text-400 hover:text-error-500 rounded"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
-                    ))}
+                    )}
+
+                    {currentSlide.layout !== "title_slide" && currentSlide.layout !== "quote" && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-text-500 uppercase mb-1 flex items-center justify-between">
+                          <span>Pontos / Parágrafos</span>
+                          <button
+                            onClick={() => {
+                              const newPoints = [...currentSlide.pontos, "Novo marcador"];
+                              updateActiveSlide({ pontos: newPoints });
+                            }}
+                            className="p-1 hover:bg-surface-100 rounded text-primary-600 transition-colors"
+                            title="Adicionar ponto"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </label>
+                        
+                        <div className="space-y-2 mt-1">
+                          {currentSlide.pontos.map((pt, index) => (
+                            <div key={index} className="flex items-center gap-1">
+                              <Input
+                                value={pt}
+                                onChange={(e) => {
+                                  const copy = [...currentSlide.pontos];
+                                  copy[index] = e.target.value;
+                                  updateActiveSlide({ pontos: copy });
+                                }}
+                                className="h-9 text-xs bg-white"
+                              />
+                              <button
+                                onClick={() => {
+                                  const copy = currentSlide.pontos.filter((_, i) => i !== index);
+                                  updateActiveSlide({ pontos: copy });
+                                }}
+                                className="p-1 text-text-400 hover:text-error-500 rounded"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
 
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block mb-2 flex items-center gap-1">
-                <Info className="w-3.5 h-3.5 text-primary-500" />
-                Notas do Professor (Roteiro)
-              </span>
-              <Textarea
-                value={currentSlide.notas_professor}
-                onChange={(e) => updateActiveSlide({ notas_professor: e.target.value })}
-                className="min-h-[120px] text-xs bg-white leading-relaxed resize-none"
-                placeholder="Roteiro de fala e notas para o professor utilizar em sala de aula..."
-              />
-            </div>
-
-            {/* FOTOS DE BANCO AUTOMATICAS / SUBSTITUICAO */}
-            <div className="border-t border-surface-200 pt-5 space-y-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4 text-primary-500" />
-                Imagem do Slide (Unsplash)
-              </span>
-
-              {currentSlide.imageUrl && (
-                <div className="w-full aspect-[16/10] rounded-lg overflow-hidden border border-surface-200 relative group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentSlide.imageUrl}
-                    alt={currentSlide.titulo}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                    <span className="text-[10px] font-extrabold text-white uppercase tracking-wider">Foto em uso</span>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block mb-2 flex items-center gap-1">
+                      <Info className="w-3.5 h-3.5 text-primary-500" />
+                      Notas do Professor (Roteiro)
+                    </span>
+                    <Textarea
+                      value={currentSlide.notas_professor}
+                      onChange={(e) => updateActiveSlide({ notas_professor: e.target.value })}
+                      className="min-h-[100px] text-xs bg-white leading-relaxed resize-none"
+                      placeholder="Roteiro de fala e notas para o professor utilizar em sala de aula..."
+                    />
                   </div>
-                </div>
-              )}
 
-              {/* Buscar nova foto */}
-              <div className="space-y-2">
-                <label className="block text-[9px] font-bold text-text-500 uppercase">Pesquisar fotos alternativas</label>
-                <div className="flex gap-1.5">
-                  <Input
-                    value={imageSearchQuery}
-                    onChange={(e) => setImageSearchQuery(e.target.value)}
-                    placeholder="Ex: 'cell structure lab' (em inglês)"
-                    className="h-8.5 text-xs bg-white"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={handleImageSearch}
-                    isLoading={isSearchingImages}
-                    className="px-2.5 h-8.5"
-                  >
-                    <Search className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
+                  {/* FOTOS DE BANCO AUTOMATICAS / SUBSTITUICAO */}
+                  <div className="border-t border-surface-200 pt-5 space-y-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-primary-500" />
+                      Imagem do Slide (Unsplash)
+                    </span>
 
-              {/* Resultados da busca */}
-              {searchResults.length > 0 && (
-                <div className="grid grid-cols-3 gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-surface-50 rounded-lg border border-surface-200">
-                  {searchResults.map((url, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => selectImage(url)}
-                      className="w-full aspect-square rounded overflow-hidden border hover:border-primary-500 hover:ring-2 hover:ring-primary-500/20 transition-all cursor-pointer"
+                    {currentSlide.imageUrl && (
+                      <div className="w-full aspect-[16/10] rounded-lg overflow-hidden border border-surface-200 relative group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={currentSlide.imageUrl}
+                          alt={currentSlide.titulo}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                          <span className="text-[10px] font-extrabold text-white uppercase tracking-wider">Foto em uso</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Buscar nova foto */}
+                    <div className="space-y-2">
+                      <label className="block text-[9px] font-bold text-text-500 uppercase">Pesquisar fotos alternativas</label>
+                      <div className="flex gap-1.5">
+                        <Input
+                          value={imageSearchQuery}
+                          onChange={(e) => setImageSearchQuery(e.target.value)}
+                          placeholder="Ex: 'cell structure lab' (em inglês)"
+                          className="h-8.5 text-xs bg-white"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleImageSearch}
+                          isLoading={isSearchingImages}
+                          className="px-2.5 h-8.5"
+                        >
+                          <Search className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Resultados da busca */}
+                    {searchResults.length > 0 && (
+                      <div className="grid grid-cols-3 gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-surface-50 rounded-lg border border-surface-200">
+                        {searchResults.map((url, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => selectImage(url)}
+                            className="w-full aspect-square rounded overflow-hidden border hover:border-primary-500 hover:ring-2 hover:ring-primary-500/20 transition-all cursor-pointer"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt="resultado" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* AI Assistant tab content */}
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-bold text-text-700 uppercase">
+                      Como deseja alterar este slide com IA?
+                    </label>
+                    <Textarea
+                      value={aiInstruction}
+                      onChange={(e) => setAiInstruction(e.target.value)}
+                      placeholder="Ex: Simplifique a linguagem para o 4º ano, crie um desafio prático de múltipla escolha..."
+                      className="min-h-[100px] text-xs bg-white resize-none rounded-xl"
+                    />
+                    <Button
+                      onClick={() => handleAIRefine(aiInstruction)}
+                      disabled={!aiInstruction.trim() || isRefining}
+                      variant="primary"
+                      size="sm"
+                      className="w-full text-xs font-bold justify-center rounded-xl h-10 shadow-sm"
+                      leftIcon={<Sparkles className="w-4 h-4 animate-pulse" />}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="resultado" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
+                      Refinar com IA
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 select-none pt-4 border-t border-surface-150">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-400 block">
+                      Ações Sugeridas (IA)
+                    </span>
+                    <div className="flex flex-col gap-2">
+                      {[
+                        {
+                          label: "🪄 Simplificar Conteúdo",
+                          text: "Simplifique o texto deste slide, tornando os tópicos mais concisos e fáceis de ler para esta série.",
+                        },
+                        {
+                          label: "💡 Criar Desafio Prático",
+                          text: "Adicione um desafio interativo ou pergunta prática baseada no conteúdo atual deste slide.",
+                        },
+                        {
+                          label: "📝 Expandir Explicação",
+                          text: "Aprofunde a explicação deste conceito adicionando mais detalhes pedagógicos nos pontos.",
+                        },
+                        {
+                          label: "🎯 Vincular à BNCC",
+                          text: "Adicione sugestões explícitas de habilidades BNCC correlacionadas nas notas do professor.",
+                        },
+                        {
+                          label: "🎨 Focar no Visual",
+                          text: "Reestruture este slide para focar em termos mais visuais, sugerindo termos de imagem mais descritivos.",
+                        },
+                      ].map((chip, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setAiInstruction(chip.text);
+                            handleAIRefine(chip.text);
+                          }}
+                          className="w-full text-left p-3 rounded-xl border border-surface-200 hover:border-primary-300 hover:bg-primary-50/20 text-xs font-bold text-text-700 transition-all cursor-pointer flex items-center justify-between group"
+                        >
+                          <span>{chip.label}</span>
+                          <Sparkles className="w-3.5 h-3.5 text-primary-500 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
-
           </div>
         )}
       </div>
@@ -2328,6 +2684,7 @@ export default function SlideWorkspacePage() {
           >
             {/* Background theme decorative elements */}
             <ThemeBackground theme={activeTheme} />
+            <ThemeAtmosphere theme={customTheme} />
             {/* Header Presenter */}
             <div className="flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
