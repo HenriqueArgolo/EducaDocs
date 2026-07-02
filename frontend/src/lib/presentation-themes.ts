@@ -118,9 +118,48 @@ function slugify(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+const CHALKIE_THEME_STYLES: Record<string, [string, string, string, string, string, string]> = {
+  "Chalkie Light": ["#FFFFFF", "#F9FAFB", "#111827", "#4B5563", "#3B82F6", "#FFFFFF"],
+  "Chalkie Science": ["#F0F7FF", "#FFFFFF", "#0A192F", "#526777", "#0056B3", "#FFFFFF"],
+  "Chalkie Maths": ["#F7F7FF", "#FFFFFF", "#1E1B4B", "#64627A", "#339999", "#FFFFFF"],
+  "Chalkie Simple": ["#FFFFFF", "#FFFFFF", "#000000", "#666666", "#000000", "#FFFFFF"],
+  "Chalkie Classic": ["#FFF8F8", "#FFFFFF", "#1A1A1A", "#666666", "#339999", "#FFFFFF"],
+  "Chalkie Bright": ["#FFFBEB", "#FFFFFF", "#451A03", "#92400E", "#F59E0B", "#FFFFFF"],
+  "Chalkie Mint": ["#ECFDF5", "#FFFFFF", "#064E3B", "#065F46", "#10B981", "#FFFFFF"],
+  "Chalkie Blueprint": ["#1E293B", "#334155", "#F8FAFC", "#94A3B8", "#38BDF8", "#0F172A"],
+  "Chalkie Pop": ["#FFF1F2", "#FFFFFF", "#881337", "#BE123C", "#FB7185", "#FFFFFF"],
+  "Chalkie Orbit": ["#0F172A", "#1E293B", "#F8FAFC", "#94A3B8", "#818CF8", "#FFFFFF"],
+  "Chalkie Bookworm": ["#FAF5F0", "#FFFFFF", "#431407", "#7C2D12", "#EA580C", "#FFFFFF"],
+  "Chalkie Fuji": ["#F5F3FF", "#FFFFFF", "#2E1065", "#4C1D95", "#8B5CF6", "#FFFFFF"],
+  "Chalkie Launch": ["#EFF6FF", "#FFFFFF", "#172554", "#1E3A8A", "#3B82F6", "#FFFFFF"],
+  "Chalkie Mono": ["#FAFAFA", "#FFFFFF", "#000000", "#404040", "#000000", "#FFFFFF"],
+  "Chalkie Gradient": ["#FDF2F8", "#FFFFFF", "#500724", "#831843", "#EC4899", "#FFFFFF"],
+  "Chalkie Coastal": ["#F0FDFA", "#FFFFFF", "#134E4A", "#0F766E", "#0D9488", "#FFFFFF"],
+  "Chalkie Deep": ["#ECFEFF", "#FFFFFF", "#083344", "#155E75", "#06B6D4", "#FFFFFF"],
+  "Chalkie Dark": ["#111827", "#1F2937", "#F9FAFB", "#9CA3AF", "#3B82F6", "#FFFFFF"],
+  "Chalkie Rust": ["#FFF7ED", "#FFFFFF", "#431407", "#7C2D12", "#D97706", "#FFFFFF"],
+  "Chalkie Forest": ["#F0FDF4", "#FFFFFF", "#064E3B", "#14532D", "#16A34A", "#FFFFFF"],
+  "Chalkie Storm": ["#F8FAFC", "#FFFFFF", "#0F172A", "#334155", "#475569", "#FFFFFF"],
+  "Chalkie Clean": ["#FFFFFF", "#F8FAFC", "#0F172A", "#64748B", "#0EA5E9", "#FFFFFF"],
+  "Chalkie Modern": ["#F9FAFB", "#FFFFFF", "#111827", "#374151", "#6366F1", "#FFFFFF"],
+  "Chalkie Minimal": ["#FFFFFF", "#FFFFFF", "#18181B", "#71717A", "#27272A", "#FFFFFF"],
+  "Chalkie Playful": ["#FEF2F2", "#FFFFFF", "#7F1D1D", "#B91C1C", "#EF4444", "#FFFFFF"],
+  "Chalkie Whimsical": ["#FDF4FF", "#FFFFFF", "#4A044E", "#701A75", "#D946EF", "#FFFFFF"],
+  "Chalkie Friendly": ["#FFF7ED", "#FFFFFF", "#7C2D12", "#9A3412", "#F97316", "#FFFFFF"],
+  "Chalkie Professional": ["#F8FAFC", "#FFFFFF", "#0F172A", "#1E293B", "#2563EB", "#FFFFFF"],
+  "Chalkie Corporate": ["#F1F5F9", "#FFFFFF", "#0F172A", "#334155", "#1E40AF", "#FFFFFF"],
+  "Chalkie Elegant": ["#FAF5F5", "#FFFFFF", "#450A0A", "#7F1D1D", "#991B1B", "#FFFFFF"],
+  "Chalkie Fun": ["#FEFCE8", "#FFFFFF", "#422006", "#713F12", "#EAB308", "#FFFFFF"],
+  "Chalkie Creative": ["#F5F3FF", "#FFFFFF", "#2E1065", "#5B21B6", "#7C3AED", "#FFFFFF"],
+  "Chalkie Dynamic": ["#ECFEFF", "#FFFFFF", "#083344", "#0E7490", "#0891B2", "#FFFFFF"],
+  "Chalkie Plains": ["#FEF2F2", "#FFFFFF", "#450A0A", "#991B1B", "#DC2626", "#FFFFFF"],
+};
+
 export const PRESENTATION_THEME_LIBRARY: PresentationThemeDefinition[] = CATEGORY_SOURCES.flatMap(
   (category) => category.names.map((name, index) => {
     const composition = COMPOSITION_SYSTEMS[index % COMPOSITION_SYSTEMS.length];
+    const palette = category.kind === "chalkie" ? (CHALKIE_THEME_STYLES[name] || category.palette) : category.palette;
+    
     return {
       id: `${category.id}-${slugify(name)}`,
       name,
@@ -135,12 +174,12 @@ export const PRESENTATION_THEME_LIBRARY: PresentationThemeDefinition[] = CATEGOR
       fontFamily: category.fontFamily,
       density: composition.density,
       colors: {
-        canvas: category.palette[0],
-        surface: category.palette[1],
-        ink: category.palette[2],
-        muted: category.palette[3],
-        accent: category.palette[4],
-        onAccent: category.palette[5],
+        canvas: palette[0],
+        surface: palette[1],
+        ink: palette[2],
+        muted: palette[3],
+        accent: palette[4],
+        onAccent: palette[5],
       },
       accessibilityProfile: category.kind === "inclusion" ? {
         certifiedFor: category.id,
