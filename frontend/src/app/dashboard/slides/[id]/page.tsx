@@ -638,6 +638,19 @@ const LAYOUT_LABELS: Record<SlideLayout, string> = {
   highlight_quote: "Imagem & Destaque (Callout)"
 };
 
+const compositionGridClasses: Record<string, string> = {
+  organic: "grid-cols-[46%_54%]",
+  editorial: "grid-cols-[58%_42%]",
+  archive: "grid-cols-[42%_58%]",
+  laboratory: "grid-cols-[40%_60%]",
+  geometric: "grid-cols-2",
+  cinematic: "grid-cols-[62%_38%]",
+  collage: "grid-cols-[48%_52%]",
+  notebook: "grid-cols-[36%_64%]",
+  gallery: "grid-cols-[60%_40%]",
+  focus: "grid-cols-[34%_66%]",
+};
+
 export default function SlideWorkspacePage() {
   const params = useParams();
   const router = useRouter();
@@ -1684,7 +1697,7 @@ export default function SlideWorkspacePage() {
                   
                   {/* 1. Capa Split (title_slide) */}
                   {currentSlide.layout === "title_slide" && (
-                    <div className="w-full flex gap-8 items-center h-full">
+                    <div className={`w-full grid gap-8 items-center h-full ${customTheme ? compositionGridClasses[customTheme.composition] || "grid-cols-2" : "grid-cols-2"}`}>
                       <div className="flex-1 flex flex-col justify-center space-y-4">
                         <textarea
                           value={currentSlide.titulo}
@@ -1702,7 +1715,7 @@ export default function SlideWorkspacePage() {
                         />
                       </div>
                       {currentSlide.imageUrl && (
-                        <div className="w-2/5 h-full rounded-xl overflow-hidden shadow-xl border border-white/20 shrink-0 relative group">
+                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
@@ -1814,7 +1827,7 @@ export default function SlideWorkspacePage() {
 
                   {/* 5. Texto e Imagem (text_and_image) */}
                   {currentSlide.layout === "text_and_image" && (
-                    <div className="w-full flex gap-8 items-center h-full">
+                    <div className={`w-full grid gap-8 items-center h-full ${customTheme ? compositionGridClasses[customTheme.composition] || "grid-cols-2" : "grid-cols-2"}`}>
                       <div className="flex-1 flex flex-col justify-center space-y-3">
                         <textarea
                           value={currentSlide.titulo}
@@ -1838,7 +1851,7 @@ export default function SlideWorkspacePage() {
                         </ul>
                       </div>
                       {currentSlide.imageUrl && (
-                        <div className="w-2/5 h-full rounded-xl overflow-hidden shadow-xl border border-white/20 shrink-0 relative group">
+                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
@@ -1956,7 +1969,7 @@ export default function SlideWorkspacePage() {
 
                   {/* 8. Numbered Steps (numbered_steps) */}
                   {currentSlide.layout === "numbered_steps" && (
-                    <div className="w-full flex gap-8 items-center h-full">
+                    <div className={`w-full grid gap-8 items-center h-full ${customTheme ? compositionGridClasses[customTheme.composition] || "grid-cols-2" : "grid-cols-2"}`}>
                       <div className="flex-1 flex flex-col justify-center space-y-3">
                         <textarea
                           value={currentSlide.titulo}
@@ -2029,7 +2042,7 @@ export default function SlideWorkspacePage() {
                         </div>
                       </div>
                       {currentSlide.imageUrl && (
-                        <div className="w-2/5 h-full rounded-xl overflow-hidden shadow-xl border border-white/20 shrink-0 relative group">
+                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
@@ -2306,9 +2319,9 @@ export default function SlideWorkspacePage() {
 
                   {/* 12. Highlight Quote (highlight_quote) */}
                   {currentSlide.layout === "highlight_quote" && (
-                    <div className="w-full flex gap-8 items-center h-full">
+                    <div className={`w-full grid gap-8 items-center h-full ${customTheme ? compositionGridClasses[customTheme.composition] || "grid-cols-2" : "grid-cols-2"}`}>
                       {currentSlide.imageUrl && (
-                        <div className="w-2/5 h-full rounded-xl overflow-hidden shadow-xl border border-white/20 shrink-0 relative group">
+                        <div className={`h-full overflow-hidden shadow-xl border border-white/20 shrink-0 relative group ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
@@ -2738,7 +2751,7 @@ export default function SlideWorkspacePage() {
                   {currentSlide.layout === "title_slide" && (
                     <div className="w-full">
                       {currentSlide.imageUrl ? (
-                        <div className="flex flex-col md:flex-row gap-12 items-center justify-between">
+                        <div className={`grid gap-12 items-center justify-between ${customTheme ? compositionGridClasses[customTheme.composition] || "grid-cols-2" : "grid-cols-2"}`}>
                           <div className="flex-1 space-y-6">
                             <h1 className={`text-5xl md:text-6xl font-black leading-tight ${theme.titleColor}`}>
                               {currentSlide.titulo}
@@ -2846,7 +2859,7 @@ export default function SlideWorkspacePage() {
                         </div>
                       </div>
                       {currentSlide.imageUrl && (
-                        <div className="w-72 md:w-96 aspect-square rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0">
+                        <div className={`aspect-square overflow-hidden shadow-2xl border border-white/20 shrink-0 ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-2xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
@@ -2884,17 +2897,17 @@ export default function SlideWorkspacePage() {
                         {currentSlide.titulo}
                       </h2>
                       <div className="grid grid-cols-2 gap-6">
-                        {/* Coluna 1 (Destaque) */}
-                        <div className="p-6 rounded-2xl bg-orange-600 border border-orange-500/20 text-white flex flex-col min-h-[220px] justify-between shadow-lg">
-                          <div>
-                            <h3 className="text-xl font-bold border-b border-white/20 pb-2 mb-3">
-                              {currentSlide.subtitulo ? currentSlide.subtitulo.split("|")[0] || "" : ""}
-                            </h3>
-                            <p className="text-base leading-relaxed text-white/90 whitespace-pre-line">
-                              {getPoint(0)}
-                            </p>
-                          </div>
-                        </div>
+	                        {/* Coluna 1 (Suavizada conforme diagnóstico) */}
+	                        <div className={`p-6 rounded-2xl border-2 border-primary-500/20 flex flex-col min-h-[220px] justify-between shadow-lg ${theme.cardBgClass}`}>
+	                          <div>
+	                            <h3 className={`text-xl font-bold border-b border-current/10 pb-2 mb-3 ${theme.titleColor}`}>
+	                              {currentSlide.subtitulo ? currentSlide.subtitulo.split("|")[0] || "" : ""}
+	                            </h3>
+	                            <p className={`text-base leading-relaxed whitespace-pre-line ${theme.textColor}`}>
+	                              {getPoint(0)}
+	                            </p>
+	                          </div>
+	                        </div>
                         {/* Coluna 2 (Neutro) */}
                         <div className={`p-6 rounded-2xl border flex flex-col min-h-[220px] justify-between shadow-md ${theme.cardBgClass}`}>
                           <div>
@@ -3085,9 +3098,9 @@ export default function SlideWorkspacePage() {
 
                   {/* Highlight Quote (highlight_quote) */}
                   {currentSlide.layout === "highlight_quote" && (
-                    <div className="w-full flex flex-col md:flex-row gap-12 items-center justify-between max-w-5xl mx-auto">
+                    <div className={`w-full grid gap-12 items-center justify-between max-w-5xl mx-auto ${customTheme ? compositionGridClasses[customTheme.composition] || "grid-cols-2" : "grid-cols-2"}`}>
                       {currentSlide.imageUrl && (
-                        <div className="w-72 md:w-96 aspect-square rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0">
+                        <div className={`aspect-square overflow-hidden shadow-2xl border border-white/20 shrink-0 ${customTheme?.composition === 'organic' ? 'rounded-[38%_12%_28%_16%]' : 'rounded-2xl'}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getSlideImages(currentSlide).img1}
